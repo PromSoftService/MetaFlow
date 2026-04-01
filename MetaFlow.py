@@ -21,7 +21,7 @@
 #    $env:OPENAI_API_KEY | codex login --with-api-key
 #
 # 9) Run:
-#    py MetaFlow.py -input reminder.md -instructions instructions.md -config config.yaml
+#    py MetaFlow.py -instructions instructions.md -input .\projects\MetaPlatform\reminder.md -config .\projects\MetaPlatform\config.yaml
 #
 # 10) If reviewer asks a question:
 #     - answer in console
