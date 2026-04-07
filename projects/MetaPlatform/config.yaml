@@ -45,3 +45,8 @@ all_test_commands:
 
 setup_commands:
   - "npm install"
+
+codex_max_runtime_sec: 1800
+codex_post_turn_grace_sec: 15
+codex_idle_timeout_sec: 300
+codex_terminate_wait_sec: 5

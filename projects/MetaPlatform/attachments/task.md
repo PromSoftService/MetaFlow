@@ -1,246 +1,370 @@
-# Task: PNG icons runtime fix — renderer иконки не отображаются, хотя menu `Файл` отображает их корректно
+Работать только по текущему срезу проекта.
+Не опираться на старые версии/срезы.
+Это НОВАЯ ОТДЕЛЬНАЯ ЗАДАЧА после завершения предыдущей итерации про runtime client/local adapter.
+Предыдущую итерацию дальше не расширять.
+Нужно довести до DONE небольшой следующий этап и не раздувать diff сверх этого этапа.
+Перед началом изменений обязательно проверить helper-скрипты:
+- create_project_structure.py
+- export_project_to_txt.py
+и после изменений привести их в актуальное состояние.
+КОНТЕКСТ
+В текущем срезе уже есть базовый runtime abstraction layer на frontend:
+- renderer/runtime/runtimeClientContract.js
+- renderer/runtime/runtimeClient.js
+- renderer/runtime/adapters/createLocalRuntimeAdapter.js
+- wiring в renderer/app.js
+Это значит, что этап “ввести runtime client / local adapter” считать завершенным и НЕ продолжать в этой задаче.
+Следующий логичный шаг — не трогать сразу locks/process execution/full workspace UI, а сделать минимальный backend skeleton и первый настоящий domain command contract.
+ЦЕЛЬ ЭТОЙ ЗАДАЧИ
+Реализовать минимальный Python runtime backend skeleton и подключить к frontend первый backend-backed domain command flow для project catalog, не ломая существующий local project open/save flow.
+На этом этапе сделать только:
+1. backend skeleton на Python
+2. единый HTTP endpoint для command dispatch
+3. Pydantic request/response модели командного контракта
+4. минимальный backend storage bootstrap
+5. SQLite bootstrap с минимальной схемой users/projects
+6. domain commands:
+- platform.listProjects
+- platform.createProject
+7. frontend HTTP runtime adapter или отдельный backend command adapter
+8. минимальный frontend project browser/catalog UI только для:
+- list projects
+- create project
+Без перевода всего приложения на новый workflow.
+ВАЖНОЕ ОГРАНИЧЕНИЕ ЭТАПА
+На этом этапе НЕ реализовывать:
+- openProject через backend
+- saveAll через backend
+- saveProjectAs через backend
+- import/export
+- project locks
+- sessions
+- process execution engine
+- metagen.generate
+- metalab.run
+- process console UI
+- active-process mode
+- полную замену старых menu open/save/save-as сценариев
+- полный workspace browser вместо текущего project workflow
+Это отдельные следующие задачи.
+ЧТО СНАЧАЛА ПРОВЕРИТЬ
+Обязательно просмотреть:
+- create_project_structure.py
+- export_project_to_txt.py
+- renderer/runtime/runtimeClientContract.js
+- renderer/runtime/runtimeClient.js
+- renderer/runtime/adapters/createLocalRuntimeAdapter.js
+- renderer/app.js
+- renderer/core/projectManager.js
+- tests/runtimeClient.test.js
+- tests/localRuntimeAdapter.test.js
+- tests/runtimeBoundary.test.js
+- tests/configWiring.integration.test.js
+Также проверить, есть ли уже в текущем runtimeClientContract удобная модель для domain commands и какие части лучше переиспользовать, а какие аккуратно расширить.
+АРХИТЕКТУРНЫЙ СМЫСЛ ЗАДАЧИ
+Нужно сделать следующий архитектурный шаг:
+- перейти от low-level adapter abstraction к первому настоящему backend command layer;
+- но не ломать существующий desktop/local project flow;
+- не тащить в этот же diff locks/process/runtime execution.
+То есть результат должен быть таким:
+- backend уже существует как отдельный слой;
+- frontend уже умеет работать с backend commands хотя бы для catalog/create;
+- текущий open/save/save-as локального проекта пока живет отдельно и остается рабочим.
+ЦЕЛЕВАЯ СЕМАНТИКА
+После выполнения задачи должно быть так:
+1. В репозитории появился Python backend слой, который можно поднять отдельно.
+2. Backend имеет единый HTTP JSON endpoint команд, например /api/commands.
+3. Frontend умеет отправлять backend-команды в формате:
+{
+  "requestId": "...",
+  "module": "platform",
+  "command": "...",
+  "payload": { ... }
+}
+4. Backend отвечает в унифицированном формате:
+{
+  "requestId": "...",
+  "ok": true | false,
+  "result": { ... },
+  "error": {
+    "code": "...",
+    "message": "..."
+  }
+}
+5. Реально работают команды:
+- platform.listProjects
+- platform.createProject
+6. При createProject backend:
+- создает запись проекта в SQLite
+- создает физическую структуру проекта на диске в backend workspace
+- кладет project.yaml и стандартные папки metagen/metalab/metaview/generated
+- возвращает project summary
+7. Frontend имеет минимальный UI-контур, который может:
+- запросить список backend projects
+- создать backend project
+- показать результат
+8. Текущий local workflow через open/save/save-as dialogs и projectManager не ломается и не заменяется на этом этапе.
+ТЕХНОЛОГИЧЕСКИЙ ВЫБОР
+Backend реализовать на Python.
+Использовать:
+- Python 3.11+
+- FastAPI
+- uvicorn
+- sqlite3 или SQLAlchemy без лишней сложности
+- Pydantic
+- pytest
+Избыточную архитектурную тяжесть не разводить.
+ИЗМЕНЕНИЯ В СТРУКТУРЕ РЕПОЗИТОРИЯ
+Добавить новый backend слой, ориентировочно:
+runtime_backend/
+  app/
+    __init__.py
+    main.py
+    api/
+      __init__.py
+      routes_commands.py
+    db/
+      __init__.py
+      sqlite.py
+      schema.py
+      bootstrap.py
+    services/
+      __init__.py
+      project_catalog_service.py
+      command_dispatch_service.py
+      user_service.py
+    models/
+      __init__.py
+      commands.py
+      projects.py
+    utils/
+      __init__.py
+      ids.py
+      paths.py
+      time.py
+  tests/
+    test_backend_bootstrap.py
+    test_commands_platform_catalog.py
+Точные имена файлов можно скорректировать, но разделение по ответственности сохранить.
+BACKEND STORAGE
+Нужно ввести минимальный backend workspace root, например:
+runtime_data/
+  app.db
+  projects/
+    <project_id>/
+      current/
+        project.yaml
+        metagen/
+        metalab/
+        metaview/
+        generated/
+На этом этапе backups/exports/imports/process/logs можно не реализовывать полноценно, если они не нужны для list/create.
+Но layout paths helper’ами лучше заложить сразу аккуратно.
+SQLITE МОДЕЛЬ НА ЭТОМ ЭТАПЕ
+Сделать только необходимый минимум:
+1. users
+- id TEXT PRIMARY KEY
+- username TEXT NOT NULL UNIQUE
+- display_name TEXT NOT NULL
+- role TEXT NOT NULL DEFAULT 'user'
+- is_active INTEGER NOT NULL DEFAULT 1
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+2. projects
+- id TEXT PRIMARY KEY
+- name TEXT NOT NULL
+- slug TEXT NOT NULL UNIQUE
+- description TEXT NULL
+- storage_path TEXT NOT NULL
+- schema_version INTEGER NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+- created_by_user_id TEXT NOT NULL
+- updated_by_user_id TEXT NOT NULL
+- is_deleted INTEGER NOT NULL DEFAULT 0
+Сложную auth не делать.
+Current user можно инжектить простой заглушкой.
+BACKEND COMMANDS
+Реализовать только:
+1. platform.listProjects
+payload:
+{}
+result:
+{
+  "projects": [
+    {
+      "id": "...",
+      "name": "...",
+      "slug": "...",
+      "updatedAt": "...",
+      "lockedBy": null
+    }
+  ]
+}
+На этом этапе lockedBy всегда может быть null, потому что locks еще не реализуются.
+Но поле лучше уже вернуть в совместимом виде.
+2. platform.createProject
+payload:
+{
+  "name": "string"
+}
+Поведение:
+- валидировать имя
+- создать project_id/slug
+- создать физическую структуру current/
+- создать project.yaml в формате, совместимом с текущей платформой
+- зарегистрировать проект в SQLite
+- вернуть project summary
+FRONTEND ИЗМЕНЕНИЯ
+1. Не ломать существующий local runtime client flow.
+2. Аккуратно расширить runtime client так, чтобы появился backend command path.
+3. Можно добавить отдельный adapter, например:
+- renderer/runtime/adapters/createHttpRuntimeAdapter.js
+или аналогичную структуру.
+4. Не нужно переводить весь app.js на backend workflow.
+5. Нужно добавить минимальный UI-контур для backend catalog/create.
+Допустимо сделать временно:
+- отдельную маленькую панель/кнопки/диалог для списка shared projects
+- или отдельный временный экран/section
+Но не городить сразу полноценный project browser на весь продукт.
+6. Этот UI нужен только чтобы реально проверить:
+- listProjects
+- createProject
+7. Старые пункты меню open/save/save-as не менять как основной пользовательский сценарий.
+ГРАНИЦЫ СВОБОДЫ ДЛЯ REVIEWER
+Reviewer может сам выбрать:
+- использовать ли sqlite3 напрямую или тонкий repository/service слой;
+- делать ли отдельный http adapter файл или встроить transport в runtime client более компактно;
+- где именно разместить минимальный catalog UI.
+Но reviewer не должен:
+- расширять задачу до open/save/locks/processes;
+- начинать полную миграцию project workflow;
+- раздувать diff дополнительными несвязанными улучшениями.
+ОШИБКИ И КОДЫ ОШИБОК
+На этом этапе минимум поддержать:
+- VALIDATION_ERROR
+- INTERNAL_ERROR
+- PROJECT_CREATE_FAILED
+Если reviewer считает полезным, можно уже добавить общий error code registry в runtime contract/backend models.
+ЧТО НЕ ДЕЛАТЬ
+- не продолжать старую задачу про один только runtime client abstraction
+- не переписывать projectManager под backend storage
+- не переводить openProject/saveProject/saveProjectAs на backend
+- не делать project locks
+- не делать process execution
+- не делать import/export
+- не делать полноценный workspace browser
+- не трогать staging/rollback save semantics текущего projectManager
+- не тащить filesystem backend paths в основной frontend UI вне нужного backend слоя
+ТЕСТЫ
+ОБЯЗАТЕЛЬНО добавить и/или обновить тесты.
+Минимально покрыть:
+1. Backend:
+- bootstrap sqlite/workspace
+- platform.listProjects empty
+- platform.createProject success
+- повторное создание с конфликтующим slug/name если это предусмотрено
+- созданная файловая структура проекта
+2. Frontend:
+- runtime client/backend adapter wiring
+- успешный listProjects
+- успешный createProject
+- config wiring если были изменения
+3. Existing:
+- не сломать tests/runtimeClient.test.js
+- не сломать tests/localRuntimeAdapter.test.js
+- не сломать tests/runtimeBoundary.test.js
+- не сломать tests/projectManager.save.integration.test.js
+- не сломать tests/projectPaths.test.js
+ОБЯЗАТЕЛЬНО прогнать весь набор тестов целиком, а не только измененные.
+HELPER-СЦЕНАРИИ
+Обязательно:
+1. проверить create_project_structure.py
+2. проверить export_project_to_txt.py
+3. обновить их списки файлов/директорий с учетом:
+- runtime_backend/*
+- новых frontend runtime/backend adapter файлов
+- новых тестов
+КОМАНДЫ ПРОВЕРКИ
+Исполнитель обязан перечислить и реально использовать точные команды проверки.
+Минимально ожидается:
+- npm test
+- pytest runtime_backend/tests -q
+- uvicorn runtime_backend.app.main:app --reload
+или фактическая команда запуска backend, если структура немного иная
+Если есть дополнительные команды build/typecheck/lint по фактической реализации — перечислить и прогнать тоже.
+ФОРМАТ ИТОГОВОГО ОТЧЕТА
+Итоговый отчет reviewer обязан вернуть в таком виде:
+1. Что проверено в текущем проекте перед изменениями
+- отдельно упомянуть create_project_structure.py
+- отдельно упомянуть export_project_to_txt.py
+- отдельно указать, что runtimeClient/local adapter слой уже существовал до начала этой задачи
+2. Что было до изменений
+- frontend abstraction layer уже был
+- backend отсутствовал
+- domain command backend отсутствовал
+- project catalog shared workspace отсутствовал
+3. Что реализовано
+- Python backend skeleton
+- SQLite bootstrap
+- workspace bootstrap
+- platform.listProjects
+- platform.createProject
+- frontend backend adapter/wiring
+- минимальный catalog/create UI
+4. Какие файлы добавлены
+- полный список
+5. Какие файлы изменены
+- полный список
+6. Какие тесты добавлены/изменены
+- полный список
+7. Какие helper-скрипты обновлены
+- полный список
+8. Какие команды проверки запущены
+- точный список
+9. Результаты проверок
+- что прошло
+- что не прошло
+10. Старое и новое покрытие сценариев
+- отдельно старые сценарии
+- отдельно новые сценарии
+11. Финальный статус
+- DONE / PARTIAL / FAILED
+КРИТЕРИЙ DONE
+Эту задачу считать завершенной только если одновременно выполнено все:
+- backend поднимается отдельной командой
+- listProjects работает end-to-end
+- createProject работает end-to-end
+- backend реально создает проект на диске и запись в SQLite
+- frontend умеет показать список и создать проект через backend
+- существующий local open/save/save-as flow не сломан
+- helper-скрипты актуализированы
+- весь тестовый набор прогнан целиком
 
-Этот документ является task для reviewer.
-Он применяется вместе с обязательными reference-ограничениями:
-- 01_project_doctrine.md
-- 02_codex_execution_standard.md
-- 03_architecture_exceptions.md
-- актуальный dump проекта из attachments
-
-## 0. Главная цель
-
-Нужно закрыть конкретный runtime bug:
-
-- menu `Файл` показывает PNG icons;
-- renderer UI иконки визуально не показывает.
-
-Нужно не продолжать косметический refactor icon architecture, а довести текущую PNG-path модель до рабочего состояния в живом приложении.
-
-Это НЕ новый redesign иконок.
-Это НЕ переход на другую icon system.
-Это НЕ новая итерация про SVG.
-Это fix текущего renderer asset serving / runtime wiring.
-
-## 1. Что уже считается правильным и не должно быть сломано
-
-В текущем срезе уже есть правильные решения, их не нужно откатывать:
-
-1. канонический icon contract в `config/ui-config.js` уже использует browser paths вида `/icons/...`;
-2. PNG лежат в верхнеуровневой папке `public/icons/*`;
-3. native menu в `main.js` уже берёт те же canonical browser paths и переводит их в fs-path через bridge к `process.cwd()/public/icons`;
-4. `platform-config.js` больше не хранит отдельную icon map;
-5. renderer-side surfaces уже используют `pngIconRenderer.js`;
-6. menu text labels уже text-only и не должны быть снова засорены emoji/glyphs.
-
-Reviewer обязан удержать эти инварианты.
-
-## 2. Проблема
-
-Текущая проблема не в `ui-config.js` и не в наличии самих PNG-файлов.
-Проблема в runtime serving для renderer.
-
-Симптом:
-- native menu работает;
-- renderer icons визуально не видны.
-
-На текущем срезе это объясняется тем, что:
-- `vite.config.js` задаёт `root: 'renderer'`;
-- browser paths уже записаны как `/icons/...`;
-- PNG лежат в top-level `public/icons/*`;
-- но Vite public wiring не доведён до этой структуры.
-
-Итог:
-- menu читает иконки напрямую с файловой системы и работает;
-- renderer ожидает browser-served assets, но current Vite config это не гарантирует.
-
-## 3. Целевая семантика
-
-После исправления должно быть истинно всё:
-
-1. renderer surfaces реально показывают PNG иконки в живом UI;
-2. canonical browser icon contract остаётся `/icons/...`;
-3. top-level `public/icons/*` сохраняется;
-4. native menu продолжает работать через bridge в `main.js`;
-5. не появляется новый второй source of truth;
-6. не появляется новая ad-hoc path system;
-7. не появляется новый asset relocation pass;
-8. renderer не использует hand-made hacks вместо нормального Vite public wiring.
-
-## 4. Что сначала проверить
-
-Reviewer обязан сначала проверить и зафиксировать в `codex_task_md`:
-
-1. `vite.config.js`
-   - сейчас ли там только:
-     - `root: 'renderer'`
-     - server config
-   - отсутствует ли явный `publicDir`
-
-2. `config/ui-config.js`
-   - все renderer/menu icon paths действительно имеют формат `/icons/...`
-
-3. фактическое расположение PNG:
-   - это top-level `public/icons/*`, а не `renderer/public/icons/*`
-
-4. `main.js`
-   - menu bridge уже переводит `/icons/...` в `process.cwd()/public/icons/...`
-   - этот кусок не нужно переписывать без причины
-
-5. `renderer/ui/pngIconRenderer.js`
-   - проверить, не пытались ли там маскировать проблему через ad-hoc path rewrite вместо нормального Vite public wiring
-
-6. tests:
-   - проверить, что текущие tests в основном валидируют wiring/paths/existence, но не валидируют Vite public contract
-
-## 5. Exact implementation path — без свободы выбора
-
-Reviewer обязан зафиксировать для Codex ровно следующий путь.
-
-### 5.1. Не менять icon contract
-Оставить без изменения:
-- browser paths в config как `/icons/...`
-- top-level папку `public/icons/*`
-- menu bridge в `main.js`, который резолвит browser paths в fs paths через `process.cwd()/public/icons`
-
-### 5.2. Исправить Vite public wiring
-В `vite.config.js` нужно явно задать:
-- `publicDir: '../public'`
-
-при сохранении:
-- `root: 'renderer'`
-
-Это обязательный fix.
-Не переносить сейчас все PNG в другую папку.
-Не менять `/icons/...` на другой формат.
-Не перепридумывать asset contract.
-
-### 5.3. Не лечить bug костылями в renderer helper
-`pngIconRenderer.js` не должен становиться местом для новой ad-hoc системы резолва путей, если проблема решается корректной настройкой Vite.
-
-Правило:
-- renderer должен получать корректный browser-served path;
-- источник правды = config `/icons/...`;
-- Vite должен раздавать эти файлы правильно;
-- не нужно городить path hacks, string replace pipelines, произвольные branch’и для dev вместо настройки publicDir.
-
-Если в текущем helper уже есть временные path-hacks, reviewer должен потребовать от Codex оценить, нужны ли они после правильной настройки `publicDir`.
-Если после фикса `publicDir` они не нужны — удалить их.
-Если остаются — reviewer обязан потребовать очень чётко обосновать, зачем они нужны именно после корректного Vite wiring.
-
-### 5.4. Не ломать menu
-`main.js` уже должен продолжать:
-- брать browser path из `APP_CONFIG.ui.icons.assets.menuByAction`
-- переводить его в fs path через bridge к top-level `public/icons`
-
-Этот кусок не переписывать в другую архитектуру без необходимости.
-
-## 6. Что именно изменить
-
-### Обязательно
-1. `vite.config.js`
-   - добавить `publicDir: '../public'`
-   - сохранить `root: 'renderer'`
-   - не раздувать config лишними unrelated options
-
-2. При необходимости скорректировать tests так, чтобы они проверяли именно новую contract surface:
-   - canonical browser paths = `/icons/...`
-   - assets реально ожидаются в `public/icons/*`
-   - `vite.config.js` содержит нужный `publicDir`
-   - renderer wiring не строится на legacy `assets/...`
-   - menu bridge остаётся согласованным с top-level `public/icons`
-
-### Проверить, но не менять без причины
-1. `renderer/ui/pngIconRenderer.js`
-2. `renderer/ui/applyStaticText.js`
-3. `renderer/ui/createProjectTree.js`
-4. `renderer/ui/createWorkbenchTabs.js`
-5. `renderer/app.js`
-6. `main.js`
-
-Если после фикса `publicDir` они уже корректны — не раздувать touched zone.
-
-## 7. Что не делать
-
-1. Не возвращать SVG/iconSystem.
-2. Не переносить PNG в `renderer/public/icons` отдельным большим pass, если текущая структура чинится через `publicDir`.
-3. Не менять canonical `/icons/...` contract.
-4. Не возвращать `assets/icons/*` или `assets/menu-icons/*`.
-5. Не создавать новый config source of truth для menu icons.
-6. Не делать новый renderer-side path mapping pipeline без жёсткой необходимости.
-7. Не лечить bug только тестами.
-8. Не считать задачу закрытой по статическому wiring без живого runtime результата.
-9. Не трогать unrelated save/open/project/runtime semantics.
-10. Не запускать `export_project_to_txt.py`.
-11. Не генерировать dump.
-
-## 8. Тесты
-
-Reviewer обязан потребовать от Codex:
-
-### 8.1. Обновить / добавить targeted tests
-Минимально проверить:
-
-1. `tests/configWiring.integration.test.js`
-   - `UI_CONFIG` icon assets используют `/icons/...`
-   - required icon files существуют по пути `process.cwd()/public/icons/...`
-   - `vite.config.js` содержит:
-     - `root: 'renderer'`
-     - `publicDir: '../public'`
-   - `main.js` по-прежнему строит menu fs path из canonical browser path `/icons/...`
-
-2. renderer wiring tests
-   - top panel title wiring использует canonical `/icons/...`
-   - tree wiring использует canonical `/icons/...`
-   - tab close wiring использует canonical `/icons/...`
-
-### 8.2. Не ограничиваться старыми assertions
-Старые assertions уровня:
-- path string correct
-- file exists
-- helper imported
-
-недостаточны сами по себе.
-Нужно добавить проверку contract around Vite public serving.
-
-### 8.3. Полный набор тестов
-После targeted tests прогнать весь набор тестов целиком.
-
-## 9. Команды проверки
-
-Reviewer должен потребовать от Codex перечислить и выполнить точные команды.
-Минимум:
-1. targeted tests для config/icon wiring
-2. полный test suite целиком
-
-В отчёте должны быть приведены exact command lines и результат каждой команды.
-
-## 10. Что reviewer должен потребовать в итоговом отчёте
-
-Codex обязан в финальном отчёте явно указать:
-
-1. root cause bug’а;
-2. какие файлы изменены;
-3. что именно изменено в `vite.config.js`;
-4. почему выбран именно `publicDir: '../public'`;
-5. почему не понадобился relocation PNG в новую папку;
-6. оставлен ли menu bridge в `main.js` без изменений;
-7. потребовались ли изменения в `pngIconRenderer.js`, и если да — почему;
-8. какие targeted tests добавлены/изменены;
-9. результат полного набора тестов;
-10. финальный статус:
-   - renderer icons should now be served by Vite and visible in runtime UI.
-
-## 11. Формат `codex_task_md`
-
-Reviewer обязан выдать `codex_task_md` в жёстком операционном стиле с разделами:
-
-1. Контекст и проблема
-2. Целевая семантика
-3. Что сначала проверить
-4. Что именно изменить
-5. Что не делать
-6. Тесты
-7. Команды проверки
-8. Формат итогового отчёта
-
-Codex не должен сам выбирать другой implementation path.
+Дополнение к текущему ТЗ reviewer’у.
+Нужно изменить helper-скрипт export_project_to_txt.py и связанные правила сопровождения helper-скриптов следующим образом:
+1. Из project export to txt исключить:
+- все иконки из public/icons/*
+- весь demo-проект:
+  - project-examples/demo-feedmill/project.yaml
+  - project-examples/demo-feedmill/metagen/*
+  - project-examples/demo-feedmill/metalab/*
+  - project-examples/demo-feedmill/metaview/*
+- всю папку tests/*
+2. Аналогично привести в согласованное состояние create_project_structure.py:
+- не возвращать в списки экспорта/структуры иконки
+- не возвращать demo-feedmill
+- не возвращать tests
+3. Запрет:
+- не добавлять иконки, demo-проект и tests обратно в PROJECT_FILES этих helper-скриптов
+- если reviewer посчитает нужным, можно ввести явный комментарий над списками PROJECT_FILES, что:
+  - helper export предназначен только для рабочего кода и конфигурации
+  - assets/demo/tests намеренно исключены
+4. Это изменение входит в текущую задачу и должно быть отражено:
+- в списке измененных файлов
+- в разделе про helper-скрипты
+- в итоговом отчете reviewer’а
+5. При проверке отдельно зафиксировать, что export_project_to_txt.py больше не экспортирует:
+- public/icons/*
+- project-examples/demo-feedmill/*
+- tests/*

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # HOW TO RUN
 # 1) Install Python dependencies:
 #    py -m pip install -r requirements.txt
@@ -37,6 +39,8 @@
 # 13) run.py DOES NOT create ./attachments or ./inbox.
 #     User is responsible for creating and maintaining these folders.
 
+from __future__ import annotations
+
 import argparse
 import base64
 import json
@@ -50,7 +54,7 @@ import threading
 import time
 import traceback
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -168,6 +172,64 @@ class IterationArtifacts:
     inbox_attachments_payload_path: Path
     first_iteration_attachments_manifest_path: Path
     first_iteration_attachments_payload_path: Path
+
+
+@dataclass
+class CodexMonitorState:
+    started_at: float
+    last_stdout_at: float = field(default_factory=time.time)
+    last_stderr_at: float = field(default_factory=time.time)
+    saw_turn_completed: bool = False
+    saw_agent_message: bool = False
+    turn_completed_at: Optional[float] = None
+    last_output_at: float = field(default_factory=time.time)
+    lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def mark_stdout_line(self, line: str) -> None:
+        now = time.time()
+        with self.lock:
+            self.last_stdout_at = now
+            self.last_output_at = now
+
+        stripped = line.strip()
+        if not stripped:
+            return
+
+        try:
+            event = json.loads(stripped)
+        except json.JSONDecodeError:
+            return
+
+        event_type = str(event.get("type", "")).strip().lower()
+        item = event.get("item")
+        item_type = item.get("type") if isinstance(item, dict) else None
+
+        with self.lock:
+            if event_type == "turn.completed":
+                self.saw_turn_completed = True
+                if self.turn_completed_at is None:
+                    self.turn_completed_at = now
+
+            if item_type == "agent_message":
+                self.saw_agent_message = True
+
+    def mark_stderr_line(self) -> None:
+        now = time.time()
+        with self.lock:
+            self.last_stderr_at = now
+            self.last_output_at = now
+
+    def snapshot(self) -> Dict[str, Any]:
+        with self.lock:
+            return {
+                "started_at": self.started_at,
+                "last_stdout_at": self.last_stdout_at,
+                "last_stderr_at": self.last_stderr_at,
+                "last_output_at": self.last_output_at,
+                "saw_turn_completed": self.saw_turn_completed,
+                "saw_agent_message": self.saw_agent_message,
+                "turn_completed_at": self.turn_completed_at,
+            }
 
 
 def banner(title: str) -> None:
@@ -995,7 +1057,6 @@ def extract_codex_report_from_trace(trace_text: str) -> str:
     return ""
 
 
-
 def build_codex_report_fallback(stdout_text: str, stderr_text: str) -> str:
     parts: List[str] = []
 
@@ -1052,7 +1113,51 @@ def ensure_codex_summary_file(
     return fallback_obj
 
 
-def _collect_pipe(pipe: Any, collector: List[str], path: Path, echo_stderr_prefix: Optional[str]) -> None:
+def trace_indicates_turn_completed(trace_path: Path) -> bool:
+    if not trace_path.exists():
+        return False
+
+    try:
+        with trace_path.open("r", encoding="utf-8", errors="replace") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if str(event.get("type", "")).strip().lower() == "turn.completed":
+                    return True
+    except Exception:
+        return False
+
+    return False
+
+
+def codex_logical_completion_observed(
+    monitor_state: CodexMonitorState,
+    codex_summary_json_path: Path,
+    trace_path: Path,
+) -> bool:
+    snapshot = monitor_state.snapshot()
+    if snapshot["saw_turn_completed"] and isinstance(load_json_if_exists(codex_summary_json_path), dict):
+        return True
+
+    if trace_indicates_turn_completed(trace_path) and isinstance(load_json_if_exists(codex_summary_json_path), dict):
+        return True
+
+    return False
+
+
+def _collect_pipe(
+    pipe: Any,
+    collector: List[str],
+    path: Path,
+    echo_stderr_prefix: Optional[str],
+    monitor_state: Optional[CodexMonitorState],
+    stream_name: str,
+) -> None:
     try:
         while True:
             line = pipe.readline()
@@ -1066,6 +1171,12 @@ def _collect_pipe(pipe: Any, collector: List[str], path: Path, echo_stderr_prefi
 
             collector.append(text)
             append_text(path, text)
+
+            if monitor_state is not None:
+                if stream_name == "stdout":
+                    monitor_state.mark_stdout_line(text)
+                else:
+                    monitor_state.mark_stderr_line()
 
             stripped = text.rstrip()
             if stripped:
@@ -1139,6 +1250,39 @@ def build_codex_command_parts(
     return parts, use_stdin
 
 
+def terminate_process_tree_best_effort(
+    proc: subprocess.Popen,
+    terminate_wait_sec: int,
+) -> None:
+    if proc.poll() is not None:
+        return
+
+    try:
+        warn(f"Attempting graceful Codex terminate (pid={proc.pid})...")
+        proc.terminate()
+        deadline = time.time() + max(0, terminate_wait_sec)
+        while time.time() < deadline:
+            if proc.poll() is not None:
+                return
+            time.sleep(0.2)
+    except Exception as exc:
+        warn(f"Graceful terminate failed: {exc}")
+
+    if proc.poll() is not None:
+        return
+
+    try:
+        warn(f"Force killing Codex process (pid={proc.pid})...")
+        proc.kill()
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if proc.poll() is not None:
+                return
+            time.sleep(0.2)
+    except Exception as exc:
+        warn(f"Force kill failed: {exc}")
+
+
 def run_codex(
     codex_executable: str,
     repo_dir: Path,
@@ -1152,6 +1296,10 @@ def run_codex(
     codex_env: Dict[str, str],
     heartbeat_interval_sec: int,
     retry_policy: RetryPolicy,
+    max_runtime_sec: int,
+    post_turn_grace_sec: int,
+    idle_timeout_sec: int,
+    terminate_wait_sec: int,
 ) -> Tuple[int, Dict[str, Any]]:
     banner("CODEX RUN")
 
@@ -1224,15 +1372,16 @@ def run_codex(
 
         stdout_chunks: List[str] = []
         stderr_chunks: List[str] = []
+        monitor_state = CodexMonitorState(started_at=time.time())
 
         stdout_thread = threading.Thread(
             target=_collect_pipe,
-            args=(proc.stdout, stdout_chunks, trace_path, None),
+            args=(proc.stdout, stdout_chunks, trace_path, None, monitor_state, "stdout"),
             daemon=True,
         )
         stderr_thread = threading.Thread(
             target=_collect_pipe,
-            args=(proc.stderr, stderr_chunks, stderr_path, ""),
+            args=(proc.stderr, stderr_chunks, stderr_path, "", monitor_state, "stderr"),
             daemon=True,
         )
         heartbeat_thread = threading.Thread(
@@ -1250,12 +1399,82 @@ def run_codex(
             proc.stdin.write(prompt_bytes)
             proc.stdin.close()
 
-        proc.wait()
-        stdout_thread.join()
-        stderr_thread.join()
+        forced_shutdown = False
+        forced_shutdown_reason: Optional[str] = None
+
+        while True:
+            return_code = proc.poll()
+            snapshot = monitor_state.snapshot()
+            now = time.time()
+            elapsed = now - snapshot["started_at"]
+            last_output_age = now - snapshot["last_output_at"]
+            summary_ready = isinstance(load_json_if_exists(codex_summary_json_path), dict)
+            logical_completion = codex_logical_completion_observed(
+                monitor_state=monitor_state,
+                codex_summary_json_path=codex_summary_json_path,
+                trace_path=trace_path,
+            )
+
+            if return_code is not None:
+                break
+
+            if logical_completion and snapshot["turn_completed_at"] is not None:
+                completed_for = now - snapshot["turn_completed_at"]
+                if completed_for >= post_turn_grace_sec:
+                    forced_shutdown = True
+                    forced_shutdown_reason = (
+                        f"logical completion observed and process still alive after "
+                        f"{post_turn_grace_sec}s grace period"
+                    )
+                    warn(
+                        "Codex produced a completed turn and summary but the CLI process "
+                        "did not exit. Ending the process and accepting the logical result."
+                    )
+                    terminate_process_tree_best_effort(proc, terminate_wait_sec=terminate_wait_sec)
+                    break
+
+            if max_runtime_sec > 0 and elapsed >= max_runtime_sec:
+                forced_shutdown = True
+                forced_shutdown_reason = f"max runtime exceeded ({max_runtime_sec}s)"
+                warn(
+                    f"Codex exceeded max runtime of {max_runtime_sec}s. "
+                    "Ending the process."
+                )
+                terminate_process_tree_best_effort(proc, terminate_wait_sec=terminate_wait_sec)
+                break
+
+            if idle_timeout_sec > 0 and last_output_age >= idle_timeout_sec:
+                forced_shutdown = True
+                if logical_completion or summary_ready:
+                    forced_shutdown_reason = (
+                        f"idle timeout exceeded after logical completion ({idle_timeout_sec}s)"
+                    )
+                    warn(
+                        f"Codex became idle for {idle_timeout_sec}s after producing a result. "
+                        "Ending the process and accepting the logical result if present."
+                    )
+                else:
+                    forced_shutdown_reason = f"idle timeout exceeded without result ({idle_timeout_sec}s)"
+                    warn(
+                        f"Codex became idle for {idle_timeout_sec}s without a completed result. "
+                        "Ending the process; retry policy will decide whether to retry."
+                    )
+                terminate_process_tree_best_effort(proc, terminate_wait_sec=terminate_wait_sec)
+                break
+
+            time.sleep(0.5)
+
+        if proc.poll() is None:
+            terminate_process_tree_best_effort(proc, terminate_wait_sec=terminate_wait_sec)
+
+        stdout_thread.join(timeout=5)
+        stderr_thread.join(timeout=5)
         heartbeat_thread.join(timeout=0.1)
 
-        last_return_code = proc.returncode
+        if proc.poll() is None:
+            terminate_process_tree_best_effort(proc, terminate_wait_sec=terminate_wait_sec)
+
+        last_return_code = proc.poll() if proc.poll() is not None else 1
         last_stdout = "".join(stdout_chunks)
         last_stderr = "".join(stderr_chunks)
 
@@ -1266,18 +1485,38 @@ def run_codex(
             fallback_path=fallback_path,
         )
 
-        if proc.returncode == 0:
-            info(f"Codex exit code: {proc.returncode}")
+        logical_completion = codex_logical_completion_observed(
+            monitor_state=monitor_state,
+            codex_summary_json_path=codex_summary_json_path,
+            trace_path=trace_path,
+        )
+
+        if last_return_code == 0:
+            info(f"Codex exit code: {last_return_code}")
             info(f"Codex structured summary saved to: {codex_summary_json_path}")
             info(f"Codex trace saved to: {trace_path}")
             info(f"Codex stderr saved to: {stderr_path}")
-            return proc.returncode, structured_summary
+            return last_return_code, structured_summary
+
+        if logical_completion:
+            warn(
+                f"Codex exited with non-zero code {last_return_code}, "
+                "but a completed turn and structured summary were already produced. "
+                "Accepting the result without retry."
+            )
+            if forced_shutdown_reason:
+                warn(f"Codex forced shutdown reason: {forced_shutdown_reason}")
+            info(f"Codex exit code: {last_return_code}")
+            info(f"Codex structured summary saved to: {codex_summary_json_path}")
+            info(f"Codex trace saved to: {trace_path}")
+            info(f"Codex stderr saved to: {stderr_path}")
+            return last_return_code, structured_summary
 
         if should_stop_retrying(attempt, retry_policy):
             break
 
         warn(
-            f"Codex failed with exit code {proc.returncode}. "
+            f"Codex failed with exit code {last_return_code}. "
             f"Retry after {retry_policy.sleep_sec}s."
         )
         time.sleep(retry_policy.sleep_sec)
@@ -1398,6 +1637,11 @@ def main() -> int:
     iteration_sleep_sec = int(config.get("iteration_sleep_sec", 8))
     codex_heartbeat_interval_sec = int(config.get("codex_heartbeat_interval_sec", 15))
 
+    codex_max_runtime_sec = int(config.get("codex_max_runtime_sec", 1800))
+    codex_post_turn_grace_sec = int(config.get("codex_post_turn_grace_sec", 15))
+    codex_idle_timeout_sec = int(config.get("codex_idle_timeout_sec", 300))
+    codex_terminate_wait_sec = int(config.get("codex_terminate_wait_sec", 5))
+
     primary_input_path = Path(args.primary_input).resolve()
     instructions_path = Path(args.instructions_file).resolve()
 
@@ -1439,6 +1683,10 @@ def main() -> int:
     info(f"Resolved codex path: {codex_path}")
     info(f"Configured codex command: {codex_command}")
     info(f"Codex heartbeat interval: {codex_heartbeat_interval_sec}s")
+    info(f"Codex max runtime: {codex_max_runtime_sec}s")
+    info(f"Codex post-turn grace: {codex_post_turn_grace_sec}s")
+    info(f"Codex idle timeout: {codex_idle_timeout_sec}s")
+    info(f"Codex terminate wait: {codex_terminate_wait_sec}s")
     info(
         f"Retry policy repo: retries={'∞' if repo_retry_policy.max_retries is None else repo_retry_policy.max_retries}, "
         f"sleep={repo_retry_policy.sleep_sec}s"
@@ -1672,6 +1920,10 @@ def main() -> int:
             codex_env=codex_env,
             heartbeat_interval_sec=codex_heartbeat_interval_sec,
             retry_policy=codex_retry_policy,
+            max_runtime_sec=codex_max_runtime_sec,
+            post_turn_grace_sec=codex_post_turn_grace_sec,
+            idle_timeout_sec=codex_idle_timeout_sec,
+            terminate_wait_sec=codex_terminate_wait_sec,
         )
 
         git_diff_text = get_git_diff(git_path, repo_dir)
