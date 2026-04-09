@@ -8,7 +8,7 @@
 #    py run.py --task task.md --instructions instructions.md --config config.yaml
 
 repo_url: "https://github.com/PromSoftService/MetaPlatform.git"
-branch: "refactor/core"
+branch: "main"
 repo_dir: "./projects/MetaPlatform/repo"
 artifacts_dir: "./projects/MetaPlatform/artifacts"
 
@@ -18,7 +18,7 @@ attachments_dir: "./projects/MetaPlatform/attachments"
 reviewer_inbox_dir: "./projects/MetaPlatform/inbox"
 
 reviewer_model: "gpt-5.4"
-max_iterations: 2
+max_iterations: 4
 
 # 0 или -1 = бесконечные ретраи
 repo_retry_count: 0
@@ -48,5 +48,5 @@ setup_commands:
 
 codex_max_runtime_sec: 1800
 codex_post_turn_grace_sec: 15
-codex_idle_timeout_sec: 300
+codex_idle_timeout_sec: 600
 codex_terminate_wait_sec: 5

@@ -1,370 +1,255 @@
-Работать только по текущему срезу проекта.
-Не опираться на старые версии/срезы.
-Это НОВАЯ ОТДЕЛЬНАЯ ЗАДАЧА после завершения предыдущей итерации про runtime client/local adapter.
-Предыдущую итерацию дальше не расширять.
-Нужно довести до DONE небольшой следующий этап и не раздувать diff сверх этого этапа.
+Новая задача: завершить backend export shared project из текущего состояния репозитория.
+
 Перед началом изменений обязательно проверить helper-скрипты:
 - create_project_structure.py
 - export_project_to_txt.py
 и после изменений привести их в актуальное состояние.
+
 КОНТЕКСТ
-В текущем срезе уже есть базовый runtime abstraction layer на frontend:
-- renderer/runtime/runtimeClientContract.js
-- renderer/runtime/runtimeClient.js
-- renderer/runtime/adapters/createLocalRuntimeAdapter.js
-- wiring в renderer/app.js
-Это значит, что этап “ввести runtime client / local adapter” считать завершенным и НЕ продолжать в этой задаче.
-Следующий логичный шаг — не трогать сразу locks/process execution/full workspace UI, а сделать минимальный backend skeleton и первый настоящий domain command contract.
+По текущему состоянию уже видно следующее:
+- в backend contract уже добавлены `projectExportsEndpoint`, `exportProject`, `PROJECT_EXPORT_FAILED`; :contentReference[oaicite:0]{index=0}
+- в Electron/preload уже добавлен save binary dialog для сохранения zip на локальную машину; :contentReference[oaicite:1]{index=1}
+- во frontend catalog уже есть кнопка `Export` и отдельный flow через `runBackendProjectExport(...)`; :contentReference[oaicite:2]{index=2}
+- helper whitelist уже расширен новым файлом `renderer/runtime/backendProjectExportFlow.js`; :contentReference[oaicite:3]{index=3}
+
+Это значит, что задача не “с нуля”, а на добивание и верификацию уже начатого export vertical slice.
+
 ЦЕЛЬ ЭТОЙ ЗАДАЧИ
-Реализовать минимальный Python runtime backend skeleton и подключить к frontend первый backend-backed domain command flow для project catalog, не ломая существующий local project open/save flow.
-На этом этапе сделать только:
-1. backend skeleton на Python
-2. единый HTTP endpoint для command dispatch
-3. Pydantic request/response модели командного контракта
-4. минимальный backend storage bootstrap
-5. SQLite bootstrap с минимальной схемой users/projects
-6. domain commands:
-- platform.listProjects
-- platform.createProject
-7. frontend HTTP runtime adapter или отдельный backend command adapter
-8. минимальный frontend project browser/catalog UI только для:
-- list projects
-- create project
-Без перевода всего приложения на новый workflow.
+Довести до DONE backend export shared project:
+1. backend command:
+- platform.exportProject
+2. backend download endpoint для zip-архива
+3. frontend export action из backend catalog
+4. локальное сохранение архива пользователю
+5. тестовое подтверждение, что export не мутирует storage и реально работает end-to-end
+
 ВАЖНОЕ ОГРАНИЧЕНИЕ ЭТАПА
 На этом этапе НЕ реализовывать:
-- openProject через backend
-- saveAll через backend
-- saveProjectAs через backend
-- import/export
+- importProject
 - project locks
 - sessions
-- process execution engine
+- heartbeat
+- process execution
 - metagen.generate
 - metalab.run
-- process console UI
 - active-process mode
-- полную замену старых menu open/save/save-as сценариев
-- полный workspace browser вместо текущего project workflow
-Это отдельные следующие задачи.
+- большой refactor project browser
+- cloud/object storage
+- async jobs/queues
+- streaming/orchestration beyond simple current implementation
+
 ЧТО СНАЧАЛА ПРОВЕРИТЬ
 Обязательно просмотреть:
 - create_project_structure.py
 - export_project_to_txt.py
+- config/platform-config.js
+- renderer/app.js
+- renderer/runtime/backendProjectExportFlow.js
 - renderer/runtime/runtimeClientContract.js
 - renderer/runtime/runtimeClient.js
-- renderer/runtime/adapters/createLocalRuntimeAdapter.js
-- renderer/app.js
-- renderer/core/projectManager.js
-- tests/runtimeClient.test.js
-- tests/localRuntimeAdapter.test.js
-- tests/runtimeBoundary.test.js
-- tests/configWiring.integration.test.js
-Также проверить, есть ли уже в текущем runtimeClientContract удобная модель для domain commands и какие части лучше переиспользовать, а какие аккуратно расширить.
-АРХИТЕКТУРНЫЙ СМЫСЛ ЗАДАЧИ
-Нужно сделать следующий архитектурный шаг:
-- перейти от low-level adapter abstraction к первому настоящему backend command layer;
-- но не ломать существующий desktop/local project flow;
-- не тащить в этот же diff locks/process/runtime execution.
-То есть результат должен быть таким:
-- backend уже существует как отдельный слой;
-- frontend уже умеет работать с backend commands хотя бы для catalog/create;
-- текущий open/save/save-as локального проекта пока живет отдельно и остается рабочим.
-ЦЕЛЕВАЯ СЕМАНТИКА
-После выполнения задачи должно быть так:
-1. В репозитории появился Python backend слой, который можно поднять отдельно.
-2. Backend имеет единый HTTP JSON endpoint команд, например /api/commands.
-3. Frontend умеет отправлять backend-команды в формате:
-{
-  "requestId": "...",
-  "module": "platform",
-  "command": "...",
-  "payload": { ... }
-}
-4. Backend отвечает в унифицированном формате:
-{
-  "requestId": "...",
-  "ok": true | false,
-  "result": { ... },
-  "error": {
-    "code": "...",
-    "message": "..."
-  }
-}
-5. Реально работают команды:
-- platform.listProjects
-- platform.createProject
-6. При createProject backend:
-- создает запись проекта в SQLite
-- создает физическую структуру проекта на диске в backend workspace
-- кладет project.yaml и стандартные папки metagen/metalab/metaview/generated
-- возвращает project summary
-7. Frontend имеет минимальный UI-контур, который может:
-- запросить список backend projects
-- создать backend project
-- показать результат
-8. Текущий local workflow через open/save/save-as dialogs и projectManager не ломается и не заменяется на этом этапе.
-ТЕХНОЛОГИЧЕСКИЙ ВЫБОР
-Backend реализовать на Python.
-Использовать:
-- Python 3.11+
-- FastAPI
-- uvicorn
-- sqlite3 или SQLAlchemy без лишней сложности
-- Pydantic
-- pytest
-Избыточную архитектурную тяжесть не разводить.
-ИЗМЕНЕНИЯ В СТРУКТУРЕ РЕПОЗИТОРИЯ
-Добавить новый backend слой, ориентировочно:
-runtime_backend/
-  app/
-    __init__.py
-    main.py
-    api/
-      __init__.py
-      routes_commands.py
-    db/
-      __init__.py
-      sqlite.py
-      schema.py
-      bootstrap.py
-    services/
-      __init__.py
-      project_catalog_service.py
-      command_dispatch_service.py
-      user_service.py
-    models/
-      __init__.py
-      commands.py
-      projects.py
-    utils/
-      __init__.py
-      ids.py
-      paths.py
-      time.py
-  tests/
-    test_backend_bootstrap.py
-    test_commands_platform_catalog.py
-Точные имена файлов можно скорректировать, но разделение по ответственности сохранить.
-BACKEND STORAGE
-Нужно ввести минимальный backend workspace root, например:
-runtime_data/
-  app.db
-  projects/
-    <project_id>/
-      current/
-        project.yaml
-        metagen/
-        metalab/
-        metaview/
-        generated/
-На этом этапе backups/exports/imports/process/logs можно не реализовывать полноценно, если они не нужны для list/create.
-Но layout paths helper’ами лучше заложить сразу аккуратно.
-SQLITE МОДЕЛЬ НА ЭТОМ ЭТАПЕ
-Сделать только необходимый минимум:
-1. users
-- id TEXT PRIMARY KEY
-- username TEXT NOT NULL UNIQUE
-- display_name TEXT NOT NULL
-- role TEXT NOT NULL DEFAULT 'user'
-- is_active INTEGER NOT NULL DEFAULT 1
-- created_at TEXT NOT NULL
-- updated_at TEXT NOT NULL
-2. projects
-- id TEXT PRIMARY KEY
-- name TEXT NOT NULL
-- slug TEXT NOT NULL UNIQUE
-- description TEXT NULL
-- storage_path TEXT NOT NULL
-- schema_version INTEGER NOT NULL
-- created_at TEXT NOT NULL
-- updated_at TEXT NOT NULL
-- created_by_user_id TEXT NOT NULL
-- updated_by_user_id TEXT NOT NULL
-- is_deleted INTEGER NOT NULL DEFAULT 0
-Сложную auth не делать.
-Current user можно инжектить простой заглушкой.
-BACKEND COMMANDS
-Реализовать только:
-1. platform.listProjects
+- renderer/runtime/adapters/createHttpRuntimeAdapter.js
+- renderer/runtime/fileSystemBridge.js
+- main.js
+- preload.cjs
+- runtime_backend/app/main.py
+- runtime_backend/app/api/commands.py
+- runtime_backend/app/services/command_dispatcher.py
+- runtime_backend/app/services/project_storage.py
+- runtime_backend/tests/test_commands.py
+
+После просмотра сначала дать короткую фактическую оценку:
+- что уже реализовано полностью,
+- что реализовано частично,
+- чего не хватает до DONE.
+
+ЧТО ИМЕННО НУЖНО ДОДЕЛАТЬ
+Нужно закрыть именно export scope, без расползания в соседние задачи.
+
+1. Backend command semantics
+Проверить и при необходимости довести:
+- `platform.exportProject`
 payload:
-{}
+{
+  "projectId": "string"
+}
 result:
 {
-  "projects": [
-    {
-      "id": "...",
-      "name": "...",
-      "slug": "...",
-      "updatedAt": "...",
-      "lockedBy": null
-    }
-  ]
+  "exportToken": "string",
+  "downloadUrl": "string",
+  "fileName": "string"
 }
-На этом этапе lockedBy всегда может быть null, потому что locks еще не реализуются.
-Но поле лучше уже вернуть в совместимом виде.
-2. platform.createProject
-payload:
-{
-  "name": "string"
-}
-Поведение:
-- валидировать имя
-- создать project_id/slug
-- создать физическую структуру current/
-- создать project.yaml в формате, совместимом с текущей платформой
-- зарегистрировать проект в SQLite
-- вернуть project summary
-FRONTEND ИЗМЕНЕНИЯ
-1. Не ломать существующий local runtime client flow.
-2. Аккуратно расширить runtime client так, чтобы появился backend command path.
-3. Можно добавить отдельный adapter, например:
-- renderer/runtime/adapters/createHttpRuntimeAdapter.js
-или аналогичную структуру.
-4. Не нужно переводить весь app.js на backend workflow.
-5. Нужно добавить минимальный UI-контур для backend catalog/create.
-Допустимо сделать временно:
-- отдельную маленькую панель/кнопки/диалог для списка shared projects
-- или отдельный временный экран/section
-Но не городить сразу полноценный project browser на весь продукт.
-6. Этот UI нужен только чтобы реально проверить:
-- listProjects
-- createProject
-7. Старые пункты меню open/save/save-as не менять как основной пользовательский сценарий.
+или другой уже реализованный эквивалентный контракт, если он последователен и покрыт тестами.
+
+2. Backend export storage flow
+Проверить и при необходимости довести:
+- поиск project current/
+- сборку zip во временную export area
+- отсутствие мутаций current/ в процессе export
+- cleanup export artifacts
+- одноразовость или иная явно зафиксированная семантика export token
+- корректное поведение при missing project / invalid token / повторном скачивании
+
+3. Backend download route
+Проверить и при необходимости довести:
+- отдельный route скачивания архива
+- корректный content-type/content-disposition
+- безопасную выдачу готового zip
+- cleanup временного файла после consumption, если выбрана такая модель
+
+4. Frontend export flow
+Проверить и при необходимости довести:
+- кнопка `Export` в backend catalog
+- вызов backend command
+- скачивание binary payload
+- сохранение через `saveBinaryFileAsDialog`
+- корректный default file name
+- корректная обработка cancel/error
+- отсутствие влияния на текущий runtime/project state
+
+5. Electron bridge
+Проверить и при необходимости довести:
+- `saveBinaryFileAsDialog` в main/preload/fileSystemBridge
+- согласованность channel names/config wiring
+- запись bytes без порчи архива
+
+6. Tests
+Обязательно довести покрытие до явного DONE.
+
+ОБЯЗАТЕЛЬНЫЕ BACKEND TESTS
+Минимум:
+- exportProject success
+- exportProject missing project -> PROJECT_NOT_FOUND
+- download by valid token success
+- invalid/unknown token -> согласованная ошибка/404
+- archive реально содержит:
+  - project.yaml
+  - metagen/
+  - metalab/
+  - metaview/
+  - generated/ если это часть текущего storage contract
+- export не мутирует current project storage
+- cleanup export artifacts работает
+- если токен одноразовый, это должно быть явно покрыто тестом
+
+ОБЯЗАТЕЛЬНЫЕ FRONTEND TESTS
+Минимум:
+- backend catalog export wiring
+- export flow вызывает backend command, downloadBinary и saveBinaryFileAsDialog
+- cancel сохранения не ломает runtime
+- export не закрывает текущий проект
+- export работает и для opened, и для non-opened backend project
+- ошибки скачивания/сохранения логируются и не ломают UI state
+
+ОБЯЗАТЕЛЬНО ПРОВЕРИТЬ СТАРЫЕ ТЕСТЫ
+Не сломать:
+- list/create/open/save/saveAs/delete backend tests
+- local desktop flows
+- runtime client / adapter wiring
+- helper whitelist policy
+
 ГРАНИЦЫ СВОБОДЫ ДЛЯ REVIEWER
 Reviewer может сам выбрать:
-- использовать ли sqlite3 напрямую или тонкий repository/service слой;
-- делать ли отдельный http adapter файл или встроить transport в runtime client более компактно;
-- где именно разместить минимальный catalog UI.
-Но reviewer не должен:
-- расширять задачу до open/save/locks/processes;
-- начинать полную миграцию project workflow;
-- раздувать diff дополнительными несвязанными улучшениями.
-ОШИБКИ И КОДЫ ОШИБОК
-На этом этапе минимум поддержать:
-- VALIDATION_ERROR
-- INTERNAL_ERROR
-- PROJECT_CREATE_FAILED
-Если reviewer считает полезным, можно уже добавить общий error code registry в runtime contract/backend models.
+- оставить текущий export contract как есть, если он уже консистентен;
+- минимально поправить result shape, если это нужно для чистоты API;
+- оставить одноразовый token flow, если он уже реализован и тестируем;
+- минимально дооформить logging/messages.
+
+Reviewer не должен:
+- начинать import
+- тянуть locks
+- делать большой рефактор frontend
+- менять local save/open semantics
+- вводить новый формат архива
+- раздувать diff задачами вне export scope
+
 ЧТО НЕ ДЕЛАТЬ
-- не продолжать старую задачу про один только runtime client abstraction
-- не переписывать projectManager под backend storage
-- не переводить openProject/saveProject/saveProjectAs на backend
-- не делать project locks
-- не делать process execution
-- не делать import/export
-- не делать полноценный workspace browser
-- не трогать staging/rollback save semantics текущего projectManager
-- не тащить filesystem backend paths в основной frontend UI вне нужного backend слоя
-ТЕСТЫ
-ОБЯЗАТЕЛЬНО добавить и/или обновить тесты.
-Минимально покрыть:
-1. Backend:
-- bootstrap sqlite/workspace
-- platform.listProjects empty
-- platform.createProject success
-- повторное создание с конфликтующим slug/name если это предусмотрено
-- созданная файловая структура проекта
-2. Frontend:
-- runtime client/backend adapter wiring
-- успешный listProjects
-- успешный createProject
-- config wiring если были изменения
-3. Existing:
-- не сломать tests/runtimeClient.test.js
-- не сломать tests/localRuntimeAdapter.test.js
-- не сломать tests/runtimeBoundary.test.js
-- не сломать tests/projectManager.save.integration.test.js
-- не сломать tests/projectPaths.test.js
-ОБЯЗАТЕЛЬНО прогнать весь набор тестов целиком, а не только измененные.
+- не переходить к importProject
+- не делать project browser redesign
+- не добавлять process/runtime execution
+- не делать watch/server foreground команды без bounded wrapper в extra_test_commands
+- не оставлять export только “частично wired” без end-to-end проверки
+- не забыть обновить helper scripts
+
+КОМАНДЫ ПРОВЕРКИ
+Исполнитель обязан перечислить и реально использовать точные команды проверки.
+
+Минимально ожидается:
+- npm test
+- python -m pytest runtime_backend/tests -q
+
+Если нужен startup probe backend:
+- использовать только bounded wrapper/probe, который сам завершается
+- не добавлять в extra_test_commands:
+  - python -m uvicorn ...
+  - npm run dev
+  - vite
+  - electron .
+  - любые server/watch процессы без bounded wrapper
+
 HELPER-СЦЕНАРИИ
 Обязательно:
 1. проверить create_project_structure.py
 2. проверить export_project_to_txt.py
-3. обновить их списки файлов/директорий с учетом:
-- runtime_backend/*
-- новых frontend runtime/backend adapter файлов
-- новых тестов
-КОМАНДЫ ПРОВЕРКИ
-Исполнитель обязан перечислить и реально использовать точные команды проверки.
-Минимально ожидается:
-- npm test
-- pytest runtime_backend/tests -q
-- uvicorn runtime_backend.app.main:app --reload
-или фактическая команда запуска backend, если структура немного иная
-Если есть дополнительные команды build/typecheck/lint по фактической реализации — перечислить и прогнать тоже.
+3. добавить новые backend/frontend/runtime файлы и runtime_backend/tests/* если появятся
+4. не возвращать top-level tests/, public/icons/, demo project
+
 ФОРМАТ ИТОГОВОГО ОТЧЕТА
-Итоговый отчет reviewer обязан вернуть в таком виде:
-1. Что проверено в текущем проекте перед изменениями
-- отдельно упомянуть create_project_structure.py
-- отдельно упомянуть export_project_to_txt.py
-- отдельно указать, что runtimeClient/local adapter слой уже существовал до начала этой задачи
-2. Что было до изменений
-- frontend abstraction layer уже был
-- backend отсутствовал
-- domain command backend отсутствовал
-- project catalog shared workspace отсутствовал
-3. Что реализовано
-- Python backend skeleton
-- SQLite bootstrap
-- workspace bootstrap
-- platform.listProjects
-- platform.createProject
-- frontend backend adapter/wiring
-- минимальный catalog/create UI
-4. Какие файлы добавлены
+Итоговый отчет reviewer обязан вернуть так:
+
+1. Что проверено перед изменениями
+- отдельно create_project_structure.py
+- отдельно export_project_to_txt.py
+
+2. Что уже было реализовано к старту этой задачи
+- перечислить готовые части export flow
+- перечислить частично готовые части
+- перечислить незакрытые пробелы
+
+3. Что было до изменений
+- backend export scope был начат, но не доведен до полностью подтвержденного DONE
+
+4. Что реализовано
+- platform.exportProject
+- backend archive build
+- download route
+- frontend export flow
+- saveBinaryFileAsDialog integration
+- cleanup semantics
+- final test coverage
+
+5. Какие файлы добавлены
 - полный список
-5. Какие файлы изменены
+
+6. Какие файлы изменены
 - полный список
-6. Какие тесты добавлены/изменены
+
+7. Какие тесты добавлены/изменены
 - полный список
-7. Какие helper-скрипты обновлены
+
+8. Какие helper-скрипты обновлены
 - полный список
-8. Какие команды проверки запущены
+
+9. Какие команды проверки запущены
 - точный список
-9. Результаты проверок
+
+10. Результаты проверок
 - что прошло
 - что не прошло
-10. Старое и новое покрытие сценариев
+
+11. Старое и новое покрытие сценариев
 - отдельно старые сценарии
 - отдельно новые сценарии
-11. Финальный статус
-- DONE / PARTIAL / FAILED
-КРИТЕРИЙ DONE
-Эту задачу считать завершенной только если одновременно выполнено все:
-- backend поднимается отдельной командой
-- listProjects работает end-to-end
-- createProject работает end-to-end
-- backend реально создает проект на диске и запись в SQLite
-- frontend умеет показать список и создать проект через backend
-- существующий local open/save/save-as flow не сломан
-- helper-скрипты актуализированы
-- весь тестовый набор прогнан целиком
 
-Дополнение к текущему ТЗ reviewer’у.
-Нужно изменить helper-скрипт export_project_to_txt.py и связанные правила сопровождения helper-скриптов следующим образом:
-1. Из project export to txt исключить:
-- все иконки из public/icons/*
-- весь demo-проект:
-  - project-examples/demo-feedmill/project.yaml
-  - project-examples/demo-feedmill/metagen/*
-  - project-examples/demo-feedmill/metalab/*
-  - project-examples/demo-feedmill/metaview/*
-- всю папку tests/*
-2. Аналогично привести в согласованное состояние create_project_structure.py:
-- не возвращать в списки экспорта/структуры иконки
-- не возвращать demo-feedmill
-- не возвращать tests
-3. Запрет:
-- не добавлять иконки, demo-проект и tests обратно в PROJECT_FILES этих helper-скриптов
-- если reviewer посчитает нужным, можно ввести явный комментарий над списками PROJECT_FILES, что:
-  - helper export предназначен только для рабочего кода и конфигурации
-  - assets/demo/tests намеренно исключены
-4. Это изменение входит в текущую задачу и должно быть отражено:
-- в списке измененных файлов
-- в разделе про helper-скрипты
-- в итоговом отчете reviewer’а
-5. При проверке отдельно зафиксировать, что export_project_to_txt.py больше не экспортирует:
-- public/icons/*
-- project-examples/demo-feedmill/*
-- tests/*
+12. Финальный статус
+- DONE / PARTIAL / FAILED
+
+КРИТЕРИЙ DONE
+Эту задачу считать завершенной только если одновременно выполнено всё:
+- backend project можно экспортировать через `platform.exportProject`;
+- пользователь реально получает zip-архив;
+- архив сохраняет каноническую структуру проекта;
+- export не мутирует current storage;
+- frontend export flow подтвержден тестами, а не только backend tests;
+- local workflows не сломаны;
+- helper scripts актуализированы;
+- все тесты прогнаны целиком.

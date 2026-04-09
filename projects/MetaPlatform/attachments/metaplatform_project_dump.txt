@@ -26,6 +26,9 @@ Thumbs.db
 !.vscode/settings.json
 codex.patch
 package-lock.json
+runtime_backend/**/__pycache__/
+runtime_backend/runtime_data/platform.db
+
 
 ==================================================
 FILE: config/app-config.js
@@ -93,6 +96,38 @@ export const PLATFORM_CONFIG = {
     devServerUrl: 'http://127.0.0.1:5173/'
   },
 
+  backend: {
+    baseUrl: 'http://127.0.0.1:8000',
+    commandsEndpoint: '/api/commands',
+    projectExportsEndpoint: '/api/project-exports',
+    requestTimeoutMs: 10000,
+    requestIdPrefix: 'backend-',
+    commandContract: {
+      moduleIds: {
+        platform: 'platform'
+      },
+      commands: {
+        listProjects: 'listProjects',
+        createProject: 'createProject',
+        openProject: 'openProject',
+        deleteProject: 'deleteProject',
+        saveAll: 'saveAll',
+        saveProjectAs: 'saveProjectAs',
+        exportProject: 'exportProject'
+      },
+      errorCodes: {
+        validation: 'VALIDATION_ERROR',
+        internal: 'INTERNAL_ERROR',
+        projectCreateFailed: 'PROJECT_CREATE_FAILED',
+        projectNotFound: 'PROJECT_NOT_FOUND',
+        projectOpenFailed: 'PROJECT_OPEN_FAILED',
+        projectSaveFailed: 'PROJECT_SAVE_FAILED',
+        projectDeleteFailed: 'PROJECT_DELETE_FAILED',
+        projectExportFailed: 'PROJECT_EXPORT_FAILED'
+      }
+    }
+  },
+
   app: {
     title: 'MetaPlatform',
     topPanelTitle: 'MetaPlatform',
@@ -119,10 +154,14 @@ export const PLATFORM_CONFIG = {
     dialogs: {
       openProjectTitle: 'Открыть проект',
       saveProjectAsTitle: 'Сохранить проект как',
+      exportProjectArchiveTitle: 'Экспорт проекта',
       saveButtonLabel: 'Сохранить',
+      exportButtonLabel: 'Экспорт',
       projectFilterName: 'Project YAML',
       yamlFilterName: 'YAML',
-      yamlFilterExtensions: ['yaml', 'yml']
+      yamlFilterExtensions: ['yaml', 'yml'],
+      zipFilterName: 'ZIP',
+      zipFilterExtensions: ['zip']
     }
   },
 
@@ -134,6 +173,7 @@ export const PLATFORM_CONFIG = {
     handlers: {
       openProjectDialog: 'dialog:open-project',
       saveProjectAsDialog: 'dialog:save-project-as',
+      saveBinaryFileAsDialog: 'dialog:save-binary-file-as',
       appQuit: 'app:quit',
       windowCloseApproved: 'window:close-approved',
       windowCloseCancelled: 'window:close-cancelled',
@@ -224,6 +264,11 @@ export const PROJECT_CONFIG = {
 
   projectKinds: {
     root: 'metaplatform.project'
+  },
+
+  sources: {
+    local: 'local',
+    backend: 'backend'
   },
 
   identity: {
@@ -318,7 +363,12 @@ export const UI_CONFIG = {
     projectTreeColumnId: 'project-tree-column',
     workbenchRightColumnId: 'workbench-right-column',
     editorHostContainerId: 'editor-host-container',
-    bottomPanelId: 'bottom-panel'
+    bottomPanelId: 'bottom-panel',
+    backendPanelId: 'backend-project-catalog',
+    backendListButtonId: 'backend-project-list-button',
+    backendCreateInputId: 'backend-project-create-input',
+    backendCreateButtonId: 'backend-project-create-button',
+    backendResultId: 'backend-project-result'
   },
 
   classNames: {
@@ -371,7 +421,12 @@ export const UI_CONFIG = {
     dialogPrimaryButton: 'meta-dialog-button-primary',
     logEntry: 'log-entry',
     logLine: 'log-line',
-    logDetails: 'log-details'
+    logDetails: 'log-details',
+    backendPanel: 'backend-project-catalog',
+    backendPanelHeader: 'backend-project-catalog-header',
+    backendPanelBody: 'backend-project-catalog-body',
+    backendPanelActions: 'backend-project-catalog-actions',
+    backendPanelResult: 'backend-project-catalog-result'
   },
 
 
@@ -491,6 +546,7 @@ export const UI_CONFIG = {
       windowClose: 'window-close',
       project: 'project',
       platform: 'platform',
+      backend: 'backend',
       commandBus: 'command-bus',
       moduleRegistry: 'module-registry'
     },
@@ -518,7 +574,17 @@ export const UI_CONFIG = {
     cancel: 'Отмена',
     create: 'Создать',
     paramsUndoButton: 'Undo Params',
-    paramsRedoButton: 'Redo Params'
+    paramsRedoButton: 'Redo Params',
+    backendProjectsTitle: 'Backend Projects',
+    backendListProjects: 'List',
+    backendCreateProject: 'Create',
+    backendOpenProject: 'Open',
+    backendExportProject: 'Export',
+    backendDeleteProject: 'Delete',
+    backendDeleteConfirmPrefix: 'Delete backend project:',
+    backendProjectPlaceholder: 'Project name',
+    backendCommandFailed: 'Backend command failed',
+    backendExportDownloadFailed: 'Backend export download failed'
   }
 };
 
@@ -536,46 +602,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 PROJECT_FILES = [
+  # Export/structure whitelist for MVP runtime scope: include working code/config plus runtime_backend/tests;
+  # intentionally exclude top-level tests/ (including renderer behavior tests), public/icons/,
+  # and project-examples/demo-feedmill/.
   '.gitignore',
   'config/app-config.js',
   'config/logger-config.js',
   'config/platform-config.js',
   'config/project-config.js',
   'config/ui-config.js',
-  'public/icons/new-project.png',
-  'public/icons/open-project.png',
-  'public/icons/close-project.png',
-  'public/icons/save.png',
-  'public/icons/save-as.png',
-  'public/icons/exit.png',
-  'public/icons/project-root.png',
-  'public/icons/chevron-right.png',
-  'public/icons/chevron-down.png',
-  'public/icons/module-metagen.png',
-  'public/icons/module-metalab.png',
-  'public/icons/module-metaview.png',
-  'public/icons/doc-metagen.png',
-  'public/icons/doc-metalab.png',
-  'public/icons/doc-metaview.png',
-  'public/icons/action-add.png',
-  'public/icons/action-delete.png',
-  'public/icons/panel-logs.png',
-  'public/icons/panel-params.png',
-  'public/icons/panel-data.png',
-  'public/icons/panel-code.png',
-  'public/icons/panel-instances.png',
-  'public/icons/tab-close.png',
   'create_project_structure.py',
   'export_project_to_txt.py',
   'main.js',
   'package.json',
   'preload.cjs',
-  'project-examples/demo-feedmill/metagen/conveyors.yaml',
-  'project-examples/demo-feedmill/metagen/pumps.yaml',
-  'project-examples/demo-feedmill/metagen/\u043d\u043e\u0432\u044b\u0439_\u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442.yaml',
-  'project-examples/demo-feedmill/metalab/startup_scenario.yaml',
-  'project-examples/demo-feedmill/metaview/main_screen.yaml',
-  'project-examples/demo-feedmill/project.yaml',
   'renderer/app.js',
   'renderer/core/commandBus.js',
   'renderer/core/layout.js',
@@ -621,10 +661,8 @@ PROJECT_FILES = [
   'renderer/runtime/documentRecordIdentity.js',
   'renderer/runtime/documentSnapshot.js',
   'renderer/runtime/appCloseCoordinator.js',
+  'renderer/runtime/backendProjectExportFlow.js',
   'renderer/runtime/fileSystemBridge.js',
-  'renderer/runtime/runtimeClientContract.js',
-  'renderer/runtime/runtimeClient.js',
-  'renderer/runtime/adapters/createLocalRuntimeAdapter.js',
   'renderer/runtime/idFactory.js',
   'renderer/runtime/naming.js',
   'renderer/styles/styles.css',
@@ -637,31 +675,37 @@ PROJECT_FILES = [
   'renderer/ui/editorContextLifecycle.js',
   'renderer/ui/tabEditLifecycle.js',
   'renderer/ui/workbenchShell.js',
-  'tests/appCloseCoordinator.test.js',
-  'tests/createProjectTree.test.js',
-  'tests/projectManager.save.integration.test.js',
-  'tests/projectPaths.test.js',
-  'tests/finalizeActiveTableEditing.test.js',
-  'tests/finalizeEditingOnContextLeave.test.js',
-  'tests/metagenSheetSnapshot.test.js',
-  'tests/metagenParamsSheetLifecycle.test.js',
-  'tests/metagenParamsContract.test.js',
-  'tests/metagenParamsUndoRedo.test.js',
-  'tests/metagenDataContract.test.js',
-  'tests/metagenInstancesContract.test.js',
-  'tests/editorContextLifecycle.test.js',
-  'tests/projectTreeAdapter.test.js',
-  'tests/tabEditLifecycle.test.js',
-  'tests/windowCloseGuard.test.js',
   'renderer/core/loggerSinks.js',
   'renderer/runtime/projectPaths.js',
-  'tests/logger.test.js',
-  'tests/configWiring.integration.test.js',
-  'tests/runtimeClient.test.js',
-  'tests/localRuntimeAdapter.test.js',
-  'tests/runtimeBoundary.test.js',
   'vite.config.js',
   'main/runtime/windowCloseGuard.js',
+  'renderer/runtime/runtimeClientContract.js',
+  'renderer/runtime/runtimeClient.js',
+  'renderer/runtime/adapters/createLocalRuntimeAdapter.js',
+  'renderer/runtime/adapters/createHttpRuntimeAdapter.js',
+  'runtime_backend/__init__.py',
+  'runtime_backend/app/__init__.py',
+  'runtime_backend/app/main.py',
+  'runtime_backend/app/api/__init__.py',
+  'runtime_backend/app/api/commands.py',
+  'runtime_backend/app/core/__init__.py',
+  'runtime_backend/app/core/constants.py',
+  'runtime_backend/app/core/settings.py',
+  'runtime_backend/app/db/__init__.py',
+  'runtime_backend/app/db/bootstrap.py',
+  'runtime_backend/app/models/__init__.py',
+  'runtime_backend/app/models/command.py',
+  'runtime_backend/app/models/project_snapshot.py',
+  'runtime_backend/app/services/__init__.py',
+  'runtime_backend/app/services/errors.py',
+  'runtime_backend/app/services/command_dispatcher.py',
+  'runtime_backend/app/services/project_catalog.py',
+  'runtime_backend/app/services/project_storage.py',
+  'runtime_backend/app/utils/__init__.py',
+  'runtime_backend/app/utils/id_utils.py',
+  'runtime_backend/app/utils/time_utils.py',
+  'runtime_backend/tests/test_commands.py',
+  'runtime_backend/tests/test_startup_probe.py',
 ]
 
 
@@ -717,6 +761,9 @@ ROOT = Path(__file__).resolve().parent
 OUTPUT_FILE = ROOT / 'metaplatform_project_dump.txt'
 
 PROJECT_FILES = [
+  # Export/structure whitelist for MVP runtime scope: include working code/config plus runtime_backend/tests;
+  # intentionally exclude top-level tests/ (including renderer behavior tests), public/icons/,
+  # and project-examples/demo-feedmill/.
   '.gitignore',
   'config/app-config.js',
   'config/logger-config.js',
@@ -773,10 +820,8 @@ PROJECT_FILES = [
   'renderer/runtime/documentRecordIdentity.js',
   'renderer/runtime/documentSnapshot.js',
   'renderer/runtime/appCloseCoordinator.js',
+  'renderer/runtime/backendProjectExportFlow.js',
   'renderer/runtime/fileSystemBridge.js',
-  'renderer/runtime/runtimeClientContract.js',
-  'renderer/runtime/runtimeClient.js',
-  'renderer/runtime/adapters/createLocalRuntimeAdapter.js',
   'renderer/runtime/idFactory.js',
   'renderer/runtime/naming.js',
   'renderer/styles/styles.css',
@@ -793,6 +838,33 @@ PROJECT_FILES = [
   'renderer/runtime/projectPaths.js',
   'vite.config.js',
   'main/runtime/windowCloseGuard.js',
+  'renderer/runtime/runtimeClientContract.js',
+  'renderer/runtime/runtimeClient.js',
+  'renderer/runtime/adapters/createLocalRuntimeAdapter.js',
+  'renderer/runtime/adapters/createHttpRuntimeAdapter.js',
+  'runtime_backend/__init__.py',
+  'runtime_backend/app/__init__.py',
+  'runtime_backend/app/main.py',
+  'runtime_backend/app/api/__init__.py',
+  'runtime_backend/app/api/commands.py',
+  'runtime_backend/app/core/__init__.py',
+  'runtime_backend/app/core/constants.py',
+  'runtime_backend/app/core/settings.py',
+  'runtime_backend/app/db/__init__.py',
+  'runtime_backend/app/db/bootstrap.py',
+  'runtime_backend/app/models/__init__.py',
+  'runtime_backend/app/models/command.py',
+  'runtime_backend/app/models/project_snapshot.py',
+  'runtime_backend/app/services/__init__.py',
+  'runtime_backend/app/services/errors.py',
+  'runtime_backend/app/services/command_dispatcher.py',
+  'runtime_backend/app/services/project_catalog.py',
+  'runtime_backend/app/services/project_storage.py',
+  'runtime_backend/app/utils/__init__.py',
+  'runtime_backend/app/utils/id_utils.py',
+  'runtime_backend/app/utils/time_utils.py',
+  'runtime_backend/tests/test_commands.py',
+  'runtime_backend/tests/test_startup_probe.py',
 ]
 
 
@@ -1023,6 +1095,48 @@ app.whenReady().then(() => {
     return result.filePath;
   });
 
+  ipcMain.handle(APP_CONFIG.platform.ipc.handlers.saveBinaryFileAsDialog, async (_event, options = {}) => {
+    const defaultPath = typeof options?.defaultPath === 'string' ? options.defaultPath : undefined;
+    const title = typeof options?.title === 'string' ? options.title : APP_CONFIG.platform.app.dialogs.exportProjectArchiveTitle;
+    const buttonLabel = typeof options?.buttonLabel === 'string' ? options.buttonLabel : APP_CONFIG.platform.app.dialogs.exportButtonLabel;
+    const filters = Array.isArray(options?.filters) && options.filters.length
+      ? options.filters
+      : [
+          {
+            name: APP_CONFIG.platform.app.dialogs.zipFilterName,
+            extensions: APP_CONFIG.platform.app.dialogs.zipFilterExtensions
+          }
+        ];
+
+    const result = await dialog.showSaveDialog({
+      title,
+      defaultPath,
+      buttonLabel,
+      filters
+    });
+
+    if (result.canceled || !result.filePath) {
+      return {
+        saved: false,
+        filePath: null
+      };
+    }
+
+    const bytes = options?.bytes;
+    const binaryBuffer = ArrayBuffer.isView(bytes)
+      ? Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+      : Array.isArray(bytes)
+        ? Buffer.from(bytes)
+        : Buffer.alloc(0);
+    await fs.mkdir(path.dirname(result.filePath), { recursive: true });
+    await fs.writeFile(result.filePath, binaryBuffer);
+
+    return {
+      saved: true,
+      filePath: result.filePath
+    };
+  });
+
   ipcMain.handle(APP_CONFIG.platform.ipc.handlers.appQuit, async () => {
     windowCloseGuard.approveClose();
     app.quit();
@@ -1178,6 +1292,7 @@ const IPC = {
   handlers: {
     openProjectDialog: 'dialog:open-project',
     saveProjectAsDialog: 'dialog:save-project-as',
+    saveBinaryFileAsDialog: 'dialog:save-binary-file-as',
     appQuit: 'app:quit',
     windowCloseApproved: 'window:close-approved',
     windowCloseCancelled: 'window:close-cancelled',
@@ -1195,6 +1310,7 @@ const IPC = {
 contextBridge.exposeInMainWorld('MetaPlatformFS', {
   openProjectFileDialog: () => ipcRenderer.invoke(IPC.handlers.openProjectDialog),
   saveProjectFileAsDialog: (defaultPath) => ipcRenderer.invoke(IPC.handlers.saveProjectAsDialog, defaultPath),
+  saveBinaryFileAsDialog: (options) => ipcRenderer.invoke(IPC.handlers.saveBinaryFileAsDialog, options),
   requestAppQuit: () => ipcRenderer.invoke(IPC.handlers.appQuit),
   approveWindowClose: () => ipcRenderer.invoke(IPC.handlers.windowCloseApproved),
   cancelWindowClose: () => ipcRenderer.invoke(IPC.handlers.windowCloseCancelled),
@@ -1221,6 +1337,7 @@ contextBridge.exposeInMainWorld('MetaPlatformFS', {
   }
 });
 
+
 ==================================================
 FILE: renderer/app.js
 ==================================================
@@ -1230,12 +1347,11 @@ import { createCoreLogger } from './core/logger.js';
 import { createCommandBus } from './core/commandBus.js';
 import { createModuleRegistry } from './core/moduleRegistry.js';
 import { createProjectManager } from './core/projectManager.js';
-import { createRuntimeClient } from './runtime/runtimeClient.js';
-import { createLocalRuntimeAdapter } from './runtime/adapters/createLocalRuntimeAdapter.js';
+import { createFileSystemBridge } from './runtime/fileSystemBridge.js';
 import { initWorkbenchLayout } from './core/layout.js';
 import { createWorkbenchTabs } from './ui/createWorkbenchTabs.js';
 import { createProjectTree } from './ui/createProjectTree.js';
-import { showSaveChangesDialog } from './ui/dialogs.js';
+import { showSaveChangesDialog, showTextInputDialog } from './ui/dialogs.js';
 import { getDocumentIdentityKey } from './runtime/documentRecordIdentity.js';
 import { createAppCloseCoordinator } from './runtime/appCloseCoordinator.js';
 import { createConsoleLogSink, createDomLogSink } from './core/loggerSinks.js';
@@ -1247,6 +1363,84 @@ import { createMetaViewModule } from './modules/metaview/metaviewModule.js';
 import { APP_CONFIG } from '../config/app-config.js';
 import { buildProjectFilePath } from './runtime/projectPaths.js';
 import { setNodeIconAndText } from './ui/pngIconRenderer.js';
+import { createRuntimeClient } from './runtime/runtimeClient.js';
+import { createHttpRuntimeAdapter } from './runtime/adapters/createHttpRuntimeAdapter.js';
+import { runBackendProjectExport } from './runtime/backendProjectExportFlow.js';
+
+export function getCurrentBackendProjectId({ projectManager, backendSource }) {
+  const project = projectManager?.getCurrentProject?.();
+  if (!project || project.source !== backendSource) {
+    return '';
+  }
+
+  return String(
+    project.backendProject?.projectId
+    || project.project?.id
+    || ''
+  ).trim();
+}
+
+export async function closeDeletedBackendProjectIfOpened({
+  projectId,
+  projectManager,
+  backendSource,
+  tabs,
+  logger,
+  tree
+}) {
+  const normalizedProjectId = String(projectId || '').trim();
+  if (!normalizedProjectId) {
+    return false;
+  }
+
+  const currentBackendProjectId = getCurrentBackendProjectId({
+    projectManager,
+    backendSource
+  });
+  if (!currentBackendProjectId || currentBackendProjectId !== normalizedProjectId) {
+    return false;
+  }
+
+  try {
+    await tabs.closeAllTabs();
+  } catch (_error) {
+    // Continue close flow even if one tab fails to close cleanly.
+  }
+  logger.clear();
+  await projectManager?.closeProject?.();
+  await tree.render();
+  return true;
+}
+
+export async function deleteBackendProjectFlow({
+  project,
+  confirmDelete,
+  confirmPrefix,
+  deleteCommandId,
+  executeBackendCommand,
+  closeDeletedProject,
+  refreshBackendProjects
+}) {
+  const projectId = String(project?.id || '').trim();
+  if (!projectId) {
+    return false;
+  }
+
+  const projectLabel = `${project?.name || projectId}`;
+  const confirmed = confirmDelete(`${confirmPrefix} ${projectLabel}`);
+  if (!confirmed) {
+    return false;
+  }
+
+  const result = await executeBackendCommand(deleteCommandId, { projectId });
+  if (!result) {
+    return false;
+  }
+
+  await closeDeletedProject(projectId);
+  await refreshBackendProjects();
+  return true;
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   applyStaticText();
@@ -1259,11 +1453,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   const commandBus = createCommandBus({ logger });
   const moduleRegistry = createModuleRegistry({ logger });
-  const runtimeClient = createRuntimeClient({
-    adapter: createLocalRuntimeAdapter()
-  });
-  const runtimeFileSystem = runtimeClient.getFileSystem();
+  const fileSystem = createFileSystemBridge();
   const workbenchLayout = initWorkbenchLayout();
+  const backendRuntimeClient = createRuntimeClient({
+    adapter: createHttpRuntimeAdapter({
+      baseUrl: APP_CONFIG.platform.backend.baseUrl,
+      endpointPath: APP_CONFIG.platform.backend.commandsEndpoint,
+      timeoutMs: APP_CONFIG.platform.backend.requestTimeoutMs,
+      errorCodes: {
+        internal: APP_CONFIG.platform.backend.commandContract.errorCodes.internal
+      }
+    })
+  });
 
   window.MetaPlatformRuntime = window.MetaPlatformRuntime || {};
 
@@ -1343,6 +1544,200 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
   }
+
+  const backendCatalogNode = document.getElementById(APP_CONFIG.ui.dom.backendPanelId);
+  const backendListButton = document.getElementById(APP_CONFIG.ui.dom.backendListButtonId);
+  const backendCreateInput = document.getElementById(APP_CONFIG.ui.dom.backendCreateInputId);
+  const backendCreateButton = document.getElementById(APP_CONFIG.ui.dom.backendCreateButtonId);
+  const backendResultNode = document.getElementById(APP_CONFIG.ui.dom.backendResultId);
+  let backendRequestCounter = 0;
+
+  if (backendCatalogNode) {
+    backendCatalogNode.querySelector(`.${APP_CONFIG.ui.classNames.backendPanelHeader}`)?.replaceChildren(APP_CONFIG.ui.text.backendProjectsTitle);
+  }
+
+  if (backendListButton) {
+    backendListButton.textContent = APP_CONFIG.ui.text.backendListProjects;
+  }
+
+  if (backendCreateInput) {
+    backendCreateInput.placeholder = APP_CONFIG.ui.text.backendProjectPlaceholder;
+  }
+
+  if (backendCreateButton) {
+    backendCreateButton.textContent = APP_CONFIG.ui.text.backendCreateProject;
+  }
+
+  function setBackendResult(value) {
+    if (!backendResultNode) {
+      return;
+    }
+
+    backendResultNode.replaceChildren(
+      typeof value === 'string'
+        ? document.createTextNode(value)
+        : document.createTextNode(JSON.stringify(value, null, 2))
+    );
+  }
+
+  function renderBackendProjects(projects = []) {
+    if (!backendResultNode) {
+      return;
+    }
+
+    backendResultNode.replaceChildren();
+
+    if (!Array.isArray(projects) || projects.length === 0) {
+      backendResultNode.appendChild(document.createTextNode('[]'));
+      return;
+    }
+
+    for (const project of projects) {
+      const row = document.createElement('div');
+      const label = document.createElement('span');
+      const openButton = document.createElement('button');
+      const exportButton = document.createElement('button');
+      const deleteButton = document.createElement('button');
+      const projectLabel = `${project?.name || ''} (${project?.slug || ''})`;
+
+      label.textContent = projectLabel;
+      openButton.type = 'button';
+      openButton.textContent = APP_CONFIG.ui.text.backendOpenProject;
+      openButton.addEventListener('click', () => {
+        void openBackendProject(project);
+      });
+      exportButton.type = 'button';
+      exportButton.textContent = APP_CONFIG.ui.text.backendExportProject;
+      exportButton.addEventListener('click', () => {
+        void exportBackendProject(project);
+      });
+      deleteButton.type = 'button';
+      deleteButton.textContent = APP_CONFIG.ui.text.backendDeleteProject;
+      deleteButton.addEventListener('click', () => {
+        void deleteBackendProject(project);
+      });
+
+      row.append(
+        label,
+        document.createTextNode(' '),
+        openButton,
+        document.createTextNode(' '),
+        exportButton,
+        document.createTextNode(' '),
+        deleteButton
+      );
+      backendResultNode.appendChild(row);
+    }
+  }
+
+  function nextBackendRequestId() {
+    backendRequestCounter += 1;
+    return `${APP_CONFIG.platform.backend.requestIdPrefix}${backendRequestCounter}`;
+  }
+
+  async function executeBackendCommand(command, payload = {}) {
+    const response = await backendRuntimeClient.execute({
+      requestId: nextBackendRequestId(),
+      module: APP_CONFIG.platform.backend.commandContract.moduleIds.platform,
+      command,
+      payload
+    });
+
+    if (!response.ok) {
+      logger.warn(
+        APP_CONFIG.ui.runtime.loggerSources.backend,
+        APP_CONFIG.ui.text.backendCommandFailed,
+        response.error || null
+      );
+      setBackendResult(response);
+      return null;
+    }
+
+    setBackendResult(response.result || {});
+    return response.result || null;
+  }
+
+  async function openBackendProject(project) {
+    const projectId = String(project?.id || '').trim();
+    if (!projectId) {
+      return;
+    }
+
+    const canContinue = await confirmSaveIfDirty();
+    if (canContinue === APP_CONFIG.ui.runtime.closeFlowDecisions.cancel) {
+      return;
+    }
+
+    const result = await executeBackendCommand(
+      APP_CONFIG.platform.backend.commandContract.commands.openProject,
+      { projectId }
+    );
+
+    if (!result?.snapshot) {
+      return;
+    }
+
+    await tabs.closeAllTabs();
+    logger.clear();
+    await projectManager.openProjectSnapshot(result.snapshot);
+    await tree.render();
+  }
+
+  async function exportBackendProject(project) {
+    await runBackendProjectExport({
+      project,
+      exportCommandId: APP_CONFIG.platform.backend.commandContract.commands.exportProject,
+      executeBackendCommand,
+      downloadBinary: (downloadUrl) => backendRuntimeClient.downloadBinary(downloadUrl),
+      saveBinaryFileAsDialog: (payload) => fileSystem.saveBinaryFileAsDialog(payload),
+      dialogs: APP_CONFIG.platform.app.dialogs,
+      loggerWarn: (...args) => logger.warn(...args),
+      loggerSource: APP_CONFIG.ui.runtime.loggerSources.backend,
+      downloadFailedText: APP_CONFIG.ui.text.backendExportDownloadFailed,
+      setResult: setBackendResult
+    });
+  }
+
+  async function refreshBackendProjects() {
+    const result = await executeBackendCommand(APP_CONFIG.platform.backend.commandContract.commands.listProjects);
+    const projects = Array.isArray(result?.projects) ? result.projects : [];
+    renderBackendProjects(projects);
+  }
+
+  async function deleteBackendProject(project) {
+    await deleteBackendProjectFlow({
+      project,
+      confirmDelete: window.confirm,
+      confirmPrefix: APP_CONFIG.ui.text.backendDeleteConfirmPrefix,
+      deleteCommandId: APP_CONFIG.platform.backend.commandContract.commands.deleteProject,
+      executeBackendCommand,
+      closeDeletedProject: async (projectId) => closeDeletedBackendProjectIfOpened({
+        projectId,
+        projectManager,
+        backendSource: APP_CONFIG.project.sources.backend,
+        tabs,
+        logger,
+        tree
+      }),
+      refreshBackendProjects
+    });
+  }
+
+  backendListButton?.addEventListener('click', () => {
+    void refreshBackendProjects();
+  });
+
+  backendCreateButton?.addEventListener('click', () => {
+    const name = String(backendCreateInput?.value || '').trim();
+    void executeBackendCommand(
+      APP_CONFIG.platform.backend.commandContract.commands.createProject,
+      { name }
+    ).then((result) => {
+      if (result?.project) {
+        void refreshBackendProjects();
+      }
+    });
+  });
 
   function getActiveParamsUndoRedoState() {
     const runtime = tabs.getActiveRuntime?.();
@@ -1425,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   projectManager = createProjectManager({
     logger,
-    fileSystem: runtimeFileSystem,
+    fileSystem,
     moduleRegistry,
     onProjectLoaded: ({ projectRuntime }) => {
       window.MetaPlatformRuntime.activeProject = projectRuntime;
@@ -1479,12 +1874,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const openDocuments = await tabs.collectOpenDocumentRecords();
+    const isBackendSource = project.source === APP_CONFIG.project.sources.backend;
+
+    if (isBackendSource && !forceSaveAs) {
+      const payload = projectManager.buildBackendSavePayload(openDocuments);
+      const result = await executeBackendCommand(
+        APP_CONFIG.platform.backend.commandContract.commands.saveAll,
+        payload
+      );
+
+      if (!result) {
+        return false;
+      }
+
+      projectManager.commitBackendSave(result?.project || null);
+      await tree.render();
+      logger.clear();
+      return true;
+    }
+
+    if (isBackendSource && forceSaveAs) {
+      const initialName = String(
+        project.backendProject?.name
+        || project.project?.name
+        || APP_CONFIG.project.defaultProjectName
+      ).trim() || APP_CONFIG.project.defaultProjectName;
+      const newName = await showTextInputDialog({
+        title: APP_CONFIG.platform.app.dialogs.saveProjectAsTitle,
+        initialValue: initialName,
+        confirmText: APP_CONFIG.ui.text.save,
+        cancelText: APP_CONFIG.ui.text.cancel
+      });
+
+      if (!newName) {
+        return false;
+      }
+
+      const payload = projectManager.buildBackendSaveAsPayload(newName, openDocuments);
+      const result = await executeBackendCommand(
+        APP_CONFIG.platform.backend.commandContract.commands.saveProjectAs,
+        payload
+      );
+
+      if (!result) {
+        return false;
+      }
+
+      projectManager.commitBackendSaveAs(result?.project || null);
+      await tree.render();
+      logger.clear();
+      return true;
+    }
 
     if (project.isUnsaved || forceSaveAs) {
       const projectStem = String(project.project?.name || APP_CONFIG.project.defaultProjectName).trim() || APP_CONFIG.project.defaultProjectName;
       const suggestedPath = project.projectFilePath
         || buildProjectFilePath(project.rootPath || '.', `${projectStem}${APP_CONFIG.project.fileExtensions.default}`);
-      const targetProjectFilePath = await runtimeClient.saveProjectFileAsDialog(suggestedPath);
+      const targetProjectFilePath = await fileSystem.saveProjectFileAsDialog(suggestedPath);
 
       if (!targetProjectFilePath) {
         return false;
@@ -1498,6 +1944,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const result = await projectManager.saveProject(openDocuments);
+    if (!result) { // Defensive guard for non-backend unsupported state.
+      return false;
+    }
     tabs.updateTabPaths(result?.pathMap);
     await tree.render();
     logger.clear();
@@ -1546,7 +1995,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const selectedPath = await runtimeClient.openProjectFileDialog();
+    const selectedPath = await fileSystem.openProjectFileDialog();
 
     if (!selectedPath) {
       return;
@@ -1575,16 +2024,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const appCloseCoordinator = createAppCloseCoordinator({
     confirmSaveIfDirty,
-    requestAppQuit: () => runtimeClient.requestAppQuit(),
-    approveWindowClose: () => runtimeClient.approveWindowClose(),
-    cancelWindowClose: () => runtimeClient.cancelWindowClose()
+    requestAppQuit: () => fileSystem.requestAppQuit(),
+    approveWindowClose: () => fileSystem.approveWindowClose(),
+    cancelWindowClose: () => fileSystem.cancelWindowClose()
   });
 
   async function exitFlow() {
     await appCloseCoordinator.requestExit();
   }
 
-  runtimeClient.onWindowCloseRequested(async () => {
+  fileSystem.onWindowCloseRequested(async () => {
     try {
       await appCloseCoordinator.handleWindowCloseRequested();
     } catch (error) {
@@ -1593,7 +2042,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       try {
-        await runtimeClient.cancelWindowClose();
+        await fileSystem.cancelWindowClose();
       } catch (cancelError) {
         logger.error(APP_CONFIG.ui.runtime.loggerSources.windowClose, 'Ошибка отмены закрытия окна', {
           message: cancelError?.message || String(cancelError)
@@ -1602,7 +2051,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  runtimeClient.onMenuAction(async (action) => {
+  fileSystem.onMenuAction(async (action) => {
     try {
       const transitionResult = await tabs.finalizeActiveEditorContextBeforeTransition({
         reason: `${APP_CONFIG.ui.runtime.transitionReasons.menuActionPrefix}${action}`,
@@ -1640,8 +2089,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     commandBus,
     moduleRegistry,
     projectManager,
-    runtimeClient,
-    fileSystem: runtimeFileSystem,
+    fileSystem,
     workbenchLayout,
     tabs,
     activeProject: projectManager.getCurrentProject()
@@ -1916,6 +2364,10 @@ export { getProjectOwnedPaths } from '../runtime/projectPaths.js';
 
 const PROJECT_MODULE_FOLDERS = getProjectModuleFolders();
 const PRIMARY_MODULE_IDS = getPrimaryProjectModuleIds();
+const PROJECT_SOURCES = APP_CONFIG.project.sources || {
+  local: 'local',
+  backend: 'backend'
+};
 
 function getProjectModuleDisplayNames() {
   return PRIMARY_MODULE_IDS
@@ -1939,6 +2391,19 @@ function cloneDocumentPayload(document) {
   }
 
   return JSON.parse(JSON.stringify(document));
+}
+
+function splitPathSegments(targetPath) {
+  return String(targetPath || '').replace(/\\/g, '/').split('/').filter(Boolean);
+}
+
+function getPathBaseName(targetPath) {
+  const segments = splitPathSegments(targetPath);
+  return segments.length ? segments[segments.length - 1] : '';
+}
+
+function buildBackendDocumentPath(projectId, moduleId, fileName) {
+  return `backend://${projectId}/${moduleId}/${fileName}`;
 }
 
 
@@ -2207,7 +2672,16 @@ export function createProjectManager({ logger, fileSystem, moduleRegistry, onPro
     );
   }
 
-  function createProjectRuntime({ rootPath, projectFilePath = null, raw, documents, isUnsaved = false, isDirty = false }) {
+  function createProjectRuntime({
+    rootPath,
+    projectFilePath = null,
+    raw,
+    documents,
+    isUnsaved = false,
+    isDirty = false,
+    source = PROJECT_SOURCES.local,
+    backendProject = null
+  }) {
     const normalizedRootPath = rootPath ? String(rootPath).replace(/\\/g, '/') : null;
     const resolvedProjectFilePath = projectFilePath ? normalizeProjectFilePath(projectFilePath) : null;
 
@@ -2222,6 +2696,8 @@ export function createProjectManager({ logger, fileSystem, moduleRegistry, onPro
     }
 
     return {
+      source,
+      backendProject,
       rootPath: normalizedRootPath,
       projectFilePath: resolvedProjectFilePath,
       raw,
@@ -2238,6 +2714,7 @@ export function createProjectManager({ logger, fileSystem, moduleRegistry, onPro
       rootPath: null,
       raw,
       documents: createPrimaryModuleDocumentBuckets(),
+      source: PROJECT_SOURCES.local,
       isUnsaved: true,
       isDirty: false
     });
@@ -2267,14 +2744,82 @@ export function createProjectManager({ logger, fileSystem, moduleRegistry, onPro
           return [moduleId, await scanModuleDocuments(projectRoot, getModuleFolder(moduleId), moduleId)];
         })
       )),
+      source: PROJECT_SOURCES.local,
       isUnsaved: false,
       isDirty: false
     });
   }
 
+  function hydrateSnapshotDocuments(snapshotDocuments = {}) {
+    const buckets = createPrimaryModuleDocumentBuckets();
+
+    for (const moduleId of PRIMARY_MODULE_IDS) {
+      const entries = Array.isArray(snapshotDocuments[moduleId]) ? snapshotDocuments[moduleId] : [];
+      const records = [];
+
+      for (const entry of entries) {
+        if (!entry || typeof entry !== 'object' || !entry.document || typeof entry.document !== 'object') {
+          continue;
+        }
+
+        const path = String(entry.path || '').trim()
+          || `${APP_CONFIG.project.unsavedDocumentPathPrefix}${moduleId}/${++unsavedCounter}${APP_CONFIG.project.fileExtensions.default}`;
+        const record = {
+          moduleId,
+          path: String(path).replace(/\\/g, '/'),
+          document: cloneDocumentPayload(entry.document)
+        };
+        ensureDocumentId(record);
+        records.push(record);
+      }
+
+      records.sort((a, b) => getDocumentName(a).localeCompare(getDocumentName(b)));
+      buckets[moduleId] = records;
+    }
+
+    return buckets;
+  }
+
+  function hydrateSnapshotRaw(snapshot) {
+    const fallbackProject = snapshot?.project || {};
+    const raw = cloneDocumentPayload(
+      snapshot?.raw && typeof snapshot.raw === 'object'
+        ? snapshot.raw
+        : createDefaultProjectRaw()
+    );
+
+    raw.project = {
+      ...(raw.project || {}),
+      id: String(raw?.project?.id || fallbackProject.projectId || createDocumentGuid()),
+      name: String(raw?.project?.name || fallbackProject.name || APP_CONFIG.project.defaultProjectName),
+      description: String(raw?.project?.description || '')
+    };
+
+    return raw;
+  }
+
   async function openProject(projectFilePath) {
     const normalizedProjectFilePath = normalizeProjectFilePath(projectFilePath);
     currentProject = await hydrateProjectRuntimeFromDisk(normalizedProjectFilePath);
+
+    onProjectLoaded?.({ projectRuntime: currentProject });
+    emitChange();
+    return currentProject;
+  }
+
+  async function openProjectSnapshot(snapshot) {
+    const raw = hydrateSnapshotRaw(snapshot);
+    currentProject = createProjectRuntime({
+      rootPath: null,
+      projectFilePath: null,
+      raw,
+      documents: hydrateSnapshotDocuments(snapshot?.documents || {}),
+      source: PROJECT_SOURCES.backend,
+      backendProject: snapshot?.project || null,
+      // Backend project already exists in workspace and can be saved through backend command flow.
+      isUnsaved: false,
+      isDirty: false
+    });
 
     onProjectLoaded?.({ projectRuntime: currentProject });
     emitChange();
@@ -2591,21 +3136,7 @@ export function createProjectManager({ logger, fileSystem, moduleRegistry, onPro
     return true;
   }
 
-  async function saveProjectToRoot(targetProjectFilePath, openDocuments = []) {
-    if (!currentProject) {
-      throw new Error('Project is not opened');
-    }
-
-    // Пользователь сохраняет проект целиком.
-    // Project save orchestrates document-level saves for all current documents,
-    // затем выполняет commit project state и переводит проект в clean state.
-
-    // Critical transactional path:
-    // project save stages document snapshots, commits module folders and project.yaml,
-    // rolls back already promoted entities on failure, then hydrates runtime from disk.
-    // Any changes here require save/save-as/rollback/reopen verification.
-
-    // collect documents: openDocuments имеет приоритет над snapshot в currentProject.documents.
+  function collectCurrentDocumentRecords(openDocuments = []) {
     const recordsByIdentity = new Map();
 
     for (const record of getAllDocuments()) {
@@ -2632,7 +3163,179 @@ export function createProjectManager({ logger, fileSystem, moduleRegistry, onPro
       recordsByIdentity.set(identityKey, record);
     }
 
-    const docs = Array.from(recordsByIdentity.values());
+    return Array.from(recordsByIdentity.values());
+  }
+
+  function exportProjectSnapshot(openDocuments = []) {
+    if (!currentProject) {
+      throw new Error('Project is not opened');
+    }
+
+    const documents = createPrimaryModuleDocumentBuckets();
+    const records = collectCurrentDocumentRecords(openDocuments);
+
+    for (const record of records) {
+      if (!record?.moduleId || !record?.document || !PRIMARY_MODULE_IDS.includes(record.moduleId)) {
+        continue;
+      }
+
+      documents[record.moduleId].push({
+        moduleId: record.moduleId,
+        path: String(record.path || ''),
+        document: cloneDocumentPayload(record.document)
+      });
+    }
+
+    for (const moduleId of PRIMARY_MODULE_IDS) {
+      documents[moduleId].sort((a, b) => getDocumentName(a).localeCompare(getDocumentName(b)));
+    }
+
+    return {
+      source: currentProject.source,
+      project: currentProject.backendProject ? cloneDocumentPayload(currentProject.backendProject) : null,
+      raw: cloneDocumentPayload(currentProject.raw),
+      documents
+    };
+  }
+
+  function buildBackendSavePayload(openDocuments = []) {
+    if (!currentProject) {
+      throw new Error('Project is not opened');
+    }
+
+    if (currentProject.source !== PROJECT_SOURCES.backend) {
+      throw new Error('Backend save payload is available only for backend source projects');
+    }
+
+    const projectId = String(
+      currentProject.backendProject?.projectId
+      || currentProject.raw?.project?.id
+      || ''
+    ).trim();
+
+    if (!projectId) {
+      throw new Error('Backend project id is missing');
+    }
+
+    return {
+      projectId,
+      projectSnapshot: exportProjectSnapshot(openDocuments)
+    };
+  }
+
+  function buildBackendSaveAsPayload(newName, openDocuments = []) {
+    if (!currentProject) {
+      throw new Error('Project is not opened');
+    }
+
+    if (currentProject.source !== PROJECT_SOURCES.backend) {
+      throw new Error('Backend save-as payload is available only for backend source projects');
+    }
+
+    const projectId = String(
+      currentProject.backendProject?.projectId
+      || currentProject.raw?.project?.id
+      || ''
+    ).trim();
+
+    if (!projectId) {
+      throw new Error('Backend project id is missing');
+    }
+
+    const normalizedNewName = String(newName || '').trim();
+    if (!normalizedNewName) {
+      throw new Error('Backend save-as project name is required');
+    }
+
+    return {
+      projectId,
+      newName: normalizedNewName,
+      projectSnapshot: exportProjectSnapshot(openDocuments)
+    };
+  }
+
+  function commitBackendSave(projectMeta = null) {
+    if (!currentProject || currentProject.source !== PROJECT_SOURCES.backend) {
+      return false;
+    }
+
+    if (projectMeta && typeof projectMeta === 'object') {
+      currentProject.backendProject = {
+        ...(currentProject.backendProject || {}),
+        ...projectMeta
+      };
+    }
+
+    currentProject.isUnsaved = false;
+    clearDirty();
+    return true;
+  }
+
+  function commitBackendSaveAs(projectMeta = null) {
+    if (!currentProject || currentProject.source !== PROJECT_SOURCES.backend) {
+      return false;
+    }
+
+    const nextMeta = projectMeta && typeof projectMeta === 'object'
+      ? {
+          ...(currentProject.backendProject || {}),
+          ...projectMeta
+        }
+      : (currentProject.backendProject || {});
+
+    const nextProjectId = String(
+      nextMeta.projectId
+      || currentProject.backendProject?.projectId
+      || currentProject.raw?.project?.id
+      || ''
+    ).trim();
+    const nextProjectName = String(
+      nextMeta.name
+      || currentProject.raw?.project?.name
+      || APP_CONFIG.project.defaultProjectName
+    ).trim() || APP_CONFIG.project.defaultProjectName;
+
+    if (nextProjectId) {
+      for (const record of getAllDocuments()) {
+        const fallbackFileName = `${record.moduleId}${APP_CONFIG.project.fileExtensions.default}`;
+        const fileName = getPathBaseName(record.path) || fallbackFileName;
+        record.path = buildBackendDocumentPath(nextProjectId, record.moduleId, fileName);
+      }
+    }
+
+    currentProject.backendProject = {
+      ...nextMeta,
+      ...(nextProjectId ? { projectId: nextProjectId } : {}),
+      name: nextProjectName
+    };
+    currentProject.raw.project = {
+      ...(currentProject.raw.project || {}),
+      id: nextProjectId || currentProject.raw?.project?.id,
+      name: nextProjectName,
+      description: String(currentProject.raw?.project?.description || '')
+    };
+    currentProject.project = currentProject.raw.project;
+    currentProject.isUnsaved = false;
+    clearDirty();
+    return true;
+  }
+
+  async function saveProjectToRoot(targetProjectFilePath, openDocuments = []) {
+    if (!currentProject) {
+      throw new Error('Project is not opened');
+    }
+
+    // Пользователь сохраняет проект целиком.
+    // Project save orchestrates document-level saves for all current documents,
+    // затем выполняет commit project state и переводит проект в clean state.
+
+    // Critical transactional path:
+    // project save stages document snapshots, commits module folders and project.yaml,
+    // rolls back already promoted entities on failure, then hydrates runtime from disk.
+    // Any changes here require save/save-as/rollback/reopen verification.
+
+    // collect documents: openDocuments имеет приоритет над snapshot в currentProject.documents.
+    const docs = collectCurrentDocumentRecords(openDocuments);
 
     // prepare payload
     const projectOwnedPaths = getProjectOwnedPaths(targetProjectFilePath);
@@ -2776,6 +3479,12 @@ export function createProjectManager({ logger, fileSystem, moduleRegistry, onPro
   return {
     createNewProject,
     openProject,
+    openProjectSnapshot,
+    exportProjectSnapshot,
+    buildBackendSavePayload,
+    buildBackendSaveAsPayload,
+    commitBackendSave,
+    commitBackendSaveAs,
     closeProject,
     refresh,
     subscribe,
@@ -3626,6 +4335,19 @@ FILE: renderer/index.html
     <div class="workbench-main-layout" id="workbench-main-layout">
       <div class="project-tree-column" id="project-tree-column">
         <div class="side-header" id="project-panel-title"></div>
+        <div class="backend-project-catalog" id="backend-project-catalog">
+          <div class="backend-project-catalog-header">Backend Projects</div>
+          <div class="backend-project-catalog-body">
+            <div class="backend-project-catalog-actions">
+              <button id="backend-project-list-button" type="button">List</button>
+            </div>
+            <div class="backend-project-catalog-actions">
+              <input id="backend-project-create-input" type="text" placeholder="Project name" />
+              <button id="backend-project-create-button" type="button">Create</button>
+            </div>
+            <pre id="backend-project-result" class="backend-project-catalog-result"></pre>
+          </div>
+        </div>
         <div id="project-tree" class="project-tree"></div>
       </div>
 
@@ -7288,6 +8010,66 @@ export function createAppCloseCoordinator({
 
 
 ==================================================
+FILE: renderer/runtime/backendProjectExportFlow.js
+==================================================
+
+export async function runBackendProjectExport({
+  project,
+  exportCommandId,
+  executeBackendCommand,
+  downloadBinary,
+  saveBinaryFileAsDialog,
+  dialogs,
+  loggerWarn,
+  loggerSource,
+  downloadFailedText,
+  setResult
+}) {
+  const projectId = String(project?.id || '').trim();
+  if (!projectId) {
+    return false;
+  }
+
+  const result = await executeBackendCommand(exportCommandId, { projectId });
+  if (!result?.downloadUrl) {
+    return false;
+  }
+
+  try {
+    const bytes = Array.from(await downloadBinary(result.downloadUrl));
+    const defaultFileName = String(result?.fileName || `${project?.slug || projectId}.zip`).trim();
+    const saveResult = await saveBinaryFileAsDialog({
+      title: dialogs.exportProjectArchiveTitle,
+      buttonLabel: dialogs.exportButtonLabel,
+      defaultPath: defaultFileName,
+      filters: [
+        {
+          name: dialogs.zipFilterName,
+          extensions: dialogs.zipFilterExtensions
+        }
+      ],
+      bytes
+    });
+
+    if (saveResult?.saved) {
+      setResult?.({
+        ...result,
+        savedFilePath: saveResult.filePath || null
+      });
+    }
+  } catch (error) {
+    loggerWarn(
+      loggerSource,
+      downloadFailedText,
+      { message: error?.message || String(error), projectId }
+    );
+  }
+
+  return true;
+}
+
+
+==================================================
 FILE: renderer/runtime/fileSystemBridge.js
 ==================================================
 
@@ -7304,6 +8086,7 @@ export function createFileSystemBridge() {
     approveWindowClose: () => api.approveWindowClose(),
     cancelWindowClose: () => api.cancelWindowClose(),
     saveProjectFileAsDialog: (defaultPath) => api.saveProjectFileAsDialog(defaultPath),
+    saveBinaryFileAsDialog: (options) => api.saveBinaryFileAsDialog(options),
     ensureDir: (targetPath) => api.ensureDir(targetPath),
     exists: (targetPath) => api.exists(targetPath),
     readText: (targetPath) => api.readText(targetPath),
@@ -7314,349 +8097,6 @@ export function createFileSystemBridge() {
     listFiles: (targetDir, extensions = []) => api.listFiles(targetDir, extensions),
     onWindowCloseRequested: (listener) => api.onWindowCloseRequested(listener),
     onMenuAction: (listener) => api.onMenuAction(listener)
-  };
-}
-
-
-==================================================
-FILE: renderer/runtime/runtimeClientContract.js
-==================================================
-
-export const RUNTIME_ADAPTER_TYPES = Object.freeze({
-  local: 'local'
-});
-
-export const RUNTIME_CONTRACT_FIELDS = Object.freeze({
-  requestId: 'requestId',
-  module: 'module',
-  command: 'command',
-  payload: 'payload',
-  ok: 'ok',
-  result: 'result',
-  error: 'error',
-  code: 'code',
-  message: 'message'
-});
-
-export const RUNTIME_MODULES = Object.freeze({
-  platform: 'platform',
-  fileSystem: 'fileSystem'
-});
-
-export const RUNTIME_COMMANDS = Object.freeze({
-  platform: Object.freeze({
-    openProjectDialog: 'openProjectDialog',
-    saveProjectAsDialog: 'saveProjectAsDialog',
-    appQuit: 'appQuit',
-    approveWindowClose: 'approveWindowClose',
-    cancelWindowClose: 'cancelWindowClose'
-  }),
-  fileSystem: Object.freeze({
-    ensureDir: 'ensureDir',
-    exists: 'exists',
-    readText: 'readText',
-    writeText: 'writeText',
-    rename: 'rename',
-    deleteFile: 'deleteFile',
-    deleteDir: 'deleteDir',
-    listFiles: 'listFiles'
-  })
-});
-
-export const RUNTIME_PAYLOAD_FIELDS = Object.freeze({
-  defaultPath: 'defaultPath',
-  targetPath: 'targetPath',
-  text: 'text',
-  fromPath: 'fromPath',
-  toPath: 'toPath',
-  targetDir: 'targetDir',
-  extensions: 'extensions'
-});
-
-export const RUNTIME_ERROR_CODES = Object.freeze({
-  unsupportedCommand: 'UNSUPPORTED_COMMAND',
-  invalidResponse: 'INVALID_RUNTIME_RESPONSE',
-  runtimeRejected: 'RUNTIME_REQUEST_REJECTED'
-});
-
-
-==================================================
-FILE: renderer/runtime/runtimeClient.js
-==================================================
-
-import {
-  RUNTIME_COMMANDS,
-  RUNTIME_CONTRACT_FIELDS,
-  RUNTIME_ERROR_CODES,
-  RUNTIME_MODULES,
-  RUNTIME_PAYLOAD_FIELDS
-} from './runtimeClientContract.js';
-
-function createRequestIdFactory() {
-  let requestCounter = 0;
-
-  return () => {
-    requestCounter += 1;
-    return `runtime-request-${requestCounter}`;
-  };
-}
-
-function ensureResponseShape(response) {
-  const hasObjectShape = response && typeof response === 'object';
-  const hasRequestId = hasObjectShape && RUNTIME_CONTRACT_FIELDS.requestId in response;
-  const hasOk = hasObjectShape && typeof response[RUNTIME_CONTRACT_FIELDS.ok] === 'boolean';
-
-  if (!hasRequestId || !hasOk) {
-    throw new Error('Runtime adapter returned invalid response shape');
-  }
-}
-
-export function createRuntimeClient({ adapter, createRequestId = createRequestIdFactory() }) {
-  if (!adapter || typeof adapter.execute !== 'function') {
-    throw new Error('Runtime adapter with execute(request) is required');
-  }
-
-  async function send(moduleName, commandName, payload = {}) {
-    const request = {
-      [RUNTIME_CONTRACT_FIELDS.requestId]: createRequestId(),
-      [RUNTIME_CONTRACT_FIELDS.module]: moduleName,
-      [RUNTIME_CONTRACT_FIELDS.command]: commandName,
-      [RUNTIME_CONTRACT_FIELDS.payload]: payload
-    };
-
-    const response = await adapter.execute(request);
-    ensureResponseShape(response);
-
-    if (!response[RUNTIME_CONTRACT_FIELDS.ok]) {
-      const errorPayload = response[RUNTIME_CONTRACT_FIELDS.error] || {};
-      const runtimeError = new Error(
-        errorPayload[RUNTIME_CONTRACT_FIELDS.message] || 'Runtime request failed'
-      );
-      runtimeError.code = errorPayload[RUNTIME_CONTRACT_FIELDS.code] || RUNTIME_ERROR_CODES.runtimeRejected;
-      throw runtimeError;
-    }
-
-    return response[RUNTIME_CONTRACT_FIELDS.result];
-  }
-
-  async function openProjectFileDialog() {
-    return send(RUNTIME_MODULES.platform, RUNTIME_COMMANDS.platform.openProjectDialog);
-  }
-
-  async function saveProjectFileAsDialog(defaultPath) {
-    return send(
-      RUNTIME_MODULES.platform,
-      RUNTIME_COMMANDS.platform.saveProjectAsDialog,
-      { [RUNTIME_PAYLOAD_FIELDS.defaultPath]: defaultPath }
-    );
-  }
-
-  async function requestAppQuit() {
-    return send(RUNTIME_MODULES.platform, RUNTIME_COMMANDS.platform.appQuit);
-  }
-
-  async function approveWindowClose() {
-    return send(RUNTIME_MODULES.platform, RUNTIME_COMMANDS.platform.approveWindowClose);
-  }
-
-  async function cancelWindowClose() {
-    return send(RUNTIME_MODULES.platform, RUNTIME_COMMANDS.platform.cancelWindowClose);
-  }
-
-  const fileSystem = {
-    ensureDir: (targetPath) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.ensureDir,
-      { [RUNTIME_PAYLOAD_FIELDS.targetPath]: targetPath }
-    ),
-    exists: (targetPath) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.exists,
-      { [RUNTIME_PAYLOAD_FIELDS.targetPath]: targetPath }
-    ),
-    readText: (targetPath) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.readText,
-      { [RUNTIME_PAYLOAD_FIELDS.targetPath]: targetPath }
-    ),
-    writeText: (targetPath, text) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.writeText,
-      {
-        [RUNTIME_PAYLOAD_FIELDS.targetPath]: targetPath,
-        [RUNTIME_PAYLOAD_FIELDS.text]: text
-      }
-    ),
-    rename: (fromPath, toPath) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.rename,
-      {
-        [RUNTIME_PAYLOAD_FIELDS.fromPath]: fromPath,
-        [RUNTIME_PAYLOAD_FIELDS.toPath]: toPath
-      }
-    ),
-    deleteFile: (targetPath) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.deleteFile,
-      { [RUNTIME_PAYLOAD_FIELDS.targetPath]: targetPath }
-    ),
-    deleteDir: (targetPath) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.deleteDir,
-      { [RUNTIME_PAYLOAD_FIELDS.targetPath]: targetPath }
-    ),
-    listFiles: (targetDir, extensions = []) => send(
-      RUNTIME_MODULES.fileSystem,
-      RUNTIME_COMMANDS.fileSystem.listFiles,
-      {
-        [RUNTIME_PAYLOAD_FIELDS.targetDir]: targetDir,
-        [RUNTIME_PAYLOAD_FIELDS.extensions]: extensions
-      }
-    )
-  };
-
-  return {
-    send,
-    getFileSystem: () => fileSystem,
-    openProjectFileDialog,
-    saveProjectFileAsDialog,
-    requestAppQuit,
-    approveWindowClose,
-    cancelWindowClose,
-    onWindowCloseRequested: (listener) => adapter.onWindowCloseRequested(listener),
-    onMenuAction: (listener) => adapter.onMenuAction(listener)
-  };
-}
-
-
-==================================================
-FILE: renderer/runtime/adapters/createLocalRuntimeAdapter.js
-==================================================
-
-import { createFileSystemBridge } from '../fileSystemBridge.js';
-import {
-  RUNTIME_ADAPTER_TYPES,
-  RUNTIME_COMMANDS,
-  RUNTIME_CONTRACT_FIELDS,
-  RUNTIME_ERROR_CODES,
-  RUNTIME_MODULES,
-  RUNTIME_PAYLOAD_FIELDS
-} from '../runtimeClientContract.js';
-
-function createSuccessResponse(requestId, result) {
-  return {
-    [RUNTIME_CONTRACT_FIELDS.requestId]: requestId,
-    [RUNTIME_CONTRACT_FIELDS.ok]: true,
-    [RUNTIME_CONTRACT_FIELDS.result]: result
-  };
-}
-
-function createErrorResponse(requestId, code, message) {
-  return {
-    [RUNTIME_CONTRACT_FIELDS.requestId]: requestId,
-    [RUNTIME_CONTRACT_FIELDS.ok]: false,
-    [RUNTIME_CONTRACT_FIELDS.error]: {
-      [RUNTIME_CONTRACT_FIELDS.code]: code,
-      [RUNTIME_CONTRACT_FIELDS.message]: message
-    }
-  };
-}
-
-export function createLocalRuntimeAdapter({ bridge = createFileSystemBridge() } = {}) {
-  async function execute(request) {
-    const requestId = request?.[RUNTIME_CONTRACT_FIELDS.requestId];
-    const moduleName = request?.[RUNTIME_CONTRACT_FIELDS.module];
-    const commandName = request?.[RUNTIME_CONTRACT_FIELDS.command];
-    const payload = request?.[RUNTIME_CONTRACT_FIELDS.payload] || {};
-
-    try {
-      if (moduleName === RUNTIME_MODULES.platform) {
-        if (commandName === RUNTIME_COMMANDS.platform.openProjectDialog) {
-          return createSuccessResponse(requestId, await bridge.openProjectFileDialog());
-        }
-
-        if (commandName === RUNTIME_COMMANDS.platform.saveProjectAsDialog) {
-          return createSuccessResponse(
-            requestId,
-            await bridge.saveProjectFileAsDialog(payload[RUNTIME_PAYLOAD_FIELDS.defaultPath])
-          );
-        }
-
-        if (commandName === RUNTIME_COMMANDS.platform.appQuit) {
-          return createSuccessResponse(requestId, await bridge.requestAppQuit());
-        }
-
-        if (commandName === RUNTIME_COMMANDS.platform.approveWindowClose) {
-          return createSuccessResponse(requestId, await bridge.approveWindowClose());
-        }
-
-        if (commandName === RUNTIME_COMMANDS.platform.cancelWindowClose) {
-          return createSuccessResponse(requestId, await bridge.cancelWindowClose());
-        }
-      }
-
-      if (moduleName === RUNTIME_MODULES.fileSystem) {
-        if (commandName === RUNTIME_COMMANDS.fileSystem.ensureDir) {
-          return createSuccessResponse(requestId, await bridge.ensureDir(payload[RUNTIME_PAYLOAD_FIELDS.targetPath]));
-        }
-
-        if (commandName === RUNTIME_COMMANDS.fileSystem.exists) {
-          return createSuccessResponse(requestId, await bridge.exists(payload[RUNTIME_PAYLOAD_FIELDS.targetPath]));
-        }
-
-        if (commandName === RUNTIME_COMMANDS.fileSystem.readText) {
-          return createSuccessResponse(requestId, await bridge.readText(payload[RUNTIME_PAYLOAD_FIELDS.targetPath]));
-        }
-
-        if (commandName === RUNTIME_COMMANDS.fileSystem.writeText) {
-          return createSuccessResponse(
-            requestId,
-            await bridge.writeText(payload[RUNTIME_PAYLOAD_FIELDS.targetPath], payload[RUNTIME_PAYLOAD_FIELDS.text])
-          );
-        }
-
-        if (commandName === RUNTIME_COMMANDS.fileSystem.rename) {
-          return createSuccessResponse(
-            requestId,
-            await bridge.rename(payload[RUNTIME_PAYLOAD_FIELDS.fromPath], payload[RUNTIME_PAYLOAD_FIELDS.toPath])
-          );
-        }
-
-        if (commandName === RUNTIME_COMMANDS.fileSystem.deleteFile) {
-          return createSuccessResponse(requestId, await bridge.deleteFile(payload[RUNTIME_PAYLOAD_FIELDS.targetPath]));
-        }
-
-        if (commandName === RUNTIME_COMMANDS.fileSystem.deleteDir) {
-          return createSuccessResponse(requestId, await bridge.deleteDir(payload[RUNTIME_PAYLOAD_FIELDS.targetPath]));
-        }
-
-        if (commandName === RUNTIME_COMMANDS.fileSystem.listFiles) {
-          return createSuccessResponse(
-            requestId,
-            await bridge.listFiles(payload[RUNTIME_PAYLOAD_FIELDS.targetDir], payload[RUNTIME_PAYLOAD_FIELDS.extensions])
-          );
-        }
-      }
-    } catch (error) {
-      return createErrorResponse(
-        requestId,
-        RUNTIME_ERROR_CODES.runtimeRejected,
-        error?.message || String(error)
-      );
-    }
-
-    return createErrorResponse(
-      requestId,
-      RUNTIME_ERROR_CODES.unsupportedCommand,
-      `Unsupported runtime command: ${String(moduleName)}.${String(commandName)}`
-    );
-  }
-
-  return {
-    type: RUNTIME_ADAPTER_TYPES.local,
-    execute,
-    onWindowCloseRequested: (listener) => bridge.onWindowCloseRequested(listener),
-    onMenuAction: (listener) => bridge.onMenuAction(listener)
   };
 }
 
@@ -7948,6 +8388,65 @@ body {
   min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: #c4ccd7 transparent;
+}
+
+.backend-project-catalog {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  padding: 8px 10px;
+}
+
+.backend-project-catalog-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.backend-project-catalog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.backend-project-catalog-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.backend-project-catalog-actions input,
+.backend-project-catalog-actions button {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg-app);
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 6px 8px;
+}
+
+.backend-project-catalog-actions input {
+  flex: 1;
+  min-width: 0;
+}
+
+.backend-project-catalog-actions button {
+  cursor: pointer;
+}
+
+.backend-project-catalog-result {
+  margin: 0;
+  min-height: 52px;
+  max-height: 120px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  padding: 6px;
+  font-size: 11px;
+  font-family: Consolas, Monaco, monospace;
+  white-space: pre-wrap;
 }
 
 .project-tree::-webkit-scrollbar {
@@ -10068,4 +10567,3316 @@ export function createWindowCloseGuard() {
     reset
   };
 }
+
+
+==================================================
+FILE: renderer/runtime/runtimeClientContract.js
+==================================================
+
+﻿const REQUIRED_STRING_FIELDS = ['requestId', 'module', 'command'];
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function normalizeRuntimeRequest(input) {
+  if (!isPlainObject(input)) {
+    throw new Error('Runtime command request must be an object');
+  }
+
+  for (const field of REQUIRED_STRING_FIELDS) {
+    const value = String(input[field] || '').trim();
+    if (!value) {
+      throw new Error(`Runtime command request field is required: ${field}`);
+    }
+  }
+
+  const payload = input.payload;
+
+  return {
+    requestId: String(input.requestId).trim(),
+    module: String(input.module).trim(),
+    command: String(input.command).trim(),
+    payload: isPlainObject(payload) ? payload : {}
+  };
+}
+
+export function normalizeRuntimeResponse(input, fallbackRequestId = '') {
+  if (!isPlainObject(input)) {
+    throw new Error('Runtime command response must be an object');
+  }
+
+  const requestId = String(input.requestId || fallbackRequestId || '').trim();
+  if (!requestId) {
+    throw new Error('Runtime command response field is required: requestId');
+  }
+
+  const ok = Boolean(input.ok);
+  const result = isPlainObject(input.result) ? input.result : null;
+  const error = isPlainObject(input.error) ? input.error : null;
+
+  if (ok && error) {
+    throw new Error('Runtime command response cannot include error when ok=true');
+  }
+
+  if (!ok && !error) {
+    throw new Error('Runtime command response must include error when ok=false');
+  }
+
+  return {
+    requestId,
+    ok,
+    result,
+    error
+  };
+}
+
+
+==================================================
+FILE: renderer/runtime/runtimeClient.js
+==================================================
+
+﻿import { normalizeRuntimeRequest, normalizeRuntimeResponse } from './runtimeClientContract.js';
+
+export function createRuntimeClient({ adapter }) {
+  if (!adapter || typeof adapter.execute !== 'function') {
+    throw new Error('Runtime client adapter with execute(request) is required');
+  }
+
+  async function execute(request) {
+    const normalizedRequest = normalizeRuntimeRequest(request);
+    const response = await adapter.execute(normalizedRequest);
+    return normalizeRuntimeResponse(response, normalizedRequest.requestId);
+  }
+
+  async function downloadBinary(relativePath) {
+    if (typeof adapter.downloadBinary !== 'function') {
+      throw new Error('Runtime client adapter with downloadBinary(relativePath) is required');
+    }
+    return adapter.downloadBinary(relativePath);
+  }
+
+  return {
+    execute,
+    downloadBinary
+  };
+}
+
+
+==================================================
+FILE: renderer/runtime/adapters/createLocalRuntimeAdapter.js
+==================================================
+
+﻿import { normalizeRuntimeRequest } from '../runtimeClientContract.js';
+
+function commandKey(moduleId, commandId) {
+  return `${moduleId}.${commandId}`;
+}
+
+const DEFAULT_ERROR_CODES = {
+  validation: 'VALIDATION_ERROR',
+  internal: 'INTERNAL_ERROR'
+};
+
+export function createLocalRuntimeAdapter({ handlers = {}, errorCodes = DEFAULT_ERROR_CODES } = {}) {
+  const handlerMap = new Map();
+
+  for (const [key, handler] of Object.entries(handlers)) {
+    if (typeof handler === 'function') {
+      handlerMap.set(key, handler);
+    }
+  }
+
+  async function execute(request) {
+    const normalizedRequest = normalizeRuntimeRequest(request);
+    const key = commandKey(normalizedRequest.module, normalizedRequest.command);
+    const handler = handlerMap.get(key);
+
+    if (!handler) {
+      return {
+        requestId: normalizedRequest.requestId,
+        ok: false,
+        error: {
+          code: errorCodes.validation,
+          message: `No handler registered for ${key}`
+        }
+      };
+    }
+
+    try {
+      const result = await handler(normalizedRequest.payload, normalizedRequest);
+      return {
+        requestId: normalizedRequest.requestId,
+        ok: true,
+        result: result && typeof result === 'object' ? result : {}
+      };
+    } catch (error) {
+      return {
+        requestId: normalizedRequest.requestId,
+        ok: false,
+        error: {
+          code: errorCodes.internal,
+          message: error?.message || String(error)
+        }
+      };
+    }
+  }
+
+  function register(moduleId, commandId, handler) {
+    handlerMap.set(commandKey(moduleId, commandId), handler);
+  }
+
+  return {
+    execute,
+    register
+  };
+}
+
+
+==================================================
+FILE: renderer/runtime/adapters/createHttpRuntimeAdapter.js
+==================================================
+
+﻿import { normalizeRuntimeRequest } from '../runtimeClientContract.js';
+
+function normalizeBaseUrl(value) {
+  return String(value || '').replace(/\/+$/, '');
+}
+
+function normalizePath(value) {
+  const path = String(value || '').trim();
+  if (!path) {
+    throw new Error('Backend commands endpoint path is required');
+  }
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+const DEFAULT_ERROR_CODES = {
+  internal: 'INTERNAL_ERROR'
+};
+
+function createTimeoutController(timeoutMs) {
+  const abortController = typeof AbortController === 'function' ? new AbortController() : null;
+  const timeoutId = abortController
+    ? setTimeout(() => abortController.abort(), timeoutMs)
+    : null;
+
+  return {
+    signal: abortController?.signal,
+    clear: () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  };
+}
+
+export function createHttpRuntimeAdapter({
+  baseUrl,
+  endpointPath,
+  timeoutMs = 10000,
+  fetchImpl = fetch,
+  errorCodes = DEFAULT_ERROR_CODES
+}) {
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('fetch implementation is required');
+  }
+
+  const commandUrl = `${normalizeBaseUrl(baseUrl)}${normalizePath(endpointPath)}`;
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+
+  async function execute(request) {
+    const normalizedRequest = normalizeRuntimeRequest(request);
+    const timeoutController = createTimeoutController(timeoutMs);
+
+    try {
+      const response = await fetchImpl(commandUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(normalizedRequest),
+        signal: timeoutController.signal
+      });
+
+      const payload = await response.json();
+
+      if (typeof payload?.requestId !== 'string' || !payload.requestId.trim()) {
+        payload.requestId = normalizedRequest.requestId;
+      }
+
+      return payload;
+    } catch (error) {
+      return {
+        requestId: normalizedRequest.requestId,
+        ok: false,
+        error: {
+          code: errorCodes.internal,
+          message: error?.message || String(error)
+        }
+      };
+    } finally {
+      timeoutController.clear();
+    }
+  }
+
+  async function downloadBinary(relativePath) {
+    const downloadUrl = `${normalizedBaseUrl}${normalizePath(relativePath)}`;
+    const timeoutController = createTimeoutController(timeoutMs);
+    try {
+      const response = await fetchImpl(downloadUrl, {
+        method: 'GET',
+        signal: timeoutController.signal
+      });
+      if (!response.ok) {
+        throw new Error(`Export download failed: HTTP ${response.status}`);
+      }
+      return new Uint8Array(await response.arrayBuffer());
+    } finally {
+      timeoutController.clear();
+    }
+  }
+
+  return {
+    execute,
+    downloadBinary
+  };
+}
+
+
+==================================================
+FILE: runtime_backend/__init__.py
+==================================================
+
+﻿
+
+
+==================================================
+FILE: runtime_backend/app/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: runtime_backend/app/main.py
+==================================================
+
+﻿from fastapi import FastAPI
+
+from runtime_backend.app.api.commands import router as commands_router
+from runtime_backend.app.db.bootstrap import bootstrap_storage
+
+app = FastAPI(title='MetaPlatform Runtime Backend')
+
+
+@app.on_event('startup')
+def _startup() -> None:
+    bootstrap_storage()
+
+
+app.include_router(commands_router)
+
+
+==================================================
+FILE: runtime_backend/app/api/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: runtime_backend/app/api/commands.py
+==================================================
+
+﻿from pathlib import Path
+from typing import Any
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import ValidationError
+
+from runtime_backend.app.core.constants import API_COMMANDS_ENDPOINT, API_PROJECT_EXPORTS_ENDPOINT, ERROR_CODES
+from runtime_backend.app.models.command import CommandRequest
+from runtime_backend.app.services.command_dispatcher import dispatch_command, make_error_response, project_storage_service
+
+router = APIRouter()
+
+
+def _cleanup_export_artifact(path: Path) -> None:
+    path.unlink(missing_ok=True)
+
+
+@router.post(API_COMMANDS_ENDPOINT)
+def handle_commands(raw_payload: dict[str, Any]):
+    request_id = str(raw_payload.get('requestId', '')).strip()
+
+    try:
+        request = CommandRequest.model_validate(raw_payload)
+    except ValidationError as error:
+        return make_error_response(
+            request_id,
+            ERROR_CODES['validation'],
+            'Invalid request payload',
+            {'reason': str(error)},
+        )
+
+    return dispatch_command(request)
+
+
+@router.get(f'{API_PROJECT_EXPORTS_ENDPOINT}' + '/{export_token}')
+def download_project_export(export_token: str, background_tasks: BackgroundTasks):
+    artifact = project_storage_service.consume_project_export_artifact(export_token)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail='Project export not found')
+
+    artifact_path = Path(str(artifact['path']))
+    background_tasks.add_task(_cleanup_export_artifact, artifact_path)
+
+    return FileResponse(
+        artifact_path,
+        media_type='application/zip',
+        filename=str(artifact['fileName']),
+    )
+
+
+==================================================
+FILE: runtime_backend/app/core/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: runtime_backend/app/core/constants.py
+==================================================
+
+﻿from pathlib import Path
+
+API_COMMANDS_ENDPOINT = '/api/commands'
+API_PROJECT_EXPORTS_ENDPOINT = '/api/project-exports'
+
+ERROR_CODES = {
+    'validation': 'VALIDATION_ERROR',
+    'internal': 'INTERNAL_ERROR',
+    'project_create_failed': 'PROJECT_CREATE_FAILED',
+    'project_not_found': 'PROJECT_NOT_FOUND',
+    'project_open_failed': 'PROJECT_OPEN_FAILED',
+    'project_save_failed': 'PROJECT_SAVE_FAILED',
+    'project_delete_failed': 'PROJECT_DELETE_FAILED',
+    'project_export_failed': 'PROJECT_EXPORT_FAILED',
+}
+
+COMMANDS = {
+    'platform': {
+        'module': 'platform',
+        'list_projects': 'listProjects',
+        'create_project': 'createProject',
+        'open_project': 'openProject',
+        'delete_project': 'deleteProject',
+        'save_all': 'saveAll',
+        'save_project_as': 'saveProjectAs',
+        'export_project': 'exportProject',
+    }
+}
+
+PROJECT_STRUCTURE = {
+    'project_file_name': 'project.yaml',
+    'module_dirs': ['metagen', 'metalab', 'metaview'],
+    'module_file_extensions': ['.yaml', '.yml'],
+    'project_source_backend': 'backend',
+    'generated_dir': 'generated',
+    'kind': 'metaplatform.project',
+    'version': 1,
+    'module_display_names': ['MetaGen', 'MetaLab', 'MetaView'],
+}
+
+RUNTIME_DATA_DIR_NAME = 'runtime_data'
+SQLITE_FILE_NAME = 'platform.db'
+WORKSPACE_PROJECTS_DIR = Path('workspace') / 'projects'
+WORKSPACE_DELETED_PROJECTS_DIR = Path('workspace') / 'deleted_projects'
+WORKSPACE_EXPORTS_DIR = Path('workspace') / 'exports'
+PROJECT_EXPORT_ARTIFACT_MAX_AGE_SECONDS = 600
+DEFAULT_USER = {
+    'id': 'default-user',
+    'username': 'default',
+}
+
+
+==================================================
+FILE: runtime_backend/app/core/settings.py
+==================================================
+
+﻿from dataclasses import dataclass
+from pathlib import Path
+
+from .constants import (
+    DEFAULT_USER,
+    RUNTIME_DATA_DIR_NAME,
+    SQLITE_FILE_NAME,
+    WORKSPACE_DELETED_PROJECTS_DIR,
+    WORKSPACE_EXPORTS_DIR,
+    WORKSPACE_PROJECTS_DIR,
+)
+
+
+@dataclass(frozen=True)
+class Settings:
+    runtime_root: Path
+    data_root: Path
+    sqlite_path: Path
+    workspace_projects_root: Path
+    workspace_deleted_projects_root: Path
+    workspace_project_exports_root: Path
+    default_user_id: str
+    default_username: str
+
+
+def load_settings() -> Settings:
+    runtime_root = Path(__file__).resolve().parents[2]
+    data_root = runtime_root / RUNTIME_DATA_DIR_NAME
+    return Settings(
+        runtime_root=runtime_root,
+        data_root=data_root,
+        sqlite_path=data_root / SQLITE_FILE_NAME,
+        workspace_projects_root=data_root / WORKSPACE_PROJECTS_DIR,
+        workspace_deleted_projects_root=data_root / WORKSPACE_DELETED_PROJECTS_DIR,
+        workspace_project_exports_root=data_root / WORKSPACE_EXPORTS_DIR,
+        default_user_id=DEFAULT_USER['id'],
+        default_username=DEFAULT_USER['username'],
+    )
+
+
+SETTINGS = load_settings()
+
+
+==================================================
+FILE: runtime_backend/app/db/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: runtime_backend/app/db/bootstrap.py
+==================================================
+
+﻿import sqlite3
+from pathlib import Path
+
+from runtime_backend.app.core.settings import SETTINGS
+from runtime_backend.app.utils.time_utils import utc_now_iso
+
+
+def connect(sqlite_path: Path | None = None) -> sqlite3.Connection:
+    target = sqlite_path or SETTINGS.sqlite_path
+    connection = sqlite3.connect(target)
+    connection.row_factory = sqlite3.Row
+    connection.execute('PRAGMA foreign_keys = ON;')
+    return connection
+
+
+def bootstrap_storage() -> None:
+    SETTINGS.data_root.mkdir(parents=True, exist_ok=True)
+    SETTINGS.workspace_projects_root.mkdir(parents=True, exist_ok=True)
+    SETTINGS.workspace_deleted_projects_root.mkdir(parents=True, exist_ok=True)
+    SETTINGS.workspace_project_exports_root.mkdir(parents=True, exist_ok=True)
+
+    with connect() as db:
+        db.executescript(
+            '''
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                root_path TEXT NOT NULL,
+                project_file_path TEXT NOT NULL,
+                deleted_at TEXT NULL,
+                deleted_root_path TEXT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+            '''
+        )
+        _ensure_projects_soft_delete_columns(db)
+
+        now = utc_now_iso()
+        db.execute(
+            '''
+            INSERT INTO users(id, username, created_at, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                username=excluded.username,
+                updated_at=excluded.updated_at
+            ''',
+            (SETTINGS.default_user_id, SETTINGS.default_username, now, now),
+        )
+        db.commit()
+
+
+def _ensure_projects_soft_delete_columns(db: sqlite3.Connection) -> None:
+    columns = {
+        row['name']
+        for row in db.execute("PRAGMA table_info(projects)").fetchall()
+    }
+
+    if 'deleted_at' not in columns:
+        db.execute('ALTER TABLE projects ADD COLUMN deleted_at TEXT NULL')
+
+    if 'deleted_root_path' not in columns:
+        db.execute('ALTER TABLE projects ADD COLUMN deleted_root_path TEXT NULL')
+
+
+==================================================
+FILE: runtime_backend/app/models/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: runtime_backend/app/models/command.py
+==================================================
+
+﻿from typing import Any
+
+from pydantic import BaseModel, Field, model_validator
+
+
+class CommandRequest(BaseModel):
+    request_id: str = Field(alias='requestId', min_length=1)
+    module: str = Field(min_length=1)
+    command: str = Field(min_length=1)
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class CommandError(BaseModel):
+    code: str
+    message: str
+    details: dict[str, Any] | None = None
+
+
+class CommandResponse(BaseModel):
+    request_id: str = Field(alias='requestId')
+    ok: bool
+    result: dict[str, Any] | None = None
+    error: CommandError | None = None
+
+    @model_validator(mode='after')
+    def validate_envelope(self) -> 'CommandResponse':
+        if self.ok and self.error is not None:
+            raise ValueError('ok response cannot contain error')
+        if not self.ok and self.result is not None:
+            raise ValueError('error response cannot contain result')
+        return self
+
+
+==================================================
+FILE: runtime_backend/app/models/project_snapshot.py
+==================================================
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class ProjectSnapshotDocument(BaseModel):
+    module_id: str = Field(alias='moduleId')
+    path: str
+    document: dict[str, Any]
+
+
+class ProjectSnapshotProject(BaseModel):
+    project_id: str = Field(alias='projectId')
+    name: str
+    slug: str
+    updated_at: str = Field(alias='updatedAt')
+
+
+class ProjectSnapshot(BaseModel):
+    source: str
+    project: ProjectSnapshotProject
+    raw: dict[str, Any]
+    documents: dict[str, list[ProjectSnapshotDocument]]
+
+
+class ProjectSnapshotSave(BaseModel):
+    raw: dict[str, Any]
+    documents: dict[str, list[ProjectSnapshotDocument]]
+
+
+class SaveAllPayload(BaseModel):
+    project_id: str = Field(alias='projectId')
+    project_snapshot: ProjectSnapshotSave = Field(alias='projectSnapshot')
+
+
+class SaveProjectAsPayload(BaseModel):
+    project_id: str = Field(alias='projectId')
+    new_name: str = Field(alias='newName')
+    project_snapshot: ProjectSnapshotSave = Field(alias='projectSnapshot')
+
+
+==================================================
+FILE: runtime_backend/app/services/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: runtime_backend/app/services/errors.py
+==================================================
+
+﻿class ValidationIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectCreateIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectOpenIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectNotFoundIssue(ProjectOpenIssue):
+    pass
+
+
+class ProjectSaveIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectDeleteIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectExportIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+==================================================
+FILE: runtime_backend/app/services/command_dispatcher.py
+==================================================
+
+﻿from pydantic import ValidationError
+
+from runtime_backend.app.core.constants import COMMANDS, ERROR_CODES
+from runtime_backend.app.models.command import CommandRequest, CommandResponse
+from runtime_backend.app.services import project_catalog
+from runtime_backend.app.services.errors import (
+    ProjectCreateIssue,
+    ProjectDeleteIssue,
+    ProjectExportIssue,
+    ProjectNotFoundIssue,
+    ProjectOpenIssue,
+    ProjectSaveIssue,
+    ValidationIssue,
+)
+from runtime_backend.app.services.project_storage import ProjectStorageService
+
+project_storage_service = ProjectStorageService()
+
+
+def make_ok_response(request_id: str, result: dict) -> CommandResponse:
+    return CommandResponse(requestId=request_id, ok=True, result=result)
+
+
+def make_error_response(request_id: str, code: str, message: str, details: dict | None = None) -> CommandResponse:
+    return CommandResponse(
+        requestId=request_id,
+        ok=False,
+        error={
+            'code': code,
+            'message': message,
+            'details': details,
+        },
+    )
+
+
+def dispatch_command(request: CommandRequest) -> CommandResponse:
+    try:
+        platform_module = COMMANDS['platform']['module']
+        if request.module != platform_module:
+            raise ValidationIssue('Unsupported module', {'module': request.module})
+
+        if request.command == COMMANDS['platform']['list_projects']:
+            return make_ok_response(request.request_id, project_catalog.list_projects())
+
+        if request.command == COMMANDS['platform']['create_project']:
+            return make_ok_response(request.request_id, project_catalog.create_project(request.payload))
+
+        if request.command == COMMANDS['platform']['open_project']:
+            return make_ok_response(request.request_id, project_storage_service.open_project_snapshot(request.payload))
+
+        if request.command == COMMANDS['platform']['delete_project']:
+            return make_ok_response(request.request_id, project_catalog.delete_project(request.payload))
+
+        if request.command == COMMANDS['platform']['save_all']:
+            return make_ok_response(request.request_id, project_storage_service.save_project_snapshot(request.payload))
+
+        if request.command == COMMANDS['platform']['save_project_as']:
+            return make_ok_response(request.request_id, project_storage_service.save_project_snapshot_as(request.payload))
+
+        if request.command == COMMANDS['platform']['export_project']:
+            return make_ok_response(request.request_id, project_storage_service.export_project_archive(request.payload))
+
+        raise ValidationIssue(
+            'Unsupported command',
+            {'module': request.module, 'command': request.command},
+        )
+    except ValidationIssue as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['validation'],
+            str(error),
+            error.details,
+        )
+    except ProjectCreateIssue as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['project_create_failed'],
+            str(error),
+            error.details,
+        )
+    except ProjectNotFoundIssue as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['project_not_found'],
+            str(error),
+            error.details,
+        )
+    except ProjectOpenIssue as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['project_open_failed'],
+            str(error),
+            error.details,
+        )
+    except ProjectSaveIssue as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['project_save_failed'],
+            str(error),
+            error.details,
+        )
+    except ProjectDeleteIssue as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['project_delete_failed'],
+            str(error),
+            error.details,
+        )
+    except ProjectExportIssue as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['project_export_failed'],
+            str(error),
+            error.details,
+        )
+    except (ValidationError, ValueError) as error:
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['validation'],
+            'Invalid request payload',
+            {'reason': str(error)},
+        )
+    except Exception as error:  # noqa: BLE001
+        return make_error_response(
+            request.request_id,
+            ERROR_CODES['internal'],
+            'Unexpected internal error',
+            {'reason': str(error)},
+        )
+
+
+==================================================
+FILE: runtime_backend/app/services/project_catalog.py
+==================================================
+
+from __future__ import annotations
+
+import shutil
+from dataclasses import dataclass
+from pathlib import Path
+
+from runtime_backend.app.core.constants import PROJECT_STRUCTURE
+from runtime_backend.app.core.settings import SETTINGS
+from runtime_backend.app.db.bootstrap import connect
+from runtime_backend.app.services.errors import ProjectCreateIssue, ProjectDeleteIssue, ProjectNotFoundIssue, ValidationIssue
+from runtime_backend.app.utils.id_utils import make_project_id, slugify
+from runtime_backend.app.utils.time_utils import utc_now_iso
+
+
+@dataclass(frozen=True)
+class PreparedProjectMetadata:
+    project_id: str
+    name: str
+    slug: str
+    root_path: Path
+    project_file_path: Path
+    created_at: str
+    updated_at: str
+
+
+def _to_summary(row) -> dict:
+    return {
+        'id': row['id'],
+        'name': row['name'],
+        'slug': row['slug'],
+        'updatedAt': row['updated_at'],
+        'lockedBy': None,
+    }
+
+
+def _serialize_project_yaml(project_id: str, project_name: str) -> str:
+    escaped_name = project_name.replace('"', '\\"')
+    lines = [
+        f"kind: {PROJECT_STRUCTURE['kind']}",
+        f"version: {PROJECT_STRUCTURE['version']}",
+        'project:',
+        f'  id: "{project_id}"',
+        f'  name: "{escaped_name}"',
+        '  description: ""',
+        'modules:',
+    ]
+
+    for item in PROJECT_STRUCTURE['module_display_names']:
+        lines.append(f'  - {item}')
+
+    lines.extend(
+        [
+            'paths:',
+            f"  metagen: {PROJECT_STRUCTURE['module_dirs'][0]}",
+            f"  metalab: {PROJECT_STRUCTURE['module_dirs'][1]}",
+            f"  metaview: {PROJECT_STRUCTURE['module_dirs'][2]}",
+            f"  generated: {PROJECT_STRUCTURE['generated_dir']}",
+            '',
+        ]
+    )
+    return '\n'.join(lines)
+
+
+def _next_available_slug(base_slug: str) -> str:
+    with connect() as db:
+        slug = base_slug
+        suffix = 2
+        while True:
+            existing = db.execute('SELECT 1 FROM projects WHERE slug = ?', (slug,)).fetchone()
+            if existing is None:
+                return slug
+            slug = f'{base_slug}-{suffix}'
+            suffix += 1
+
+
+def validate_project_name(name: str, *, field: str = 'name') -> str:
+    normalized = str(name or '').strip()
+    if not normalized:
+        raise ValidationIssue('Project name is required', {'field': field})
+
+    if len(normalized) > 120:
+        raise ValidationIssue('Project name is too long', {'field': field, 'maxLength': 120})
+
+    return normalized
+
+
+def prepare_new_project_metadata(name: str, *, field: str = 'name') -> PreparedProjectMetadata:
+    normalized_name = validate_project_name(name, field=field)
+    base_slug = slugify(normalized_name)
+    if not base_slug:
+        raise ValidationIssue('Project name cannot be transformed into slug', {'field': field})
+
+    slug = _next_available_slug(base_slug)
+    project_id = make_project_id()
+    now = utc_now_iso()
+    project_root: Path = SETTINGS.workspace_projects_root / slug
+    project_file_path = project_root / PROJECT_STRUCTURE['project_file_name']
+
+    return PreparedProjectMetadata(
+        project_id=project_id,
+        name=normalized_name,
+        slug=slug,
+        root_path=project_root,
+        project_file_path=project_file_path,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def register_prepared_project(metadata: PreparedProjectMetadata) -> dict:
+    try:
+        with connect() as db:
+            db.execute(
+                '''
+                INSERT INTO projects(id, user_id, name, slug, root_path, project_file_path, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''',
+                (
+                    metadata.project_id,
+                    SETTINGS.default_user_id,
+                    metadata.name,
+                    metadata.slug,
+                    metadata.root_path.as_posix(),
+                    metadata.project_file_path.as_posix(),
+                    metadata.created_at,
+                    metadata.updated_at,
+                ),
+            )
+            db.commit()
+    except Exception as error:  # noqa: BLE001
+        raise ProjectCreateIssue(
+            'Failed to save project record',
+            {'slug': metadata.slug, 'reason': str(error)},
+        ) from error
+
+    return {
+        'project': {
+            'id': metadata.project_id,
+            'name': metadata.name,
+            'slug': metadata.slug,
+            'updatedAt': metadata.updated_at,
+            'lockedBy': None,
+        }
+    }
+
+
+def list_projects() -> dict:
+    with connect() as db:
+        rows = db.execute(
+            '''
+            SELECT id, name, slug, updated_at
+            FROM projects
+            WHERE deleted_at IS NULL
+            ORDER BY updated_at DESC, id DESC
+            '''
+        ).fetchall()
+
+    return {'projects': [_to_summary(row) for row in rows]}
+
+
+def create_project(payload: dict) -> dict:
+    prepared = prepare_new_project_metadata(payload.get('name', ''), field='name')
+
+    try:
+        prepared.root_path.mkdir(parents=True, exist_ok=False)
+        for folder in PROJECT_STRUCTURE['module_dirs']:
+            (prepared.root_path / folder).mkdir(parents=False, exist_ok=False)
+        (prepared.root_path / PROJECT_STRUCTURE['generated_dir']).mkdir(parents=False, exist_ok=False)
+        prepared.project_file_path.write_text(
+            _serialize_project_yaml(prepared.project_id, prepared.name),
+            encoding='utf-8',
+        )
+    except Exception as error:  # noqa: BLE001
+        if prepared.root_path.exists():
+            shutil.rmtree(prepared.root_path, ignore_errors=True)
+        raise ProjectCreateIssue(
+            'Failed to create project files',
+            {'slug': prepared.slug, 'reason': str(error)},
+        ) from error
+
+    try:
+        return register_prepared_project(prepared)
+    except ProjectCreateIssue:
+        if prepared.root_path.exists():
+            shutil.rmtree(prepared.root_path, ignore_errors=True)
+        raise
+
+
+def delete_project(payload: dict) -> dict:
+    project_id = str(payload.get('projectId', '')).strip()
+    if not project_id:
+        raise ValidationIssue('Project id is required', {'field': 'projectId'})
+
+    now = utc_now_iso()
+
+    with connect() as db:
+        row = db.execute(
+            '''
+            SELECT id, slug, root_path, deleted_at
+            FROM projects
+            WHERE id = ?
+            ''',
+            (project_id,),
+        ).fetchone()
+
+        if row is None:
+            raise ProjectNotFoundIssue('Project not found', {'projectId': project_id})
+
+        if row['deleted_at'] is not None:
+            return {
+                'projectId': project_id,
+                'deleted': True,
+                'alreadyDeleted': True,
+            }
+
+        project_root = Path(str(row['root_path']))
+        deleted_root = SETTINGS.workspace_deleted_projects_root / f'{row["slug"]}__{project_id}'
+
+        try:
+            SETTINGS.workspace_deleted_projects_root.mkdir(parents=True, exist_ok=True)
+            if project_root.exists():
+                if deleted_root.exists():
+                    shutil.rmtree(deleted_root, ignore_errors=True)
+                project_root.rename(deleted_root)
+            db.execute(
+                '''
+                UPDATE projects
+                SET deleted_at = ?, deleted_root_path = ?, updated_at = ?
+                WHERE id = ?
+                ''',
+                (now, deleted_root.as_posix(), now, project_id),
+            )
+            db.commit()
+        except Exception as error:  # noqa: BLE001
+            raise ProjectDeleteIssue(
+                'Failed to delete project',
+                {'projectId': project_id, 'reason': str(error)},
+            ) from error
+
+    return {
+        'projectId': project_id,
+        'deleted': True,
+        'alreadyDeleted': False,
+    }
+
+
+==================================================
+FILE: runtime_backend/app/services/project_storage.py
+==================================================
+
+from __future__ import annotations
+
+import shutil
+import time
+import zipfile
+from pathlib import Path
+from typing import Any
+from uuid import uuid4
+
+import yaml
+
+from runtime_backend.app.core.constants import PROJECT_STRUCTURE
+from runtime_backend.app.core.constants import API_PROJECT_EXPORTS_ENDPOINT, PROJECT_EXPORT_ARTIFACT_MAX_AGE_SECONDS
+from runtime_backend.app.core.settings import SETTINGS
+from runtime_backend.app.db.bootstrap import connect
+from runtime_backend.app.models.project_snapshot import (
+    ProjectSnapshot,
+    ProjectSnapshotDocument,
+    ProjectSnapshotProject,
+    SaveProjectAsPayload,
+    SaveAllPayload,
+)
+from runtime_backend.app.services import project_catalog
+from runtime_backend.app.services.errors import (
+    ProjectCreateIssue,
+    ProjectExportIssue,
+    ProjectNotFoundIssue,
+    ProjectOpenIssue,
+    ProjectSaveIssue,
+    ValidationIssue,
+)
+from runtime_backend.app.utils.time_utils import utc_now_iso
+
+
+class ProjectStorageService:
+    def __init__(self, db_connect=connect):
+        self._db_connect = db_connect
+        self._project_export_artifacts: dict[str, dict[str, str | float]] = {}
+
+    def open_project_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
+        project_id = str(payload.get('projectId', '')).strip()
+        if not project_id:
+            raise ValidationIssue('Project id is required', {'field': 'projectId'})
+
+        project_row = self._load_project_metadata(project_id)
+        project_root = Path(str(project_row['root_path']))
+        project_file_path = Path(str(project_row['project_file_path']))
+        self._verify_workspace_storage(
+            project_id=project_id,
+            project_slug=str(project_row['slug']),
+            project_root=project_root,
+            project_file_path=project_file_path,
+        )
+
+        if not project_root.exists():
+            raise ProjectOpenIssue(
+                'Project root path does not exist',
+                {'projectId': project_id, 'rootPath': project_root.as_posix()},
+            )
+
+        raw = self._read_yaml_object(
+            project_file_path,
+            details={'projectId': project_id, 'projectFilePath': project_file_path.as_posix()},
+        )
+
+        snapshot = ProjectSnapshot(
+            source=PROJECT_STRUCTURE['project_source_backend'],
+            project=ProjectSnapshotProject(
+                projectId=str(project_row['id']),
+                name=str(project_row['name']),
+                slug=str(project_row['slug']),
+                updatedAt=str(project_row['updated_at']),
+            ),
+            raw=raw,
+            documents={
+                module_id: self._read_module_documents(
+                    project_root=project_root,
+                    project_id=project_id,
+                    module_id=module_id,
+                )
+                for module_id in PROJECT_STRUCTURE['module_dirs']
+            },
+        )
+
+        return {'snapshot': snapshot.model_dump(by_alias=True)}
+
+    def save_project_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            save_payload = SaveAllPayload.model_validate(payload)
+        except Exception as error:  # noqa: BLE001
+            raise ValidationIssue('Invalid save payload', {'reason': str(error)}) from error
+
+        project_id = save_payload.project_id
+        if not project_id:
+            raise ValidationIssue('Project id is required', {'field': 'projectId'})
+
+        project_row = self._load_project_metadata(project_id)
+        project_root = Path(str(project_row['root_path']))
+        project_file_path = Path(str(project_row['project_file_path']))
+        try:
+            self._verify_workspace_storage(
+                project_id=project_id,
+                project_slug=str(project_row['slug']),
+                project_root=project_root,
+                project_file_path=project_file_path,
+            )
+        except ProjectOpenIssue as error:
+            raise ProjectSaveIssue(str(error), error.details) from error
+
+        if not project_root.exists():
+            raise ProjectSaveIssue(
+                'Project root path does not exist',
+                {'projectId': project_id, 'rootPath': project_root.as_posix()},
+            )
+
+        raw = save_payload.project_snapshot.raw
+        if not isinstance(raw, dict):
+            raise ValidationIssue('Project snapshot raw is required', {'field': 'projectSnapshot.raw'})
+
+        normalized_raw = self._normalize_raw_project(raw, project_id)
+        normalized_documents = self._normalize_snapshot_documents(
+            project_id=project_id,
+            documents=save_payload.project_snapshot.documents,
+        )
+
+        staging_root = project_root / '.save-staging'
+        backup_root = project_root / '.save-backup'
+        promoted_modules: list[str] = []
+        project_file_promoted = False
+        project_name_for_catalog = str(project_row['name'])
+
+        try:
+            self._clear_path(staging_root)
+            self._clear_path(backup_root)
+            self._build_staging_snapshot(
+                staging_root=staging_root,
+                raw=normalized_raw,
+                normalized_documents=normalized_documents,
+            )
+
+            for module_id in PROJECT_STRUCTURE['module_dirs']:
+                self._promote_module_dir(
+                    project_root=project_root,
+                    module_id=module_id,
+                    staging_root=staging_root,
+                    backup_root=backup_root,
+                )
+                promoted_modules.append(module_id)
+
+            self._promote_project_file(
+                project_file_path=project_file_path,
+                staging_root=staging_root,
+                backup_root=backup_root,
+            )
+            project_file_promoted = True
+            project_name_for_catalog = self._extract_project_name(normalized_raw, default_name=project_name_for_catalog)
+        except ValidationIssue:
+            raise
+        except ProjectNotFoundIssue:
+            raise
+        except Exception as error:  # noqa: BLE001
+            rollback_errors = self._rollback_promoted_paths(
+                project_root=project_root,
+                project_file_path=project_file_path,
+                backup_root=backup_root,
+                promoted_modules=promoted_modules,
+                project_file_promoted=project_file_promoted,
+            )
+            details = {'projectId': project_id, 'reason': str(error)}
+            if rollback_errors:
+                details['rollbackIssues'] = rollback_errors
+            raise ProjectSaveIssue(
+                'Failed to save project snapshot',
+                details,
+            ) from error
+        finally:
+            self._clear_path(staging_root)
+
+        self._clear_path(backup_root)
+        updated_at = self._touch_project_metadata(
+            project_id=project_id,
+            project_name=project_name_for_catalog,
+        )
+        project_meta = ProjectSnapshotProject(
+            projectId=project_id,
+            name=project_name_for_catalog,
+            slug=str(project_row['slug']),
+            updatedAt=updated_at,
+        )
+        return {
+            'project': project_meta.model_dump(by_alias=True)
+        }
+
+    def save_project_snapshot_as(self, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            save_as_payload = SaveProjectAsPayload.model_validate(payload)
+        except Exception as error:  # noqa: BLE001
+            raise ValidationIssue('Invalid save-as payload', {'reason': str(error)}) from error
+
+        source_project_id = str(save_as_payload.project_id or '').strip()
+        if not source_project_id:
+            raise ValidationIssue('Project id is required', {'field': 'projectId'})
+
+        new_name = str(save_as_payload.new_name or '').strip()
+        if not new_name:
+            raise ValidationIssue('Project name is required', {'field': 'newName'})
+
+        self._load_project_metadata(source_project_id)
+        try:
+            prepared = project_catalog.prepare_new_project_metadata(new_name, field='newName')
+            raw = save_as_payload.project_snapshot.raw
+            if not isinstance(raw, dict):
+                raise ValidationIssue('Project snapshot raw is required', {'field': 'projectSnapshot.raw'})
+
+            normalized_raw = self._normalize_raw_project(raw, prepared.project_id)
+            normalized_raw['project']['id'] = prepared.project_id
+            normalized_raw['project']['name'] = prepared.name
+
+            normalized_documents = self._normalize_snapshot_documents(
+                project_id=prepared.project_id,
+                documents=save_as_payload.project_snapshot.documents,
+            )
+
+            return self._save_project_snapshot_as_new_project(
+                source_project_id=source_project_id,
+                prepared=prepared,
+                normalized_raw=normalized_raw,
+                normalized_documents=normalized_documents,
+            )
+        except ProjectNotFoundIssue:
+            raise
+        except ProjectCreateIssue:
+            raise
+        except ValidationIssue:
+            raise
+        except ProjectSaveIssue:
+            raise
+        except Exception as error:  # noqa: BLE001
+            raise ProjectSaveIssue(
+                'Failed to save project snapshot as new project',
+                {'projectId': source_project_id, 'reason': str(error)},
+            ) from error
+
+    def _load_project_metadata(self, project_id: str):
+        with self._db_connect() as db:
+            row = db.execute(
+                '''
+                SELECT id, name, slug, root_path, project_file_path, updated_at
+                FROM projects
+                WHERE id = ? AND deleted_at IS NULL
+                ''',
+                (project_id,),
+            ).fetchone()
+
+        if row is None:
+            raise ProjectNotFoundIssue('Project not found', {'projectId': project_id})
+
+        return row
+
+    def _save_project_snapshot_as_new_project(
+        self,
+        *,
+        source_project_id: str,
+        prepared: project_catalog.PreparedProjectMetadata,
+        normalized_raw: dict[str, Any],
+        normalized_documents: dict[str, list[tuple[str, dict[str, Any]]]],
+    ) -> dict[str, Any]:
+        project_root = prepared.root_path
+        project_file_path = prepared.project_file_path
+        staging_root = project_root / '.save-staging'
+        backup_root = project_root / '.save-backup'
+        promoted_modules: list[str] = []
+        project_file_promoted = False
+        created_project_root = False
+
+        try:
+            project_root.mkdir(parents=True, exist_ok=False)
+            created_project_root = True
+            self._clear_path(staging_root)
+            self._clear_path(backup_root)
+            self._build_staging_snapshot(
+                staging_root=staging_root,
+                raw=normalized_raw,
+                normalized_documents=normalized_documents,
+            )
+
+            for module_id in PROJECT_STRUCTURE['module_dirs']:
+                self._promote_module_dir(
+                    project_root=project_root,
+                    module_id=module_id,
+                    staging_root=staging_root,
+                    backup_root=backup_root,
+                )
+                promoted_modules.append(module_id)
+
+            self._promote_project_file(
+                project_file_path=project_file_path,
+                staging_root=staging_root,
+                backup_root=backup_root,
+            )
+            project_file_promoted = True
+            (project_root / PROJECT_STRUCTURE['generated_dir']).mkdir(parents=False, exist_ok=False)
+        except ValidationIssue:
+            raise
+        except ProjectNotFoundIssue:
+            raise
+        except Exception as error:  # noqa: BLE001
+            rollback_errors = self._rollback_promoted_paths(
+                project_root=project_root,
+                project_file_path=project_file_path,
+                backup_root=backup_root,
+                promoted_modules=promoted_modules,
+                project_file_promoted=project_file_promoted,
+            )
+            if created_project_root:
+                self._clear_path(project_root)
+            details = {'projectId': source_project_id, 'reason': str(error)}
+            if rollback_errors:
+                details['rollbackIssues'] = rollback_errors
+            raise ProjectSaveIssue(
+                'Failed to save project snapshot as new project',
+                details,
+            ) from error
+        finally:
+            self._clear_path(staging_root)
+            self._clear_path(backup_root)
+
+        try:
+            project_catalog.register_prepared_project(prepared)
+        except ProjectCreateIssue as error:
+            if created_project_root:
+                self._clear_path(project_root)
+            raise ProjectCreateIssue(
+                str(error),
+                {'projectId': source_project_id, **(error.details or {})},
+            ) from error
+        except Exception as error:  # noqa: BLE001
+            if created_project_root:
+                self._clear_path(project_root)
+            raise ProjectCreateIssue(
+                'Failed to save project record',
+                {'projectId': source_project_id, 'slug': prepared.slug, 'reason': str(error)},
+            ) from error
+
+        project_meta = ProjectSnapshotProject(
+            projectId=prepared.project_id,
+            name=prepared.name,
+            slug=prepared.slug,
+            updatedAt=prepared.updated_at,
+        )
+        return {'project': project_meta.model_dump(by_alias=True)}
+
+    def export_project_archive(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self._prune_project_export_artifacts()
+
+        project_id = str(payload.get('projectId', '')).strip()
+        if not project_id:
+            raise ValidationIssue('Project id is required', {'field': 'projectId'})
+
+        project_row = self._load_project_metadata(project_id)
+        project_slug = str(project_row['slug'])
+        project_root = Path(str(project_row['root_path']))
+        project_file_path = Path(str(project_row['project_file_path']))
+        try:
+            self._verify_workspace_storage(
+                project_id=project_id,
+                project_slug=project_slug,
+                project_root=project_root,
+                project_file_path=project_file_path,
+            )
+        except ProjectOpenIssue as error:
+            raise ProjectExportIssue(str(error), error.details) from error
+
+        if not project_root.exists():
+            raise ProjectExportIssue(
+                'Project root path does not exist',
+                {'projectId': project_id, 'rootPath': project_root.as_posix()},
+            )
+
+        export_token = f'export_{uuid4().hex}'
+        archive_file_name = f'{project_slug}.zip'
+        export_root = SETTINGS.workspace_project_exports_root
+        export_root.mkdir(parents=True, exist_ok=True)
+        archive_path = export_root / f'{export_token}.zip'
+
+        try:
+            if archive_path.exists():
+                archive_path.unlink(missing_ok=True)
+
+            with zipfile.ZipFile(archive_path, mode='w', compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.write(project_file_path, arcname=PROJECT_STRUCTURE['project_file_name'])
+                self._write_project_dir_to_archive(archive, project_root, PROJECT_STRUCTURE['module_dirs'])
+                self._write_project_dir_to_archive(archive, project_root, [PROJECT_STRUCTURE['generated_dir']])
+        except Exception as error:  # noqa: BLE001
+            archive_path.unlink(missing_ok=True)
+            raise ProjectExportIssue(
+                'Failed to export project archive',
+                {'projectId': project_id, 'reason': str(error)},
+            ) from error
+
+        self._project_export_artifacts[export_token] = {
+            'path': archive_path.as_posix(),
+            'fileName': archive_file_name,
+            'projectId': project_id,
+            'createdAt': time.time(),
+        }
+        return {
+            'exportToken': export_token,
+            'downloadUrl': f'{API_PROJECT_EXPORTS_ENDPOINT}/{export_token}',
+            'fileName': archive_file_name,
+        }
+
+    def consume_project_export_artifact(self, export_token: str) -> dict[str, str] | None:
+        self._prune_project_export_artifacts()
+
+        normalized_token = str(export_token or '').strip()
+        if not normalized_token:
+            return None
+        artifact = self._project_export_artifacts.pop(normalized_token, None)
+        if artifact is None:
+            return None
+
+        artifact_path = Path(str(artifact['path']))
+        if not artifact_path.exists() or not artifact_path.is_file():
+            return None
+
+        return {
+            'path': str(artifact['path']),
+            'fileName': str(artifact['fileName']),
+            'projectId': str(artifact['projectId']),
+        }
+
+    def _prune_project_export_artifacts(self) -> None:
+        now = time.time()
+        max_age_seconds = PROJECT_EXPORT_ARTIFACT_MAX_AGE_SECONDS
+        export_root = SETTINGS.workspace_project_exports_root
+        export_root.mkdir(parents=True, exist_ok=True)
+
+        expired_tokens: list[str] = []
+        for token, artifact in self._project_export_artifacts.items():
+            created_at = float(artifact.get('createdAt') or 0.0)
+            if created_at > 0 and now - created_at <= max_age_seconds:
+                continue
+
+            artifact_path = Path(str(artifact.get('path', '')))
+            artifact_path.unlink(missing_ok=True)
+            expired_tokens.append(token)
+
+        for token in expired_tokens:
+            self._project_export_artifacts.pop(token, None)
+
+        for artifact_path in export_root.glob('*.zip'):
+            try:
+                if now - artifact_path.stat().st_mtime > max_age_seconds:
+                    artifact_path.unlink(missing_ok=True)
+            except OSError:
+                continue
+
+    @staticmethod
+    def _verify_workspace_storage(
+        *,
+        project_id: str,
+        project_slug: str,
+        project_root: Path,
+        project_file_path: Path,
+    ) -> None:
+        workspace_root = SETTINGS.workspace_projects_root.resolve()
+        expected_project_root = (workspace_root / project_slug).resolve()
+        resolved_project_root = project_root.resolve()
+
+        if resolved_project_root != expected_project_root:
+            raise ProjectOpenIssue(
+                'Project root path is inconsistent with workspace storage',
+                {
+                    'projectId': project_id,
+                    'rootPath': project_root.as_posix(),
+                    'workspaceProjectsRoot': workspace_root.as_posix(),
+                    'expectedRootPath': expected_project_root.as_posix(),
+                },
+            )
+
+        expected_project_file = (expected_project_root / PROJECT_STRUCTURE['project_file_name']).resolve()
+        resolved_project_file = project_file_path.resolve()
+
+        if resolved_project_file != expected_project_file:
+            raise ProjectOpenIssue(
+                'Project file path is inconsistent with workspace storage',
+                {
+                    'projectId': project_id,
+                    'projectFilePath': project_file_path.as_posix(),
+                    'expectedProjectFilePath': expected_project_file.as_posix(),
+                },
+            )
+
+    def _read_module_documents(self, project_root: Path, project_id: str, module_id: str) -> list[dict[str, Any]]:
+        module_path = project_root / module_id
+        if not module_path.exists() or not module_path.is_dir():
+            return []
+
+        records: list[dict[str, Any]] = []
+        for file_path in sorted(module_path.iterdir(), key=lambda entry: entry.name.lower()):
+            if not file_path.is_file():
+                continue
+            if file_path.suffix.lower() not in PROJECT_STRUCTURE['module_file_extensions']:
+                continue
+
+            document = self._read_yaml_object(
+                file_path,
+                details={
+                    'projectId': project_id,
+                    'moduleId': module_id,
+                    'path': file_path.as_posix(),
+                },
+            )
+            records.append(
+                ProjectSnapshotDocument(
+                    moduleId=module_id,
+                    path=f"backend://{project_id}/{module_id}/{file_path.name}",
+                    document=document,
+                ).model_dump(by_alias=True)
+            )
+
+        return records
+
+    @staticmethod
+    def _extract_project_name(raw: dict[str, Any], default_name: str) -> str:
+        project_node = raw.get('project')
+        if not isinstance(project_node, dict):
+            return default_name
+
+        value = str(project_node.get('name', '')).strip()
+        return value or default_name
+
+    @staticmethod
+    def _normalize_raw_project(raw: dict[str, Any], project_id: str) -> dict[str, Any]:
+        cloned = yaml.safe_load(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True))
+        if not isinstance(cloned, dict):
+            raise ValidationIssue('Project snapshot raw must be an object', {'field': 'projectSnapshot.raw'})
+
+        project = cloned.get('project')
+        if not isinstance(project, dict):
+            project = {}
+
+        project['id'] = str(project.get('id') or project_id)
+        project['name'] = str(project.get('name', '') or 'project').strip() or 'project'
+        project['description'] = str(project.get('description', '') or '')
+        cloned['project'] = project
+        return cloned
+
+    def _normalize_snapshot_documents(
+        self,
+        *,
+        project_id: str,
+        documents: dict[str, list[ProjectSnapshotDocument]],
+    ) -> dict[str, list[tuple[str, dict[str, Any]]]]:
+        normalized: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+
+        for module_id in PROJECT_STRUCTURE['module_dirs']:
+            module_entries = documents.get(module_id, [])
+            if not isinstance(module_entries, list):
+                raise ValidationIssue('Project snapshot documents must be grouped by module', {'moduleId': module_id})
+
+            occupied_file_names: set[str] = set()
+            module_records: list[tuple[str, dict[str, Any]]] = []
+            for index, entry in enumerate(module_entries):
+                if not isinstance(entry.document, dict):
+                    raise ValidationIssue(
+                        'Project snapshot document payload must be an object',
+                        {'moduleId': module_id, 'index': index},
+                    )
+
+                file_name = self._resolve_document_file_name(
+                    project_id=project_id,
+                    module_id=module_id,
+                    index=index,
+                    entry=entry,
+                )
+                normalized_file_name = file_name.lower()
+                if normalized_file_name in occupied_file_names:
+                    raise ValidationIssue(
+                        'Filename collision detected in project snapshot',
+                        {'moduleId': module_id, 'fileName': file_name},
+                    )
+
+                occupied_file_names.add(normalized_file_name)
+                module_records.append((file_name, entry.document))
+
+            normalized[module_id] = module_records
+
+        return normalized
+
+    @staticmethod
+    def _resolve_document_file_name(
+        *,
+        project_id: str,
+        module_id: str,
+        index: int,
+        entry: ProjectSnapshotDocument,
+    ) -> str:
+        path_value = str(entry.path or '').strip()
+        name = Path(path_value).name
+        if not name:
+            name = f'{module_id}-{index + 1}.yaml'
+        if '/' in name or '\\' in name:
+            raise ValidationIssue(
+                'Document path must resolve to a single file name',
+                {'projectId': project_id, 'moduleId': module_id, 'path': path_value},
+            )
+        if Path(name).suffix.lower() not in PROJECT_STRUCTURE['module_file_extensions']:
+            name = f'{Path(name).stem}.yaml'
+
+        safe_name = Path(name).name.strip()
+        if not safe_name:
+            safe_name = f'{module_id}-{index + 1}.yaml'
+        return safe_name
+
+    def _build_staging_snapshot(
+        self,
+        *,
+        staging_root: Path,
+        raw: dict[str, Any],
+        normalized_documents: dict[str, list[tuple[str, dict[str, Any]]]],
+    ) -> None:
+        staging_root.mkdir(parents=True, exist_ok=False)
+
+        for module_id in PROJECT_STRUCTURE['module_dirs']:
+            (staging_root / module_id).mkdir(parents=False, exist_ok=False)
+
+        for module_id, records in normalized_documents.items():
+            module_root = staging_root / module_id
+            for file_name, document in records:
+                self._write_yaml_object(module_root / file_name, document)
+
+        self._write_yaml_object(staging_root / PROJECT_STRUCTURE['project_file_name'], raw)
+
+    @staticmethod
+    def _clear_path(target_path: Path) -> None:
+        if not target_path.exists():
+            return
+        if target_path.is_dir():
+            shutil.rmtree(target_path, ignore_errors=True)
+            return
+        target_path.unlink(missing_ok=True)
+
+    def _promote_module_dir(
+        self,
+        *,
+        project_root: Path,
+        module_id: str,
+        staging_root: Path,
+        backup_root: Path,
+    ) -> None:
+        current_path = project_root / module_id
+        staged_path = staging_root / module_id
+        backup_path = backup_root / module_id
+
+        backup_path.parent.mkdir(parents=True, exist_ok=True)
+        self._clear_path(backup_path)
+        if current_path.exists():
+            current_path.rename(backup_path)
+        staged_path.rename(current_path)
+
+    def _promote_project_file(
+        self,
+        *,
+        project_file_path: Path,
+        staging_root: Path,
+        backup_root: Path,
+    ) -> None:
+        staged_project_file = staging_root / PROJECT_STRUCTURE['project_file_name']
+        backup_project_file = backup_root / PROJECT_STRUCTURE['project_file_name']
+
+        backup_project_file.parent.mkdir(parents=True, exist_ok=True)
+        self._clear_path(backup_project_file)
+        if project_file_path.exists():
+            project_file_path.rename(backup_project_file)
+        staged_project_file.rename(project_file_path)
+
+    def _rollback_promoted_paths(
+        self,
+        *,
+        project_root: Path,
+        project_file_path: Path,
+        backup_root: Path,
+        promoted_modules: list[str],
+        project_file_promoted: bool,
+    ) -> list[str]:
+        rollback_errors: list[str] = []
+
+        if project_file_promoted:
+            backup_project_file = backup_root / PROJECT_STRUCTURE['project_file_name']
+            try:
+                self._clear_path(project_file_path)
+                if backup_project_file.exists():
+                    backup_project_file.rename(project_file_path)
+            except Exception as error:  # noqa: BLE001
+                rollback_errors.append(f'project.yaml rollback failed: {error}')
+
+        for module_id in reversed(promoted_modules):
+            current_path = project_root / module_id
+            backup_path = backup_root / module_id
+            try:
+                self._clear_path(current_path)
+                if backup_path.exists():
+                    backup_path.rename(current_path)
+            except Exception as error:  # noqa: BLE001
+                rollback_errors.append(f'{module_id} rollback failed: {error}')
+
+        return rollback_errors
+
+    def _touch_project_metadata(self, *, project_id: str, project_name: str) -> str:
+        updated_at = utc_now_iso()
+        with self._db_connect() as db:
+            db.execute(
+                'UPDATE projects SET name = ?, updated_at = ? WHERE id = ?',
+                (project_name, updated_at, project_id),
+            )
+            db.commit()
+
+        return updated_at
+
+    @staticmethod
+    def _write_project_dir_to_archive(
+        archive: zipfile.ZipFile,
+        project_root: Path,
+        folder_names: list[str],
+    ) -> None:
+        for folder_name in folder_names:
+            folder_root = project_root / folder_name
+            if not folder_root.exists() or not folder_root.is_dir():
+                continue
+
+            archive.writestr(f'{folder_name}/', b'')
+            for file_path in sorted(folder_root.rglob('*')):
+                if file_path.is_dir():
+                    continue
+                relative_path = file_path.relative_to(project_root).as_posix()
+                archive.write(file_path, arcname=relative_path)
+
+    @staticmethod
+    def _read_yaml_object(path: Path, details: dict[str, Any] | None = None) -> dict[str, Any]:
+        if not path.exists():
+            raise ProjectOpenIssue('YAML file does not exist', {**(details or {}), 'path': path.as_posix()})
+
+        try:
+            parsed = yaml.safe_load(path.read_text(encoding='utf-8'))
+        except Exception as error:  # noqa: BLE001
+            raise ProjectOpenIssue(
+                'Failed to read YAML file',
+                {**(details or {}), 'path': path.as_posix(), 'reason': str(error)},
+            ) from error
+
+        if not isinstance(parsed, dict):
+            raise ProjectOpenIssue(
+                'YAML root must be an object',
+                {**(details or {}), 'path': path.as_posix()},
+            )
+
+        return parsed
+
+    @staticmethod
+    def _write_yaml_object(path: Path, payload: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
+            encoding='utf-8',
+        )
+
+
+==================================================
+FILE: runtime_backend/app/utils/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: runtime_backend/app/utils/id_utils.py
+==================================================
+
+﻿import re
+import uuid
+
+
+NON_ALNUM = re.compile(r'[^a-z0-9]+')
+TRIM_DASH = re.compile(r'^-+|-+$')
+
+
+def make_project_id() -> str:
+    return f"proj_{uuid.uuid4().hex[:12]}"
+
+
+def slugify(value: str) -> str:
+    normalized = NON_ALNUM.sub('-', value.strip().lower())
+    return TRIM_DASH.sub('', normalized)
+
+
+==================================================
+FILE: runtime_backend/app/utils/time_utils.py
+==================================================
+
+﻿from datetime import datetime, timezone
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z')
+
+
+==================================================
+FILE: runtime_backend/tests/test_commands.py
+==================================================
+
+from dataclasses import replace
+import io
+import zipfile
+
+import pytest
+import yaml
+from fastapi.testclient import TestClient
+
+from runtime_backend.app.main import app
+from runtime_backend.app.core.constants import API_COMMANDS_ENDPOINT
+from runtime_backend.app.core.settings import SETTINGS
+from runtime_backend.app.db import bootstrap as db_bootstrap
+from runtime_backend.app.services import project_catalog
+from runtime_backend.app.services import project_storage
+from runtime_backend.app.services import command_dispatcher
+from runtime_backend.app.services.errors import ProjectCreateIssue
+
+
+@pytest.fixture()
+def runtime_env(tmp_path, monkeypatch):
+    data_root = tmp_path / 'runtime_data'
+    test_settings = replace(
+        SETTINGS,
+        data_root=data_root,
+        sqlite_path=data_root / 'platform.db',
+        workspace_projects_root=data_root / 'workspace' / 'projects',
+        workspace_deleted_projects_root=data_root / 'workspace' / 'deleted_projects',
+        workspace_project_exports_root=data_root / 'workspace' / 'exports',
+    )
+
+    monkeypatch.setattr(db_bootstrap, 'SETTINGS', test_settings)
+    monkeypatch.setattr(project_catalog, 'SETTINGS', test_settings)
+    monkeypatch.setattr(project_storage, 'SETTINGS', test_settings)
+    command_dispatcher.project_storage_service._project_export_artifacts.clear()
+
+    db_bootstrap.bootstrap_storage()
+    return test_settings
+
+
+def test_bootstrap_creates_sqlite_and_workspace(runtime_env):
+    assert runtime_env.data_root.exists()
+    assert runtime_env.sqlite_path.exists()
+    assert runtime_env.workspace_projects_root.exists()
+    assert runtime_env.workspace_project_exports_root.exists()
+
+
+def test_list_projects_empty_state(runtime_env):
+    client = TestClient(app)
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-list-empty',
+            'module': 'platform',
+            'command': 'listProjects',
+            'payload': {},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body['requestId'] == 'req-list-empty'
+    assert body['ok'] is True
+    assert body['result'] == {'projects': []}
+
+
+def test_create_project_success_and_fs_structure(runtime_env):
+    client = TestClient(app)
+
+    create_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Alpha Plant'},
+        },
+    )
+    assert create_response.status_code == 200
+    create_body = create_response.json()
+    assert create_body['ok'] is True
+
+    project = create_body['result']['project']
+    assert project['name'] == 'Alpha Plant'
+    assert project['slug'] == 'alpha-plant'
+    assert project['lockedBy'] is None
+
+    root = runtime_env.workspace_projects_root / project['slug']
+    assert root.exists()
+    assert (root / 'project.yaml').exists()
+    assert (root / 'metagen').exists()
+    assert (root / 'metalab').exists()
+    assert (root / 'metaview').exists()
+    assert (root / 'generated').exists()
+
+    project_yaml = (root / 'project.yaml').read_text(encoding='utf-8')
+    assert 'kind: metaplatform.project' in project_yaml
+    assert 'modules:' in project_yaml
+    assert 'MetaGen' in project_yaml
+
+    list_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-list-after-create',
+            'module': 'platform',
+            'command': 'listProjects',
+            'payload': {},
+        },
+    )
+    body = list_response.json()
+    assert body['ok'] is True
+    assert len(body['result']['projects']) == 1
+    assert body['result']['projects'][0]['slug'] == 'alpha-plant'
+
+
+def test_create_project_slug_conflict_appends_suffix(runtime_env):
+    client = TestClient(app)
+
+    first = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-1',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Demo App'},
+        },
+    ).json()
+    second = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-2',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Demo App'},
+        },
+    ).json()
+
+    assert first['result']['project']['slug'] == 'demo-app'
+    assert second['result']['project']['slug'] == 'demo-app-2'
+
+
+def test_create_project_validation_error(runtime_env):
+    client = TestClient(app)
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-invalid',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': '   '},
+        },
+    )
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'VALIDATION_ERROR'
+
+
+def test_open_project_success_returns_snapshot_with_raw_and_documents(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-openable',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Backend Open'},
+        },
+    ).json()
+    project = created['result']['project']
+
+    project_root = runtime_env.workspace_projects_root / project['slug']
+    metagen_file = project_root / 'metagen' / 'pump.yaml'
+    metalab_file = project_root / 'metalab' / 'startup.yaml'
+    metaview_file = project_root / 'metaview' / 'main.yaml'
+
+    metagen_file.write_text(
+        yaml.safe_dump(
+            {
+                'kind': 'metagen.component',
+                'component': {'id': 'pump', 'name': 'Pump'},
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding='utf-8',
+    )
+    metalab_file.write_text(
+        yaml.safe_dump(
+            {
+                'kind': 'metalab.scenario',
+                'scenario': {'id': 'startup', 'name': 'Startup'},
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding='utf-8',
+    )
+    metaview_file.write_text(
+        yaml.safe_dump(
+            {
+                'kind': 'metaview.screen',
+                'screen': {'id': 'main', 'name': 'Main'},
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding='utf-8',
+    )
+
+    opened = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-open-success',
+            'module': 'platform',
+            'command': 'openProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+
+    assert opened['ok'] is True
+    snapshot = opened['result']['snapshot']
+    assert snapshot['source'] == 'backend'
+    assert snapshot['project']['projectId'] == project['id']
+    assert snapshot['project']['name'] == project['name']
+    assert snapshot['project']['slug'] == project['slug']
+    assert snapshot['raw']['kind'] == 'metaplatform.project'
+    assert snapshot['raw']['project']['id'] == project['id']
+    assert len(snapshot['documents']['metagen']) == 1
+    assert len(snapshot['documents']['metalab']) == 1
+    assert len(snapshot['documents']['metaview']) == 1
+    assert snapshot['documents']['metagen'][0]['path'].startswith(f"backend://{project['id']}/metagen/")
+    assert snapshot['documents']['metagen'][0]['document']['component']['name'] == 'Pump'
+
+
+def test_open_project_not_found_returns_machine_readable_error(runtime_env):
+    client = TestClient(app)
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-open-missing',
+            'module': 'platform',
+            'command': 'openProject',
+            'payload': {'projectId': 'missing-id'},
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_NOT_FOUND'
+    assert body['error']['details']['projectId'] == 'missing-id'
+
+
+def test_open_project_missing_project_yaml_returns_project_open_failed(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-broken-open',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Broken Open'},
+        },
+    ).json()
+    project = created['result']['project']
+    project_root = runtime_env.workspace_projects_root / project['slug']
+    (project_root / 'project.yaml').unlink()
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-open-broken',
+            'module': 'platform',
+            'command': 'openProject',
+            'payload': {'projectId': project['id']},
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_OPEN_FAILED'
+    assert body['error']['details']['projectId'] == project['id']
+
+
+def test_open_project_missing_root_path_returns_project_open_failed(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-missing-root',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Missing Root'},
+        },
+    ).json()
+    project = created['result']['project']
+    project_root = runtime_env.workspace_projects_root / project['slug']
+
+    for item in project_root.rglob('*'):
+        if item.is_file():
+            item.unlink()
+    for directory in sorted([entry for entry in project_root.rglob('*') if entry.is_dir()], reverse=True):
+        directory.rmdir()
+    project_root.rmdir()
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-open-missing-root',
+            'module': 'platform',
+            'command': 'openProject',
+            'payload': {'projectId': project['id']},
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_OPEN_FAILED'
+    assert body['error']['details']['projectId'] == project['id']
+
+
+def test_open_project_workspace_storage_mismatch_returns_project_open_failed(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-storage-mismatch',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Storage Mismatch'},
+        },
+    ).json()
+    project = created['result']['project']
+
+    bad_root = (runtime_env.data_root / 'outside-root').as_posix()
+    bad_project_file = (runtime_env.data_root / 'outside-root' / 'project.yaml').as_posix()
+
+    with db_bootstrap.connect() as db:
+        db.execute(
+            'UPDATE projects SET root_path = ?, project_file_path = ? WHERE id = ?',
+            (bad_root, bad_project_file, project['id']),
+        )
+        db.commit()
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-open-storage-mismatch',
+            'module': 'platform',
+            'command': 'openProject',
+            'payload': {'projectId': project['id']},
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_OPEN_FAILED'
+    assert body['error']['details']['projectId'] == project['id']
+
+
+def test_delete_project_success_moves_storage_and_marks_deleted(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-delete-success',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Delete Success'},
+        },
+    ).json()
+    project = created['result']['project']
+    project_root = runtime_env.workspace_projects_root / project['slug']
+    project_file_before = (project_root / 'project.yaml').read_text(encoding='utf-8')
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-delete-success',
+            'module': 'platform',
+            'command': 'deleteProject',
+            'payload': {'projectId': project['id']},
+        },
+    )
+    body = response.json()
+    assert body['ok'] is True
+    assert body['result']['projectId'] == project['id']
+    assert body['result']['deleted'] is True
+    assert body['result']['alreadyDeleted'] is False
+
+    assert not project_root.exists()
+    deleted_root = runtime_env.workspace_deleted_projects_root / f"{project['slug']}__{project['id']}"
+    assert deleted_root.exists()
+    assert (deleted_root / 'project.yaml').read_text(encoding='utf-8') == project_file_before
+
+    with db_bootstrap.connect() as db:
+        row = db.execute(
+            'SELECT deleted_at, deleted_root_path FROM projects WHERE id = ?',
+            (project['id'],),
+        ).fetchone()
+    assert row is not None
+    assert row['deleted_at'] is not None
+    assert row['deleted_root_path'] == deleted_root.as_posix()
+
+
+def test_delete_project_missing_returns_project_not_found(runtime_env):
+    client = TestClient(app)
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-delete-missing',
+            'module': 'platform',
+            'command': 'deleteProject',
+            'payload': {'projectId': 'missing-id'},
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_NOT_FOUND'
+    assert body['error']['details']['projectId'] == 'missing-id'
+
+
+def test_deleted_project_is_hidden_from_list_and_open_save_fail_as_not_found(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-delete-hide',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Delete Hide'},
+        },
+    ).json()
+    project = created['result']['project']
+
+    delete_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-delete-hide',
+            'module': 'platform',
+            'command': 'deleteProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+    assert delete_response['ok'] is True
+
+    list_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-list-after-delete-hide',
+            'module': 'platform',
+            'command': 'listProjects',
+            'payload': {},
+        },
+    ).json()
+    assert list_response['ok'] is True
+    listed_ids = [item['id'] for item in list_response['result']['projects']]
+    assert project['id'] not in listed_ids
+
+    open_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-open-after-delete-hide',
+            'module': 'platform',
+            'command': 'openProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+    assert open_response['ok'] is False
+    assert open_response['error']['code'] == 'PROJECT_NOT_FOUND'
+    assert open_response['error']['details']['projectId'] == project['id']
+
+    save_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-after-delete-hide',
+            'module': 'platform',
+            'command': 'saveAll',
+            'payload': {
+                'projectId': project['id'],
+                'projectSnapshot': {
+                    'raw': {'project': {'id': project['id'], 'name': 'deleted'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    ).json()
+    assert save_response['ok'] is False
+    assert save_response['error']['code'] == 'PROJECT_NOT_FOUND'
+    assert save_response['error']['details']['projectId'] == project['id']
+
+
+def test_delete_project_repeated_call_is_idempotent_success(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-delete-repeat',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Delete Repeat'},
+        },
+    ).json()
+    project = created['result']['project']
+
+    first = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-delete-repeat-first',
+            'module': 'platform',
+            'command': 'deleteProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+    assert first['ok'] is True
+    assert first['result']['alreadyDeleted'] is False
+
+    second = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-delete-repeat-second',
+            'module': 'platform',
+            'command': 'deleteProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+    assert second['ok'] is True
+    assert second['result']['projectId'] == project['id']
+    assert second['result']['deleted'] is True
+    assert second['result']['alreadyDeleted'] is True
+
+
+def test_save_all_success_updates_canonical_project_files(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-saveall',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Save All Project'},
+        },
+    ).json()
+    project = created['result']['project']
+
+    project_root = runtime_env.workspace_projects_root / project['slug']
+    generated_file = project_root / 'generated' / 'keep.txt'
+    generated_file.parent.mkdir(parents=True, exist_ok=True)
+    generated_file.write_text('keep-generated', encoding='utf-8')
+
+    save_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-success',
+            'module': 'platform',
+            'command': 'saveAll',
+            'payload': {
+                'projectId': project['id'],
+                'projectSnapshot': {
+                    'raw': {
+                        'kind': 'metaplatform.project',
+                        'version': 1,
+                        'project': {
+                            'id': project['id'],
+                            'name': 'Save All Updated',
+                            'description': 'updated',
+                        },
+                        'modules': ['MetaGen', 'MetaLab', 'MetaView'],
+                        'paths': {
+                            'metagen': 'metagen',
+                            'metalab': 'metalab',
+                            'metaview': 'metaview',
+                            'generated': 'generated',
+                        },
+                    },
+                    'documents': {
+                        'metagen': [
+                            {
+                                'moduleId': 'metagen',
+                                'path': f"backend://{project['id']}/metagen/pump.yaml",
+                                'document': {
+                                    'kind': 'metagen.component',
+                                    'component': {'id': 'pump', 'name': 'Pump'},
+                                },
+                            }
+                        ],
+                        'metalab': [
+                            {
+                                'moduleId': 'metalab',
+                                'path': f"backend://{project['id']}/metalab/startup.yaml",
+                                'document': {
+                                    'kind': 'metalab.scenario',
+                                    'scenario': {'id': 'startup', 'name': 'Startup'},
+                                },
+                            }
+                        ],
+                        'metaview': [
+                            {
+                                'moduleId': 'metaview',
+                                'path': f"backend://{project['id']}/metaview/main.yaml",
+                                'document': {
+                                    'kind': 'metaview.screen',
+                                    'screen': {'id': 'main', 'name': 'Main'},
+                                },
+                            }
+                        ],
+                    },
+                },
+            },
+        },
+    )
+
+    body = save_response.json()
+    assert body['ok'] is True
+    assert body['result']['project']['projectId'] == project['id']
+    assert body['result']['project']['name'] == 'Save All Updated'
+    assert 'id' not in body['result']['project']
+
+    project_yaml = yaml.safe_load((project_root / 'project.yaml').read_text(encoding='utf-8'))
+    metagen_yaml = yaml.safe_load((project_root / 'metagen' / 'pump.yaml').read_text(encoding='utf-8'))
+    metalab_yaml = yaml.safe_load((project_root / 'metalab' / 'startup.yaml').read_text(encoding='utf-8'))
+    metaview_yaml = yaml.safe_load((project_root / 'metaview' / 'main.yaml').read_text(encoding='utf-8'))
+
+    assert project_yaml['project']['name'] == 'Save All Updated'
+    assert metagen_yaml['component']['name'] == 'Pump'
+    assert metalab_yaml['scenario']['name'] == 'Startup'
+    assert metaview_yaml['screen']['name'] == 'Main'
+    assert generated_file.read_text(encoding='utf-8') == 'keep-generated'
+
+
+def test_save_all_missing_project_returns_project_not_found(runtime_env):
+    client = TestClient(app)
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-missing',
+            'module': 'platform',
+            'command': 'saveAll',
+            'payload': {
+                'projectId': 'missing-project',
+                'projectSnapshot': {
+                    'raw': {'project': {'id': 'missing-project', 'name': 'X'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_NOT_FOUND'
+    assert body['error']['details']['projectId'] == 'missing-project'
+
+
+def test_save_all_storage_write_failure_returns_project_save_failed(runtime_env, monkeypatch):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-save-fail',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Save Failure Project'},
+        },
+    ).json()
+    project = created['result']['project']
+
+    def raise_write_failure(*_args, **_kwargs):
+        raise OSError('Injected write failure')
+
+    monkeypatch.setattr(project_storage.ProjectStorageService, '_write_yaml_object', staticmethod(raise_write_failure))
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-fail',
+            'module': 'platform',
+            'command': 'saveAll',
+            'payload': {
+                'projectId': project['id'],
+                'projectSnapshot': {
+                    'raw': {'project': {'id': project['id'], 'name': 'Save Failure Project'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_SAVE_FAILED'
+    assert body['error']['details']['projectId'] == project['id']
+
+
+def test_save_all_failure_after_partial_promote_rolls_back_canonical_state(runtime_env, monkeypatch):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-save-rollback',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Rollback Guard'},
+        },
+    ).json()
+    project = created['result']['project']
+    project_root = runtime_env.workspace_projects_root / project['slug']
+
+    metagen_file = project_root / 'metagen' / 'legacy.yaml'
+    metagen_file.write_text(
+        yaml.safe_dump(
+            {
+                'kind': 'metagen.component',
+                'component': {'id': 'legacy', 'name': 'Legacy', 'description': 'before-failure'},
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding='utf-8',
+    )
+
+    def raise_promote_failure(*_args, **_kwargs):
+        raise OSError('Injected project file promote failure')
+
+    monkeypatch.setattr(project_storage.ProjectStorageService, '_promote_project_file', raise_promote_failure)
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-rollback',
+            'module': 'platform',
+            'command': 'saveAll',
+            'payload': {
+                'projectId': project['id'],
+                'projectSnapshot': {
+                    'raw': {'project': {'id': project['id'], 'name': 'Should Not Persist'}},
+                    'documents': {
+                        'metagen': [
+                            {
+                                'moduleId': 'metagen',
+                                'path': f"backend://{project['id']}/metagen/legacy.yaml",
+                                'document': {
+                                    'kind': 'metagen.component',
+                                    'component': {'id': 'legacy', 'name': 'Legacy', 'description': 'after-failure'},
+                                },
+                            }
+                        ],
+                        'metalab': [],
+                        'metaview': [],
+                    },
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_SAVE_FAILED'
+    assert body['error']['details']['projectId'] == project['id']
+
+    restored_metagen = yaml.safe_load(metagen_file.read_text(encoding='utf-8'))
+    assert restored_metagen['component']['description'] == 'before-failure'
+
+    restored_project_yaml = yaml.safe_load((project_root / 'project.yaml').read_text(encoding='utf-8'))
+    assert restored_project_yaml['project']['name'] == project['name']
+
+    list_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-list-after-rollback',
+            'module': 'platform',
+            'command': 'listProjects',
+            'payload': {},
+        },
+    ).json()
+    assert list_response['ok'] is True
+    assert list_response['result']['projects'][0]['name'] == project['name']
+
+    assert not (project_root / '.save-staging').exists()
+
+
+def test_save_project_as_success_creates_new_project_and_preserves_snapshot(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-save-as-src',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Source Project'},
+        },
+    ).json()
+    source_project = created['result']['project']
+
+    source_root = runtime_env.workspace_projects_root / source_project['slug']
+    (source_root / 'generated' / 'keep.txt').write_text('generated-keep', encoding='utf-8')
+
+    save_as_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-as-success',
+            'module': 'platform',
+            'command': 'saveProjectAs',
+            'payload': {
+                'projectId': source_project['id'],
+                'newName': 'Cloned Project',
+                'projectSnapshot': {
+                    'raw': {
+                        'kind': 'metaplatform.project',
+                        'version': 1,
+                        'project': {
+                            'id': source_project['id'],
+                            'name': 'Source Project',
+                            'description': 'cloned',
+                        },
+                        'modules': ['MetaGen', 'MetaLab', 'MetaView'],
+                        'paths': {
+                            'metagen': 'metagen',
+                            'metalab': 'metalab',
+                            'metaview': 'metaview',
+                            'generated': 'generated',
+                        },
+                    },
+                    'documents': {
+                        'metagen': [
+                            {
+                                'moduleId': 'metagen',
+                                'path': f"backend://{source_project['id']}/metagen/pump.yaml",
+                                'document': {
+                                    'kind': 'metagen.component',
+                                    'component': {'id': 'pump', 'name': 'Pump'},
+                                },
+                            }
+                        ],
+                        'metalab': [],
+                        'metaview': [],
+                    },
+                },
+            },
+        },
+    )
+
+    body = save_as_response.json()
+    assert body['ok'] is True
+    created_project = body['result']['project']
+    assert created_project['projectId'] != source_project['id']
+    assert created_project['name'] == 'Cloned Project'
+
+    list_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-list-save-as',
+            'module': 'platform',
+            'command': 'listProjects',
+            'payload': {},
+        },
+    ).json()
+    assert list_response['ok'] is True
+    assert len(list_response['result']['projects']) == 2
+
+    new_summary = next(
+        project
+        for project in list_response['result']['projects']
+        if project['id'] == created_project['projectId']
+    )
+    new_root = runtime_env.workspace_projects_root / new_summary['slug']
+    assert new_root.exists()
+    assert (new_root / 'metagen').exists()
+    assert (new_root / 'metalab').exists()
+    assert (new_root / 'metaview').exists()
+    assert (new_root / 'generated').exists()
+
+    new_project_yaml = yaml.safe_load((new_root / 'project.yaml').read_text(encoding='utf-8'))
+    assert new_project_yaml['project']['id'] == created_project['projectId']
+    assert new_project_yaml['project']['name'] == 'Cloned Project'
+
+    opened = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-open-save-as-result',
+            'module': 'platform',
+            'command': 'openProject',
+            'payload': {'projectId': created_project['projectId']},
+        },
+    ).json()
+    assert opened['ok'] is True
+    assert opened['result']['snapshot']['project']['projectId'] == created_project['projectId']
+    assert opened['result']['snapshot']['project']['name'] == 'Cloned Project'
+    assert opened['result']['snapshot']['documents']['metagen'][0]['document']['component']['name'] == 'Pump'
+    assert opened['result']['snapshot']['documents']['metagen'][0]['path'].startswith(
+        f"backend://{created_project['projectId']}/metagen/"
+    )
+
+
+def test_save_project_as_empty_name_returns_validation_error(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-save-as-empty-name',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Source For Empty Name'},
+        },
+    ).json()
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-as-empty-name',
+            'module': 'platform',
+            'command': 'saveProjectAs',
+            'payload': {
+                'projectId': created['result']['project']['id'],
+                'newName': '   ',
+                'projectSnapshot': {
+                    'raw': {'project': {'id': created['result']['project']['id'], 'name': 'X'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'VALIDATION_ERROR'
+
+
+def test_save_project_as_missing_source_project_returns_project_not_found(runtime_env):
+    client = TestClient(app)
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-as-missing-source',
+            'module': 'platform',
+            'command': 'saveProjectAs',
+            'payload': {
+                'projectId': 'missing-project',
+                'newName': 'New Name',
+                'projectSnapshot': {
+                    'raw': {'project': {'id': 'missing-project', 'name': 'X'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_NOT_FOUND'
+    assert body['error']['details']['projectId'] == 'missing-project'
+
+
+def test_save_project_as_create_failure_returns_project_create_failed(runtime_env, monkeypatch):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-save-as-create-fail-src',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Create Failure Source'},
+        },
+    ).json()
+
+    def raise_create_failure(*_args, **_kwargs):
+        raise ProjectCreateIssue('Injected create failure')
+
+    monkeypatch.setattr(project_storage.project_catalog, 'prepare_new_project_metadata', raise_create_failure)
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-as-create-fail',
+            'module': 'platform',
+            'command': 'saveProjectAs',
+            'payload': {
+                'projectId': created['result']['project']['id'],
+                'newName': 'Should Fail',
+                'projectSnapshot': {
+                    'raw': {'project': {'id': created['result']['project']['id'], 'name': 'Should Fail'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_CREATE_FAILED'
+
+
+def test_save_project_as_write_failure_returns_project_save_failed_and_rolls_back_new_project(runtime_env, monkeypatch):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-save-as-write-fail-src',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Write Failure Source'},
+        },
+    ).json()
+    source_project = created['result']['project']
+    source_project_id = source_project['id']
+    source_root = runtime_env.workspace_projects_root / source_project['slug']
+    source_project_yaml_before = (source_root / 'project.yaml').read_text(encoding='utf-8')
+
+    def raise_write_failure(*_args, **_kwargs):
+        raise OSError('Injected write failure for save-as')
+
+    monkeypatch.setattr(project_storage.ProjectStorageService, '_write_yaml_object', staticmethod(raise_write_failure))
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-as-write-fail',
+            'module': 'platform',
+            'command': 'saveProjectAs',
+            'payload': {
+                'projectId': source_project_id,
+                'newName': 'Write Failure Copy',
+                'projectSnapshot': {
+                    'raw': {'project': {'id': source_project_id, 'name': 'Write Failure Copy'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_SAVE_FAILED'
+    assert body['error']['details']['projectId'] == source_project_id
+
+    list_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-list-after-save-as-fail',
+            'module': 'platform',
+            'command': 'listProjects',
+            'payload': {},
+        },
+    ).json()
+    assert list_response['ok'] is True
+    assert len(list_response['result']['projects']) == 1
+    assert list_response['result']['projects'][0]['id'] == source_project_id
+
+    with db_bootstrap.connect() as db:
+        rows = db.execute('SELECT id, slug FROM projects ORDER BY id').fetchall()
+    assert len(rows) == 1
+    assert rows[0]['id'] == source_project_id
+
+    workspace_entries = [entry for entry in runtime_env.workspace_projects_root.iterdir() if entry.is_dir()]
+    assert len(workspace_entries) == 1
+    assert workspace_entries[0].name == source_project['slug']
+
+    assert not list(runtime_env.workspace_projects_root.rglob('.save-staging'))
+    assert not list(runtime_env.workspace_projects_root.rglob('.save-backup'))
+    assert (source_root / 'project.yaml').read_text(encoding='utf-8') == source_project_yaml_before
+
+
+def test_save_project_as_register_failure_returns_project_create_failed_and_cleans_new_root(runtime_env, monkeypatch):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-save-as-register-fail-src',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Register Failure Source'},
+        },
+    ).json()
+    source_project = created['result']['project']
+    source_root = runtime_env.workspace_projects_root / source_project['slug']
+    source_project_yaml_before = (source_root / 'project.yaml').read_text(encoding='utf-8')
+
+    def raise_register_failure(*_args, **_kwargs):
+        raise ProjectCreateIssue('Injected register failure')
+
+    monkeypatch.setattr(project_storage.project_catalog, 'register_prepared_project', raise_register_failure)
+
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-save-as-register-fail',
+            'module': 'platform',
+            'command': 'saveProjectAs',
+            'payload': {
+                'projectId': source_project['id'],
+                'newName': 'Register Failure Copy',
+                'projectSnapshot': {
+                    'raw': {'project': {'id': source_project['id'], 'name': 'Register Failure Copy'}},
+                    'documents': {'metagen': [], 'metalab': [], 'metaview': []},
+                },
+            },
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_CREATE_FAILED'
+    assert body['error']['details']['projectId'] == source_project['id']
+
+    with db_bootstrap.connect() as db:
+        rows = db.execute('SELECT id, slug FROM projects ORDER BY id').fetchall()
+    assert len(rows) == 1
+    assert rows[0]['id'] == source_project['id']
+
+    workspace_entries = [entry for entry in runtime_env.workspace_projects_root.iterdir() if entry.is_dir()]
+    assert len(workspace_entries) == 1
+    assert workspace_entries[0].name == source_project['slug']
+
+    assert not list(runtime_env.workspace_projects_root.rglob('.save-staging'))
+    assert not list(runtime_env.workspace_projects_root.rglob('.save-backup'))
+    assert (source_root / 'project.yaml').read_text(encoding='utf-8') == source_project_yaml_before
+
+
+def test_export_project_success_builds_archive_and_keeps_canonical_storage(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-export-success',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Export Success'},
+        },
+    ).json()
+    project = created['result']['project']
+    project_root = runtime_env.workspace_projects_root / project['slug']
+
+    (project_root / 'metagen' / 'pump.yaml').write_text(
+        yaml.safe_dump(
+            {
+                'kind': 'metagen.component',
+                'component': {'id': 'pump', 'name': 'Pump'},
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding='utf-8',
+    )
+    (project_root / 'generated' / 'artifact.txt').write_text('generated-artifact', encoding='utf-8')
+
+    before_project_yaml = (project_root / 'project.yaml').read_text(encoding='utf-8')
+    before_metagen_yaml = (project_root / 'metagen' / 'pump.yaml').read_text(encoding='utf-8')
+    before_generated = (project_root / 'generated' / 'artifact.txt').read_text(encoding='utf-8')
+
+    export_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-export-success',
+            'module': 'platform',
+            'command': 'exportProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+
+    assert export_response['ok'] is True
+    export_result = export_response['result']
+    assert export_result['fileName'] == f"{project['slug']}.zip"
+    assert export_result['downloadUrl'].startswith('/api/project-exports/')
+    assert export_result['exportToken']
+    artifact_path = runtime_env.workspace_project_exports_root / f"{export_result['exportToken']}.zip"
+    assert artifact_path.exists()
+    assert export_result['exportToken'] in command_dispatcher.project_storage_service._project_export_artifacts
+
+    download_response = client.get(export_result['downloadUrl'])
+    assert download_response.status_code == 200
+    assert download_response.headers.get('content-type', '').startswith('application/zip')
+
+    archive = zipfile.ZipFile(io.BytesIO(download_response.content))
+    archived_names = set(archive.namelist())
+    assert 'project.yaml' in archived_names
+    assert 'metagen/' in archived_names
+    assert 'metalab/' in archived_names
+    assert 'metaview/' in archived_names
+    assert 'generated/' in archived_names
+    assert 'metagen/pump.yaml' in archived_names
+    assert 'generated/artifact.txt' in archived_names
+    assert yaml.safe_load(archive.read('project.yaml').decode('utf-8'))['project']['id'] == project['id']
+    assert archive.read('generated/artifact.txt').decode('utf-8') == 'generated-artifact'
+
+    token_reuse_response = client.get(export_result['downloadUrl'])
+    assert token_reuse_response.status_code == 404
+    assert not artifact_path.exists()
+    assert export_result['exportToken'] not in command_dispatcher.project_storage_service._project_export_artifacts
+
+    assert (project_root / 'project.yaml').read_text(encoding='utf-8') == before_project_yaml
+    assert (project_root / 'metagen' / 'pump.yaml').read_text(encoding='utf-8') == before_metagen_yaml
+    assert (project_root / 'generated' / 'artifact.txt').read_text(encoding='utf-8') == before_generated
+    assert not list(runtime_env.workspace_projects_root.rglob('.save-staging'))
+    assert not list(runtime_env.workspace_projects_root.rglob('.save-backup'))
+
+
+def test_export_project_prunes_stale_unconsumed_artifacts_on_next_export(runtime_env, monkeypatch):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-export-prune',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Export Prune'},
+        },
+    ).json()
+    project = created['result']['project']
+    initial_now = 1_700_000_000
+    max_age = project_storage.PROJECT_EXPORT_ARTIFACT_MAX_AGE_SECONDS
+
+    monkeypatch.setattr(project_storage.time, 'time', lambda: initial_now)
+    first_export = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-export-prune-first',
+            'module': 'platform',
+            'command': 'exportProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+    assert first_export['ok'] is True
+    first_token = first_export['result']['exportToken']
+    first_artifact_path = runtime_env.workspace_project_exports_root / f'{first_token}.zip'
+    assert first_artifact_path.exists()
+    assert first_token in command_dispatcher.project_storage_service._project_export_artifacts
+
+    monkeypatch.setattr(project_storage.time, 'time', lambda: initial_now + max_age + 1)
+    second_export = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-export-prune-second',
+            'module': 'platform',
+            'command': 'exportProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+    assert second_export['ok'] is True
+    second_token = second_export['result']['exportToken']
+
+    assert second_token in command_dispatcher.project_storage_service._project_export_artifacts
+    assert first_token not in command_dispatcher.project_storage_service._project_export_artifacts
+    assert not first_artifact_path.exists()
+
+
+def test_export_project_consume_missing_artifact_returns_404_and_cleans_registry(runtime_env):
+    client = TestClient(app)
+    created = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-create-export-missing-artifact',
+            'module': 'platform',
+            'command': 'createProject',
+            'payload': {'name': 'Export Missing Artifact'},
+        },
+    ).json()
+    project = created['result']['project']
+
+    export_response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-export-missing-artifact',
+            'module': 'platform',
+            'command': 'exportProject',
+            'payload': {'projectId': project['id']},
+        },
+    ).json()
+    assert export_response['ok'] is True
+    export_token = export_response['result']['exportToken']
+    artifact_path = runtime_env.workspace_project_exports_root / f'{export_token}.zip'
+    assert artifact_path.exists()
+    assert export_token in command_dispatcher.project_storage_service._project_export_artifacts
+
+    artifact_path.unlink(missing_ok=True)
+    download_response = client.get(export_response['result']['downloadUrl'])
+    assert download_response.status_code == 404
+    assert export_token not in command_dispatcher.project_storage_service._project_export_artifacts
+
+
+def test_export_project_download_with_unknown_token_returns_404(runtime_env):
+    client = TestClient(app)
+    response = client.get('/api/project-exports/export_unknown')
+
+    assert response.status_code == 404
+    assert response.json()['detail'] == 'Project export not found'
+
+
+def test_export_project_missing_returns_project_not_found(runtime_env):
+    client = TestClient(app)
+    response = client.post(
+        API_COMMANDS_ENDPOINT,
+        json={
+            'requestId': 'req-export-missing',
+            'module': 'platform',
+            'command': 'exportProject',
+            'payload': {'projectId': 'missing-project'},
+        },
+    )
+
+    body = response.json()
+    assert body['ok'] is False
+    assert body['error']['code'] == 'PROJECT_NOT_FOUND'
+    assert body['error']['details']['projectId'] == 'missing-project'
+
+
+==================================================
+FILE: runtime_backend/tests/test_startup_probe.py
+==================================================
+
+import json
+import socket
+import subprocess
+import sys
+import time
+from urllib import error, request
+
+import pytest
+
+from runtime_backend.app.core.constants import API_COMMANDS_ENDPOINT
+
+CANONICAL_PYTEST_COMMAND = 'python -m pytest runtime_backend/tests -q'
+CANONICAL_STARTUP_TARGET = 'runtime_backend.app.main:app'
+CANONICAL_STARTUP_ARGS = [
+    sys.executable,
+    '-m',
+    'uvicorn',
+    CANONICAL_STARTUP_TARGET,
+    '--host',
+    '127.0.0.1',
+    '--port',
+    '8000',
+    '--log-level',
+    'warning',
+]
+STARTUP_TIMEOUT_SECONDS = 12
+
+
+def _is_tcp_port_in_use(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(0.2)
+        return probe.connect_ex((host, port)) == 0
+
+
+def _wait_for_http_ready(url: str, timeout_seconds: int) -> bool:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        try:
+            with request.urlopen(url, timeout=0.5) as response:
+                if response.status == 200:
+                    return True
+        except (error.URLError, TimeoutError):
+            time.sleep(0.15)
+    return False
+
+
+def test_verification_policy_constants_are_explicit():
+    assert CANONICAL_PYTEST_COMMAND == 'python -m pytest runtime_backend/tests -q'
+    assert CANONICAL_STARTUP_TARGET == 'runtime_backend.app.main:app'
+    assert CANONICAL_STARTUP_ARGS[0] == sys.executable
+    assert CANONICAL_STARTUP_ARGS[1:4] == ['-m', 'uvicorn', CANONICAL_STARTUP_TARGET]
+    assert '--host' in CANONICAL_STARTUP_ARGS
+    assert '--port' in CANONICAL_STARTUP_ARGS
+
+
+def test_bounded_uvicorn_startup_probe_starts_and_stops_cleanly():
+    if _is_tcp_port_in_use('127.0.0.1', 8000):
+        pytest.skip('Port 8000 is already in use; bounded startup probe requires the canonical port.')
+
+    process = subprocess.Popen(
+        CANONICAL_STARTUP_ARGS,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        openapi_ready = _wait_for_http_ready('http://127.0.0.1:8000/openapi.json', STARTUP_TIMEOUT_SECONDS)
+        assert openapi_ready, 'Uvicorn did not become ready within timeout.'
+
+        payload = json.dumps(
+            {
+                'requestId': 'probe-list-projects',
+                'module': 'platform',
+                'command': 'listProjects',
+                'payload': {},
+            }
+        ).encode('utf-8')
+        http_request = request.Request(
+            f'http://127.0.0.1:8000{API_COMMANDS_ENDPOINT}',
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+            method='POST',
+        )
+        with request.urlopen(http_request, timeout=1.5) as response:
+            body = json.loads(response.read().decode('utf-8'))
+        assert response.status == 200
+        assert body['ok'] is True
+    finally:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
 
