@@ -37,7 +37,7 @@ iteration_sleep_sec: 8
 codex_heartbeat_interval_sec: 15
 
 # run.py сам добавит --output-schema и -o, если их нет.
-codex_command: "codex exec --dangerously-bypass-approvals-and-sandbox --json -"
+codex_command: "codex exec --json -"
 
 setup_commands:
   - "cd ./ui && npm install"

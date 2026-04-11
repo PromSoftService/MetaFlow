@@ -6,6 +6,19 @@
 #
 # 2) Install Git and Codex CLI separately.
 #
+# 2.1) Create minimal Codex config at:
+#      %USERPROFILE%\.codex\config.toml
+#      with content:
+#      personality = "pragmatic"
+#      sandbox_mode = "workspace-write"
+#      approval_policy = "never"
+#
+#      [windows]
+#      sandbox = "elevated"
+#
+#      [notice.model_migrations]
+#      "gpt-5.3-codex" = "gpt-5.4"
+#
 # 3) Create .env from .env.example
 #
 # 4) Create config.yaml
