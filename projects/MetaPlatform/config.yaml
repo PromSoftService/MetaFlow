@@ -39,12 +39,16 @@ codex_heartbeat_interval_sec: 15
 # run.py сам добавит --output-schema и -o, если их нет.
 codex_command: "codex exec --dangerously-bypass-approvals-and-sandbox --json -"
 
-all_test_commands:
-  - "npm test"
-  - "npm run test:integration"
-
 setup_commands:
-  - "npm install"
+  - "cd ./ui && npm install"
+  - "python -m pip install -r ./runtime_backend/requirements.txt"
+
+all_test_commands:
+  - "cd ./ui && npm test"
+  - "cd ./ui && npm run test:integration"
+  - "python -m pytest runtime_backend/tests -q"
+  - "python create_project_structure.py"
+  - "python export_project_to_txt.py"
 
 codex_max_runtime_sec: 1800
 codex_post_turn_grace_sec: 15
