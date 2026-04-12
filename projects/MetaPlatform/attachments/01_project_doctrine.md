@@ -56,36 +56,6 @@
 
 ---
 
-## 2. МОДЕЛЬ ПРОЕКТА
-
-### 2.1. Проект остаётся директорией
-Проект = папка.
-
-Внутри проекта архитектурно предполагаются:
-- `project.yaml`
-- `metagen/`
-- `metalab/`
-- `metaview/`
-- `generated/`
-
-### 2.2. project.yaml
-- `project.yaml` обязателен.
-- `project.yaml` не хранит полный список документов проекта.
-- Список документов определяется сканированием модульных папок.
-- `project.yaml` не считается полным source of truth для всей структуры проекта.
-
-### 2.3. Имя проекта
-- Имя проекта определяется project file.
-- Переименование проекта поддерживается только через Save As.
-- Отдельную независимую identity-сущность имени проекта вводить не нужно.
-
-### 2.4. generated/
-- `generated/` — это зона результатов генерации.
-- Обычный save проекта не должен очищать `generated/`.
-- Save проекта и generation outputs — это разные семантики.
-
----
-
 ## 3. IDENTITY И RUNTIME-ПРАВИЛА
 
 ### 3.1. Каноническая identity документа
@@ -134,33 +104,10 @@ UI и runtime-слой обязаны уважать:
 
 ---
 
-## 5. ПРАВИЛА ПО SAVE / PATH / STORAGE
-
-### 5.1. Каноническая save-семантика
-Обычный save проекта должен канонически переписывать только project-owned модульные папки:
-- `metagen/`
-- `metalab/`
-- `metaview/`
-
-При этом:
-- `generated/` не очищать;
-- пользовательские файлы вне project-owned module folders не трогать;
-- молчаливое автопереименование для обхода коллизий не считать целевой save-семантикой.
-
-### 5.2. Path semantics
-- path-логика должна быть централизована;
-- нельзя размазывать одинаковые path rules по UI/runtime/backend слоям;
-- пути проекта, project-owned folders, file naming semantics и related helpers должны иметь единый source of truth.
-
----
-
 ## 6. КОРОТКАЯ ФИНАЛЬНАЯ ФОРМУЛИРОВКА
 
 MetaPlatform развивается как web-only модульная инженерная платформа с фактическим рабочим layout вокруг `ui / rtb / shared`.
-Проект остаётся директорией с фиксированными модульными папками.
 Identity документов строится только на GUID.
 Backend workspace является основным operating mode.
 Close/save/switch flows обязаны учитывать backend lock/process lifecycle.
-Обычный save переписывает только project-owned module folders и не трогает `generated/`.
-Path semantics централизуются.
 `export_project_to_txt.py` остаётся в root как часть текущего состояния проекта.
