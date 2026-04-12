@@ -62,6 +62,7 @@ import base64
 import json
 import mimetypes
 import os
+import locale
 import re
 import shlex
 import shutil
@@ -399,22 +400,72 @@ def should_stop_retrying(attempt: int, policy: RetryPolicy) -> bool:
     return policy.max_retries is not None and attempt >= policy.max_retries
 
 
+
+
+def decode_subprocess_output(data: Optional[bytes]) -> str:
+    if data is None:
+        return ""
+
+    encodings: List[str] = []
+
+    if os.name == "nt":
+        for candidate in (
+            os.device_encoding(1),
+            os.device_encoding(2),
+            locale.getpreferredencoding(False),
+            "cp866",
+            "cp1251",
+            "utf-8",
+        ):
+            if candidate and candidate not in encodings:
+                encodings.append(candidate)
+    else:
+        preferred = locale.getpreferredencoding(False)
+        if preferred:
+            encodings.append(preferred)
+        encodings.append("utf-8")
+
+    for encoding in encodings:
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+
+    return data.decode(encodings[0] if encodings else "utf-8", errors="replace")
+
+
+def run_subprocess_capture(
+    args: Any,
+    cwd: Optional[Path] = None,
+    shell: bool = False,
+    env: Optional[Dict[str, str]] = None,
+) -> subprocess.CompletedProcess:
+    proc = subprocess.run(
+        args,
+        cwd=str(cwd) if cwd else None,
+        shell=shell,
+        check=False,
+        text=False,
+        capture_output=True,
+        env=env,
+    )
+
+    stdout_text = decode_subprocess_output(proc.stdout)
+    stderr_text = decode_subprocess_output(proc.stderr)
+
+    return subprocess.CompletedProcess(
+        args=proc.args,
+        returncode=proc.returncode,
+        stdout=stdout_text,
+        stderr=stderr_text,
+    )
 def run_command(
     cmd: List[str],
     cwd: Optional[Path] = None,
     check: bool = True,
     env: Optional[Dict[str, str]] = None,
 ) -> subprocess.CompletedProcess:
-    proc = subprocess.run(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        check=False,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        env=env,
-    )
+    proc = run_subprocess_capture(cmd, cwd=cwd, shell=False, env=env)
 
     if proc.stdout and proc.stdout.strip():
         print(proc.stdout)
@@ -437,17 +488,7 @@ def run_shell_command(
     check: bool = True,
     env: Optional[Dict[str, str]] = None,
 ) -> subprocess.CompletedProcess:
-    proc = subprocess.run(
-        command,
-        cwd=str(cwd) if cwd else None,
-        shell=True,
-        check=False,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        env=env,
-    )
+    proc = run_subprocess_capture(command, cwd=cwd, shell=True, env=env)
 
     if proc.stdout and proc.stdout.strip():
         print(proc.stdout)
@@ -560,7 +601,6 @@ def ensure_repo(
 
 def normalize_windows_workspace_acl(
     repo_dir: Path,
-    retry_policy: RetryPolicy,
 ) -> None:
     if os.name != "nt":
         return
@@ -571,25 +611,55 @@ def normalize_windows_workspace_acl(
     if not computer_name or not user_name:
         fail("Cannot resolve Windows COMPUTERNAME/USERNAME for workspace ACL normalization.")
 
+    if not repo_dir.exists():
+        fail(f"Workspace ACL normalization target does not exist: {repo_dir}")
+
     current_user = f"{computer_name}\\{user_name}"
     codex_group = f"{computer_name}\\CodexSandboxUsers"
 
     banner("WINDOWS WORKSPACE ACL")
     info(f"Normalizing ACL for workspace: {repo_dir}")
     info(f"Granting FullControl to current user: {current_user}")
+    info("Granting FullControl to local Administrators SID: *S-1-5-32-544")
+    info("Granting FullControl to local SYSTEM SID: *S-1-5-18")
     info(f"Granting FullControl to Codex sandbox group: {codex_group}")
 
     commands = [
-        ["takeown", "/f", str(repo_dir), "/r", "/d", "y"],
-        ["icacls", str(repo_dir), "/inheritance:e", "/t", "/c"],
+        ["icacls", str(repo_dir), "/inheritance:e"],
         ["icacls", str(repo_dir), "/grant", f"{current_user}:(OI)(CI)F", "/t", "/c"],
-        ["icacls", str(repo_dir), "/grant", r"BUILTIN\Administrators:(OI)(CI)F", "/t", "/c"],
-        ["icacls", str(repo_dir), "/grant", r"NT AUTHORITY\SYSTEM:(OI)(CI)F", "/t", "/c"],
+        ["icacls", str(repo_dir), "/grant", "*S-1-5-32-544:(OI)(CI)F", "/t", "/c"],
+        ["icacls", str(repo_dir), "/grant", "*S-1-5-18:(OI)(CI)F", "/t", "/c"],
         ["icacls", str(repo_dir), "/grant", f"{codex_group}:(OI)(CI)F", "/t", "/c"],
     ]
 
     for cmd in commands:
-        run_command_with_retries(cmd, retry_policy=retry_policy)
+        info(f"Running ACL command: {' '.join(cmd)}")
+        proc = run_command(cmd, check=False)
+
+        if proc.returncode == 0:
+            continue
+
+        stdout_text = (proc.stdout or "").strip()
+        stderr_text = (proc.stderr or "").strip()
+
+        reason_parts = [
+            "Windows workspace ACL normalization failed.",
+            f"Command: {' '.join(cmd)}",
+            f"Exit code: {proc.returncode}",
+        ]
+
+        if stdout_text:
+            reason_parts.append(f"STDOUT:\n{stdout_text}")
+        if stderr_text:
+            reason_parts.append(f"STDERR:\n{stderr_text}")
+
+        if "CodexSandboxUsers" in " ".join(cmd):
+            reason_parts.append(
+                "Most likely cause: local Windows group 'CodexSandboxUsers' does not exist "
+                "or the current user cannot grant permissions to it."
+            )
+
+        fail("\n".join(reason_parts))
 
 
 
@@ -1757,7 +1827,7 @@ def main() -> int:
     )
 
     ensure_repo(git_path, repo_url, branch, repo_dir, retry_policy=repo_retry_policy)
-    normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
+    normalize_windows_workspace_acl(repo_dir)
     run_setup_commands(repo_dir, setup_commands, retry_policy=setup_retry_policy)
 
     previous_response_id: Optional[str] = None
@@ -1960,7 +2030,7 @@ def main() -> int:
         print("\n[CODEX TASK]")
         print(codex_task_md)
 
-        normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
+        normalize_windows_workspace_acl(repo_dir)
 
         codex_exit, codex_model_summary = run_codex(
             codex_executable=codex_path,
