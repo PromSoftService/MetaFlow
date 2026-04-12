@@ -2779,7 +2779,6 @@ import { createMetaGenModule } from './modules/metagen/metagenModule.js';
 import { createMetaLabModule } from './modules/metalab/metalabModule.js';
 import { createMetaViewModule } from './modules/metaview/metaviewModule.js';
 import { APP_CONFIG } from '../config/app-config.js';
-import { setNodeIconAndText } from './ui/pngIconRenderer.js';
 import { createRuntimeClient } from './runtime/runtimeClient.js';
 import { createHttpRuntimeAdapter } from './runtime/adapters/createHttpRuntimeAdapter.js';
 import { runBackendProjectExport } from './runtime/backendProjectExportFlow.js';
@@ -3288,11 +3287,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         continue;
       }
 
-      setNodeIconAndText(headerNode, {
-        iconAssetPath,
-        labelText: normalizedText,
-        textClassName: APP_CONFIG.ui.classNames.panelHeaderText
-      });
+      headerNode.innerHTML = '';
+
+      const iconHost = document.createElement('span');
+      iconHost.classList.add(APP_CONFIG.ui.classNames.iconHost);
+      const iconImage = document.createElement('img');
+      iconImage.src = iconAssetPath;
+      iconImage.alt = '';
+      iconImage.width = APP_CONFIG.ui.icons.sizes.defaultIcon;
+      iconImage.height = APP_CONFIG.ui.icons.sizes.defaultIcon;
+      iconImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+      iconImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+      iconImage.decoding = 'async';
+      iconImage.loading = 'eager';
+      iconImage.setAttribute('aria-hidden', 'true');
+      iconHost.appendChild(iconImage);
+      headerNode.appendChild(iconHost);
+
+      const textNode = document.createElement('span');
+      textNode.classList.add(APP_CONFIG.ui.classNames.panelHeaderText);
+      textNode.textContent = normalizedText;
+      headerNode.appendChild(textNode);
     }
   }
 
@@ -11244,7 +11259,6 @@ FILE: ui/renderer/ui/applyStaticText.js
 ==================================================
 
 import { APP_CONFIG } from '../../config/app-config.js';
-import { setNodeIconAndText } from './pngIconRenderer.js';
 
 export function applyStaticText() {
   const titleNode = document.querySelector(APP_CONFIG.ui.dom.titleSelector);
@@ -11258,19 +11272,51 @@ export function applyStaticText() {
   }
 
   if (topPanelTitleNode) {
-    setNodeIconAndText(topPanelTitleNode, {
-      iconAssetPath: APP_CONFIG.ui.icons.assets.topPanelTitle,
-      labelText: APP_CONFIG.platform.app.topPanelTitle,
-      textClassName: APP_CONFIG.ui.classNames.topPanelTitleText
-    });
+    topPanelTitleNode.innerHTML = '';
+
+    const iconHost = document.createElement('span');
+    iconHost.classList.add(APP_CONFIG.ui.classNames.iconHost);
+    const iconImage = document.createElement('img');
+    iconImage.src = APP_CONFIG.ui.icons.assets.topPanelTitle;
+    iconImage.alt = '';
+    iconImage.width = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    iconImage.height = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    iconImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    iconImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    iconImage.decoding = 'async';
+    iconImage.loading = 'eager';
+    iconImage.setAttribute('aria-hidden', 'true');
+    iconHost.appendChild(iconImage);
+    topPanelTitleNode.appendChild(iconHost);
+
+    const textNode = document.createElement('span');
+    textNode.classList.add(APP_CONFIG.ui.classNames.topPanelTitleText);
+    textNode.textContent = APP_CONFIG.platform.app.topPanelTitle;
+    topPanelTitleNode.appendChild(textNode);
   }
 
   if (logsHeaderNode) {
-    setNodeIconAndText(logsHeaderNode, {
-      iconAssetPath: APP_CONFIG.ui.panelHeaderIcons.logs,
-      labelText: APP_CONFIG.ui.panelHeaders.logs,
-      textClassName: APP_CONFIG.ui.classNames.panelHeaderText
-    });
+    logsHeaderNode.innerHTML = '';
+
+    const iconHost = document.createElement('span');
+    iconHost.classList.add(APP_CONFIG.ui.classNames.iconHost);
+    const iconImage = document.createElement('img');
+    iconImage.src = APP_CONFIG.ui.panelHeaderIcons.logs;
+    iconImage.alt = '';
+    iconImage.width = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    iconImage.height = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    iconImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    iconImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    iconImage.decoding = 'async';
+    iconImage.loading = 'eager';
+    iconImage.setAttribute('aria-hidden', 'true');
+    iconHost.appendChild(iconImage);
+    logsHeaderNode.appendChild(iconHost);
+
+    const textNode = document.createElement('span');
+    textNode.classList.add(APP_CONFIG.ui.classNames.panelHeaderText);
+    textNode.textContent = APP_CONFIG.ui.panelHeaders.logs;
+    logsHeaderNode.appendChild(textNode);
   }
 
   if (paramsUndoButton) {
@@ -11299,7 +11345,6 @@ import {
   getNodeActions,
   getNodeRowClassNames
 } from './projectTree/treeAdapter.js';
-import { createPngIconNode, setNodeIconAndText } from './pngIconRenderer.js';
 
 const TREE_CLASSNAMES = APP_CONFIG.ui.classNames;
 
@@ -11388,12 +11433,25 @@ export function createProjectTree({
       return;
     }
 
-    setNodeIconAndText(projectPanelTitleNode, {
-      iconAssetPath: APP_CONFIG.ui.panelHeaderIcons.project,
-      labelText: getProjectPanelTitle(project),
-      iconSize: APP_CONFIG.ui.icons.sizes.defaultIcon,
-      textClassName: TREE_CLASSNAMES.panelHeaderText
-    });
+    projectPanelTitleNode.innerHTML = '';
+
+    const iconHost = createElement('span', [TREE_CLASSNAMES.iconHost]);
+    const iconImage = document.createElement('img');
+    iconImage.src = APP_CONFIG.ui.panelHeaderIcons.project;
+    iconImage.alt = '';
+    iconImage.width = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    iconImage.height = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    iconImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    iconImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    iconImage.decoding = 'async';
+    iconImage.loading = 'eager';
+    iconImage.setAttribute('aria-hidden', 'true');
+    iconHost.appendChild(iconImage);
+    projectPanelTitleNode.appendChild(iconHost);
+
+    const textNode = createElement('span', [TREE_CLASSNAMES.panelHeaderText]);
+    textNode.textContent = getProjectPanelTitle(project);
+    projectPanelTitleNode.appendChild(textNode);
   }
 
   function isModuleExpanded(moduleId) {
@@ -11453,23 +11511,37 @@ export function createProjectTree({
       const disclosureIconAssetPath = isModuleExpanded(nodeData.moduleId)
         ? APP_CONFIG.ui.tree.icons.disclosure.expanded
         : APP_CONFIG.ui.tree.icons.disclosure.collapsed;
-      disclosureHost.appendChild(
-        createPngIconNode(disclosureIconAssetPath, {
-          size: APP_CONFIG.ui.icons.sizes.compactIcon,
-          classNames: [TREE_CLASSNAMES.treeNodeIcon]
-        })
-      );
+      const disclosureIconHost = createElement('span', [TREE_CLASSNAMES.iconHost, TREE_CLASSNAMES.treeNodeIcon]);
+      const disclosureImage = document.createElement('img');
+      disclosureImage.src = disclosureIconAssetPath;
+      disclosureImage.alt = '';
+      disclosureImage.width = APP_CONFIG.ui.icons.sizes.compactIcon;
+      disclosureImage.height = APP_CONFIG.ui.icons.sizes.compactIcon;
+      disclosureImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.compactIcon));
+      disclosureImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.compactIcon));
+      disclosureImage.decoding = 'async';
+      disclosureImage.loading = 'eager';
+      disclosureImage.setAttribute('aria-hidden', 'true');
+      disclosureIconHost.appendChild(disclosureImage);
+      disclosureHost.appendChild(disclosureIconHost);
     } else {
       disclosureHost.classList.add(TREE_CLASSNAMES.treeNodeDisclosureSpacer);
     }
 
     label.appendChild(disclosureHost);
-    label.appendChild(
-      createPngIconNode(resolveNodeIconAssetPath(nodeData), {
-        size: APP_CONFIG.ui.icons.sizes.defaultIcon,
-        classNames: [TREE_CLASSNAMES.treeNodeIcon]
-      })
-    );
+    const nodeIconHost = createElement('span', [TREE_CLASSNAMES.iconHost, TREE_CLASSNAMES.treeNodeIcon]);
+    const nodeIconImage = document.createElement('img');
+    nodeIconImage.src = resolveNodeIconAssetPath(nodeData);
+    nodeIconImage.alt = '';
+    nodeIconImage.width = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    nodeIconImage.height = APP_CONFIG.ui.icons.sizes.defaultIcon;
+    nodeIconImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    nodeIconImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.defaultIcon));
+    nodeIconImage.decoding = 'async';
+    nodeIconImage.loading = 'eager';
+    nodeIconImage.setAttribute('aria-hidden', 'true');
+    nodeIconHost.appendChild(nodeIconImage);
+    label.appendChild(nodeIconHost);
 
     const labelText = createElement('span', [TREE_CLASSNAMES.treeNodeLabelText]);
     labelText.textContent = nodeData.label;
@@ -11505,12 +11577,19 @@ export function createProjectTree({
         actionButton.type = 'button';
         actionButton.title = action.title;
         actionButton.setAttribute('aria-label', action.title);
-        actionButton.appendChild(
-          createPngIconNode(action.iconAssetPath, {
-            size: APP_CONFIG.ui.icons.sizes.compactIcon,
-            classNames: [TREE_CLASSNAMES.treeNodeActionIcon]
-          })
-        );
+        const actionIconHost = createElement('span', [TREE_CLASSNAMES.iconHost, TREE_CLASSNAMES.treeNodeActionIcon]);
+        const actionIconImage = document.createElement('img');
+        actionIconImage.src = action.iconAssetPath;
+        actionIconImage.alt = '';
+        actionIconImage.width = APP_CONFIG.ui.icons.sizes.compactIcon;
+        actionIconImage.height = APP_CONFIG.ui.icons.sizes.compactIcon;
+        actionIconImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.compactIcon));
+        actionIconImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.compactIcon));
+        actionIconImage.decoding = 'async';
+        actionIconImage.loading = 'eager';
+        actionIconImage.setAttribute('aria-hidden', 'true');
+        actionIconHost.appendChild(actionIconImage);
+        actionButton.appendChild(actionIconHost);
 
         actionButton.addEventListener('click', async (event) => {
           await interactionController.onNodeActionClick({
@@ -11609,7 +11688,6 @@ import { APP_CONFIG } from '../../config/app-config.js';
 import { finalizeEditingBeforeTabSwitch } from './tabEditLifecycle.js';
 import { finalizeEditingBeforeContextTransition } from './editorContextLifecycle.js';
 import { getDocumentLabel, getDocumentIdentityKey } from '../runtime/documentRecordIdentity.js';
-import { createPngIconNode } from './pngIconRenderer.js';
 
 function createElement(tagName, classNames = []) {
   const node = document.createElement(tagName);
@@ -11630,12 +11708,19 @@ function buildTabTitleNode(title) {
 function buildCloseButtonNode(label) {
   const closeButtonNode = createElement('button', [APP_CONFIG.ui.classNames.tabClose]);
   closeButtonNode.type = 'button';
-  const iconHost = createPngIconNode(APP_CONFIG.ui.icons.assets.tabs.close, {
-    size: APP_CONFIG.ui.icons.sizes.compactIcon
-  });
-  closeButtonNode.appendChild(
-    iconHost
-  );
+  const iconHost = createElement('span', [APP_CONFIG.ui.classNames.iconHost]);
+  const iconImage = document.createElement('img');
+  iconImage.src = APP_CONFIG.ui.icons.assets.tabs.close;
+  iconImage.alt = '';
+  iconImage.width = APP_CONFIG.ui.icons.sizes.compactIcon;
+  iconImage.height = APP_CONFIG.ui.icons.sizes.compactIcon;
+  iconImage.setAttribute('width', String(APP_CONFIG.ui.icons.sizes.compactIcon));
+  iconImage.setAttribute('height', String(APP_CONFIG.ui.icons.sizes.compactIcon));
+  iconImage.decoding = 'async';
+  iconImage.loading = 'eager';
+  iconImage.setAttribute('aria-hidden', 'true');
+  iconHost.appendChild(iconImage);
+  closeButtonNode.appendChild(iconHost);
   closeButtonNode.tabIndex = -1;
   closeButtonNode.setAttribute('aria-label', `${APP_CONFIG.ui.text.closeAriaPrefix} ${label}`);
   return closeButtonNode;

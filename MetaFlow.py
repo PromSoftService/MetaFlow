@@ -601,6 +601,7 @@ def ensure_repo(
 
 def normalize_windows_workspace_acl(
     repo_dir: Path,
+    retry_policy: RetryPolicy,
 ) -> None:
     if os.name != "nt":
         return
@@ -611,9 +612,6 @@ def normalize_windows_workspace_acl(
     if not computer_name or not user_name:
         fail("Cannot resolve Windows COMPUTERNAME/USERNAME for workspace ACL normalization.")
 
-    if not repo_dir.exists():
-        fail(f"Workspace ACL normalization target does not exist: {repo_dir}")
-
     current_user = f"{computer_name}\\{user_name}"
     codex_group = f"{computer_name}\\CodexSandboxUsers"
 
@@ -622,44 +620,66 @@ def normalize_windows_workspace_acl(
     info(f"Granting FullControl to current user: {current_user}")
     info("Granting FullControl to local Administrators SID: *S-1-5-32-544")
     info("Granting FullControl to local SYSTEM SID: *S-1-5-18")
+    info("Granting FullControl to Authenticated Users SID: *S-1-5-11")
     info(f"Granting FullControl to Codex sandbox group: {codex_group}")
+
+    def run_acl_command(cmd: List[str]) -> None:
+        info(f"Running ACL command: {' '.join(cmd)}")
+        proc = subprocess.run(
+            cmd,
+            cwd=str(repo_dir),
+            check=False,
+            text=True,
+            encoding="oem",
+            errors="replace",
+            capture_output=True,
+        )
+
+        if proc.stdout and proc.stdout.strip():
+            print(proc.stdout)
+        if proc.stderr and proc.stderr.strip():
+            warn(proc.stderr)
+
+        if proc.returncode != 0:
+            fail(
+                "Windows workspace ACL normalization failed.\n"
+                f"Command: {' '.join(cmd)}\n"
+                f"Exit code: {proc.returncode}\n"
+                f"STDOUT:\n{proc.stdout}\n"
+                f"STDERR:\n{proc.stderr}"
+            )
 
     commands = [
         ["icacls", str(repo_dir), "/inheritance:e"],
+        ["icacls", str(repo_dir), "/reset", "/t", "/c"],
         ["icacls", str(repo_dir), "/grant", f"{current_user}:(OI)(CI)F", "/t", "/c"],
         ["icacls", str(repo_dir), "/grant", "*S-1-5-32-544:(OI)(CI)F", "/t", "/c"],
         ["icacls", str(repo_dir), "/grant", "*S-1-5-18:(OI)(CI)F", "/t", "/c"],
+        ["icacls", str(repo_dir), "/grant", "*S-1-5-11:(OI)(CI)F", "/t", "/c"],
         ["icacls", str(repo_dir), "/grant", f"{codex_group}:(OI)(CI)F", "/t", "/c"],
     ]
 
     for cmd in commands:
-        info(f"Running ACL command: {' '.join(cmd)}")
-        proc = run_command(cmd, check=False)
+        run_acl_command(cmd)
 
-        if proc.returncode == 0:
-            continue
+    probe_root = repo_dir / ".metaflow-acl-probe"
+    probe_child = probe_root / uuid.uuid4().hex
 
-        stdout_text = (proc.stdout or "").strip()
-        stderr_text = (proc.stderr or "").strip()
+    try:
+        if probe_root.exists():
+            shutil.rmtree(probe_root, ignore_errors=False)
 
-        reason_parts = [
-            "Windows workspace ACL normalization failed.",
-            f"Command: {' '.join(cmd)}",
-            f"Exit code: {proc.returncode}",
-        ]
-
-        if stdout_text:
-            reason_parts.append(f"STDOUT:\n{stdout_text}")
-        if stderr_text:
-            reason_parts.append(f"STDERR:\n{stderr_text}")
-
-        if "CodexSandboxUsers" in " ".join(cmd):
-            reason_parts.append(
-                "Most likely cause: local Windows group 'CodexSandboxUsers' does not exist "
-                "or the current user cannot grant permissions to it."
-            )
-
-        fail("\n".join(reason_parts))
+        probe_child.mkdir(parents=True, exist_ok=False)
+        write_text(probe_child / "probe.txt", "acl-ok\n")
+        shutil.rmtree(probe_root, ignore_errors=False)
+        info("Workspace ACL probe succeeded.")
+    except Exception as exc:
+        fail(
+            "Windows workspace ACL probe failed after ACL normalization.\n"
+            f"Repo dir: {repo_dir}\n"
+            f"Probe path: {probe_child}\n"
+            f"Reason: {exc}"
+        )
 
 
 
@@ -1827,7 +1847,7 @@ def main() -> int:
     )
 
     ensure_repo(git_path, repo_url, branch, repo_dir, retry_policy=repo_retry_policy)
-    normalize_windows_workspace_acl(repo_dir)
+    normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
     run_setup_commands(repo_dir, setup_commands, retry_policy=setup_retry_policy)
 
     previous_response_id: Optional[str] = None
@@ -2030,7 +2050,7 @@ def main() -> int:
         print("\n[CODEX TASK]")
         print(codex_task_md)
 
-        normalize_windows_workspace_acl(repo_dir)
+        normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
 
         codex_exit, codex_model_summary = run_codex(
             codex_executable=codex_path,
