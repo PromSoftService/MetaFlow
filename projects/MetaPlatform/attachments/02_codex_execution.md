@@ -414,7 +414,7 @@ Reviewer должен сверять test/run commands, helper expectations и d
 
 Если scripts, пути тестов, backend test roots, helper-ожидания или README/run instructions расходятся с фактическим layout репо, reviewer должен требовать их синхронизации в рамках задачи, если это входит в scope. :contentReference[oaicite:1]{index=1}
 
-### 14.X. Диагностика failing startup probe и других bounded test-сценариев
+### 14.3. Диагностика failing startup probe и других bounded test-сценариев
 
 Если нужно диагностировать failing startup probe или другой узкий backend test failure, reviewer может разрешать Codex запускать только сам pytest-тест в bounded-форме, например через `python -m pytest ...::test_name ...`, если это обычная завершаемая test command.
 
@@ -463,7 +463,38 @@ Reviewer должен требовать от Codex:
 Reviewer должен поручать Codex запускать pytest только в форме `python -m pytest ...`.
 Если тестам не нужен pytest cache, reviewer должен по умолчанию добавлять `-p no:cacheprovider`, чтобы Codex не пытался писать `.pytest_cache` внутри repo.
 
-### 14.7. Проверка helper-скриптов
+### 14.7. Environment-sensitive startup probe: приоритет technical channel над codex-tail
+
+Если после работы Codex reviewer получает противоречивую картину:
+
+- в `TECHNICAL_CHANNEL.tests_summary`, который формируется после codex-run путем ручного прогона, обязательный набор тестов зелёный;
+- а в `MODEL_CHANNEL` или в приложенных codex-артефактах красным остаётся только bounded uvicorn startup probe / startup-related pytest tail;
+
+reviewer не должен автоматически трактовать это как незакрытый product defect и не должен гонять Codex по кругу только из-за этого одного хвоста.
+
+В таком случае reviewer должен:
+
+1. считать источником истины по обязательным проверкам именно `TECHNICAL_CHANNEL.tests_summary`;
+2. отдельно проверить, что remaining fail ограничен startup probe / bounded uvicorn scenario и не сопровождается другими красными functional/integration/backend проверками;
+3. потребовать от Codex явно отделить:
+   - реальные product failures;
+   - environment-sensitive startup probe failure;
+4. дополнительно проверить, есть ли признаки ограничения среды:
+   - timeout/timing instability;
+   - sandbox/network/process ограничения;
+   - падение только в окружении Codex при отсутствии других красных project-level проверок;
+5. не требовать кодовых изменений только ради обхода среды, если обязательные project-level тесты уже зелёные в `TECHNICAL_CHANNEL.tests_summary`;
+6. в итоговом отчёте явно писать:
+   - обязательные проверки по данным оркестратора зелёные;
+   - scope по коду закрыт;
+   - remaining fail относится только к environment-sensitive startup probe в окружении Codex.
+
+Это правило применяется только если:
+- зелёный `TECHNICAL_CHANNEL.tests_summary` действительно присутствует;
+- других незакрытых product failures нет;
+- startup probe tail выглядит именно как ограничение среды, а не как общий backend regression.
+
+### 14.8. Проверка helper-скриптов
 Если helper-скрипты входят в scope, reviewer должен прямо указывать:
 - проверять их только статически или запуском;
 - допустима ли генерация dump;

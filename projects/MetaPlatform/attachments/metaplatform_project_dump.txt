@@ -245,13 +245,6 @@ export const PLATFORM_CONFIG = {
     commandsEndpoint: '/api/commands',
     projectExportsEndpoint: '/api/project-exports',
     projectImportsEndpoint: '/api/project-imports',
-    startup: {
-      initialProjectListStrategies: {
-        explicitIdle: 'explicit-idle',
-        autoRefreshOnce: 'auto-refresh-once'
-      },
-      initialProjectListStrategy: 'explicit-idle'
-    },
     requestTimeoutMs: 10000,
     requestIdPrefix: 'backend-',
     userIdentity: {
@@ -1481,9 +1474,6 @@ export const UI_CONFIG = {
       [PLATFORM_ACTION_IDS.saveWorkspaceProject]: 'Open backend project to save it.',
       [PLATFORM_ACTION_IDS.saveWorkspaceProjectAs]: 'Open backend project to save a workspace copy.',
       [PLATFORM_ACTION_IDS.exportWorkspaceProject]: 'Open backend project to export.'
-    },
-    platformActionStatusMessages: {
-      [PLATFORM_ACTION_IDS.exportWorkspaceProject]: 'Open backend project to export.'
     }
   }
 };
@@ -2531,7 +2521,7 @@ export async function runNewProjectCreateFirstTransition({
   closeAllTabs,
   clearLogs,
   closeProject,
-  presentBackendWorkspaceBrowserForCreateFirst
+  refreshWorkspaceProjects
 }) {
   const canContinue = await confirmSaveIfDirty();
   if (canContinue === cancelDecision) {
@@ -2545,10 +2535,7 @@ export async function runNewProjectCreateFirstTransition({
   await closeAllTabs();
   clearLogs();
   await closeProject();
-  await presentBackendWorkspaceBrowserForCreateFirst({
-    refreshProjects: true,
-    clearCreateInput: true
-  });
+  await refreshWorkspaceProjects?.();
   return true;
 }
 
@@ -2560,11 +2547,9 @@ export async function runCloseProjectTransition({
   stopReasonClose,
   closeAllTabs,
   clearLogs,
-  closeProject,
-  presentBackendWorkspaceBrowser
+  closeProject
 }) {
   if (!getCurrentProject?.()) {
-    await presentBackendWorkspaceBrowser({ refreshProjects: false });
     return false;
   }
 
@@ -2580,15 +2565,12 @@ export async function runCloseProjectTransition({
   await closeAllTabs();
   clearLogs();
   await closeProject();
-  await presentBackendWorkspaceBrowser({ refreshProjects: false });
   return true;
 }
 
 export async function importBackendProjectFlow({
   openProjectImportArchiveDialog,
   importProjectArchive,
-  refreshBackendProjects,
-  setBackendResult,
   loggerWarn,
   loggerSource,
   backendImportFailedText,
@@ -2614,12 +2596,9 @@ export async function importBackendProjectFlow({
       warningText,
       response.error || null
     );
-    setBackendResult(response);
     return false;
   }
 
-  setBackendResult(response.result || {});
-  await refreshBackendProjects();
   return true;
 }
 
@@ -2867,7 +2846,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const platformActionLabels = APP_CONFIG.ui.text.platformActionLabels;
   const platformActionAriaLabels = APP_CONFIG.ui.text.platformActionAriaLabels;
   const platformActionDisabledHints = APP_CONFIG.ui.text.platformActionDisabledHints;
-  const platformActionStatusMessages = APP_CONFIG.ui.text.platformActionStatusMessages;
   const platformActionButtonsById = new Map([
     [platformActionIds.createWorkspaceProject, platformActionCreateWorkspaceProjectButton],
     [platformActionIds.browseWorkspaceProjects, platformActionBrowseWorkspaceProjectsButton],
@@ -2878,8 +2856,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     [platformActionIds.exportWorkspaceProject, platformActionExportWorkspaceProjectButton],
     [platformActionIds.exit, platformActionExitButton]
   ]);
-  const backendStartupListStrategies = APP_CONFIG.platform.backend.startup.initialProjectListStrategies;
-  const backendStartupListStrategy = APP_CONFIG.platform.backend.startup.initialProjectListStrategy;
   const backendLockReleaseStates = APP_CONFIG.ui.runtime.backendLockLifecycle.releaseResultStates;
   const processRuntimeConfig = APP_CONFIG.ui.runtime.processExecution;
   const processCommandIds = APP_CONFIG.platform.backend.commandContract.commands;
@@ -2968,10 +2944,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   processStatusNode?.classList.add(APP_CONFIG.ui.classNames.processPanelMetaValue);
   processExitCodeNode?.classList.add(APP_CONFIG.ui.classNames.processPanelMetaValue);
   processOutputNode?.classList.add(APP_CONFIG.ui.classNames.processPanelOutput);
-
-  function setBackendResult(_value) {
-    // Browser panel result output was removed; preserve command execution behavior.
-  }
 
   function resolveProcessContextProjectId() {
     return getCurrentBackendProjectId({
@@ -3106,7 +3078,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     nextBackendRequestId,
     getProjectManager: () => projectManager,
     resolveBackendCommandFailurePresentation,
-    setBackendResult,
     loggerWarn: (...args) => logger.warn(...args),
     loggerSource: APP_CONFIG.ui.runtime.loggerSources.backend,
     backendText: APP_CONFIG.ui.text,
@@ -3129,13 +3100,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     backendCommandSessionOrchestrator.handleLostBackendProjectLock();
   }
 
-  async function executeBackendCommand(command, payload = {}, options = {}) {
-    return backendCommandSessionOrchestrator.executeBackendCommand(command, payload, options);
+  async function executeBackendCommand(command, payload = {}) {
+    return backendCommandSessionOrchestrator.executeBackendCommand(command, payload);
   }
 
   processExecutionOrchestrator = createProcessExecutionOrchestrator({
-    executeBackendCommand: async (command, payload = {}, options = {}) => {
-      const commandResult = await executeBackendCommand(command, payload, options);
+    executeBackendCommand: async (command, payload = {}) => {
+      const commandResult = await executeBackendCommand(command, payload);
       return commandResult?.ok ? (commandResult.result || null) : null;
     },
     commandIds: {
@@ -3204,8 +3175,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await runBackendProjectExport({
       project,
       exportCommandId: APP_CONFIG.platform.backend.commandContract.commands.exportProject,
-      executeBackendCommand: async (command, payload, options = {}) => {
-        const commandResult = await executeBackendCommand(command, payload, options);
+      executeBackendCommand: async (command, payload) => {
+        const commandResult = await executeBackendCommand(command, payload);
         return commandResult?.ok ? (commandResult.result || null) : null;
       },
       downloadBinary: (downloadUrl) => backendRuntimeClient.downloadBinary(downloadUrl),
@@ -3213,39 +3184,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       dialogs: APP_CONFIG.platform.app.dialogs,
       loggerWarn: (...args) => logger.warn(...args),
       loggerSource: APP_CONFIG.ui.runtime.loggerSources.backend,
-      downloadFailedText: APP_CONFIG.ui.text.backendExportDownloadFailed,
-      setResult: setBackendResult
+      downloadFailedText: APP_CONFIG.ui.text.backendExportDownloadFailed
     });
   }
 
-  async function presentBackendWorkspaceBrowser({
+  async function refreshWorkspaceProjectCatalog({
     refreshProjects = false
   } = {}) {
     if (refreshProjects) {
       await executeBackendCommand(
-        APP_CONFIG.platform.backend.commandContract.commands.listProjects,
-        {},
-        { presentResult: false }
+        APP_CONFIG.platform.backend.commandContract.commands.listProjects
       );
     }
-  }
-
-  async function presentBackendWorkspaceBrowserForCreateFirst({
-    refreshProjects = true
-  } = {}) {
-    await presentBackendWorkspaceBrowser({ refreshProjects });
-  }
-
-  function shouldStartupRefreshBackendProjects() {
-    return backendStartupListStrategy === backendStartupListStrategies.autoRefreshOnce;
   }
 
   async function importBackendProject() {
     await importBackendProjectFlow({
       openProjectImportArchiveDialog: () => shell.requestProjectImportArchive(),
       importProjectArchive: (payload) => backendRuntimeClient.importProjectArchive(payload),
-      refreshBackendProjects: () => Promise.resolve(),
-      setBackendResult,
       loggerWarn: (...args) => logger.warn(...args),
       loggerSource: APP_CONFIG.ui.runtime.loggerSources.backend,
       backendImportFailedText: APP_CONFIG.ui.text.backendImportFailed,
@@ -3512,12 +3468,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       closeAllTabs: () => tabs.closeAllTabs(),
       clearLogs: () => logger.clear(),
       closeProject: () => projectManager.closeProject(),
-      presentBackendWorkspaceBrowserForCreateFirst
+      refreshWorkspaceProjects: () => refreshWorkspaceProjectCatalog({ refreshProjects: true })
     });
   }
 
   async function openProjectFlow() {
-    await presentBackendWorkspaceBrowser({ refreshProjects: true });
+    await refreshWorkspaceProjectCatalog({ refreshProjects: true });
   }
 
   async function closeProjectFlow() {
@@ -3529,8 +3485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       stopReasonClose: APP_CONFIG.ui.runtime.backendLockLifecycle.stopReasonClose,
       closeAllTabs: () => tabs.closeAllTabs(),
       clearLogs: () => logger.clear(),
-      closeProject: () => projectManager.closeProject(),
-      presentBackendWorkspaceBrowser
+      closeProject: () => projectManager.closeProject()
     });
   }
 
@@ -3555,8 +3510,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function exportWorkspaceProjectFlow() {
     const projectForExport = resolveCurrentBackendProjectForExport();
     if (!projectForExport) {
-      await presentBackendWorkspaceBrowser({ refreshProjects: false });
-      setBackendResult(platformActionStatusMessages[platformActionIds.exportWorkspaceProject] || '');
       return false;
     }
 
@@ -3661,9 +3614,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   logger.info(APP_CONFIG.ui.runtime.loggerSources.platform, 'Инициализация MetaPlatform...');
-  await presentBackendWorkspaceBrowser({
-    refreshProjects: shouldStartupRefreshBackendProjects()
-  });
   await tree.render();
 });
 
@@ -9211,7 +9161,6 @@ export function createBackendCommandSessionOrchestrator({
   nextBackendRequestId,
   getProjectManager,
   resolveBackendCommandFailurePresentation,
-  setBackendResult,
   loggerWarn,
   loggerSource,
   backendText,
@@ -9261,11 +9210,7 @@ export function createBackendCommandSessionOrchestrator({
     getProjectManagerOrNull()?.clearBackendLockToken?.();
   }
 
-  async function executeBackendCommand(
-    command,
-    payload = {},
-    { presentResult = true } = {}
-  ) {
+  async function executeBackendCommand(command, payload = {}) {
     const response = await backendRuntimeClient.execute({
       requestId: nextBackendRequestId(),
       module: commandModuleId,
@@ -9288,9 +9233,6 @@ export function createBackendCommandSessionOrchestrator({
       if (lockErrorCode === backendErrorCodes.lostProjectLock) {
         handleLostBackendProjectLock();
       }
-      if (presentResult) {
-        setBackendResult(response);
-      }
       return {
         ok: false,
         result: null,
@@ -9300,9 +9242,6 @@ export function createBackendCommandSessionOrchestrator({
     }
 
     const normalizedResult = response.result || null;
-    if (presentResult) {
-      setBackendResult(normalizedResult || {});
-    }
     return {
       ok: true,
       result: normalizedResult,
@@ -9464,8 +9403,7 @@ export async function runBackendProjectExport({
   dialogs,
   loggerWarn,
   loggerSource,
-  downloadFailedText,
-  setResult
+  downloadFailedText
 }) {
   const projectId = String(project?.id || '').trim();
   if (!projectId) {
@@ -9492,13 +9430,6 @@ export async function runBackendProjectExport({
       ],
       bytes
     });
-
-    if (saveResult?.saved) {
-      setResult?.({
-        ...result,
-        savedFilePath: saveResult.filePath || null
-      });
-    }
   } catch (error) {
     loggerWarn(
       loggerSource,
@@ -9961,13 +9892,12 @@ export function createProcessExecutionOrchestrator({
   }
 
   async function pollTick() {
-    const stateResult = await executeBackendCommand(commandIds.processGetState, {}, { presentResult: false });
+    const stateResult = await executeBackendCommand(commandIds.processGetState, {});
     const activeProcess = stateResult?.process || null;
 
     const outputResult = await executeBackendCommand(
       commandIds.processReadOutput,
-      { afterChunkId: state.afterChunkId },
-      { presentResult: false }
+      { afterChunkId: state.afterChunkId }
     );
     const latestProcess = outputResult?.process || null;
     const readChunks = Array.isArray(outputResult?.chunks) ? outputResult.chunks : [];
@@ -10002,7 +9932,7 @@ export function createProcessExecutionOrchestrator({
   }
 
   async function syncActiveProcess() {
-    const result = await executeBackendCommand(commandIds.processGetState, {}, { presentResult: false });
+    const result = await executeBackendCommand(commandIds.processGetState, {});
     const process = result?.process || null;
     updateState(process);
     if (process) {
@@ -10015,7 +9945,7 @@ export function createProcessExecutionOrchestrator({
   async function launchGenerate(payload = {}) {
     clearSnapshot();
 
-    const result = await executeBackendCommand(commandIds.metagenGenerate, payload, { presentResult: false });
+    const result = await executeBackendCommand(commandIds.metagenGenerate, payload);
     const process = result?.process || null;
     updateState(process);
     if (process) {
@@ -10026,7 +9956,7 @@ export function createProcessExecutionOrchestrator({
   }
 
   async function stopProcess() {
-    const result = await executeBackendCommand(commandIds.processStop, {}, { presentResult: false });
+    const result = await executeBackendCommand(commandIds.processStop, {});
     const process = result?.process || null;
     updateState(process);
     if (process) {
