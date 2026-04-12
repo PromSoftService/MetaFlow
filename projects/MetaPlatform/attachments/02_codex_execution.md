@@ -414,15 +414,24 @@ Reviewer должен сверять test/run commands, helper expectations и d
 
 Если scripts, пути тестов, backend test roots, helper-ожидания или README/run instructions расходятся с фактическим layout репо, reviewer должен требовать их синхронизации в рамках задачи, если это входит в scope. :contentReference[oaicite:1]{index=1}
 
-### 14.3. Запрет на долгоиграющие процессы
-Reviewer должен **запрещать** Codex включать в `extra_test_commands` долгоживущие foreground/watch/server-команды без bounded wrapper, потому что такие процессы не завершаются и подвешивают execution loop.
+### 14.X. Диагностика failing startup probe и других bounded test-сценариев
 
-Запрещённые примеры:
+Если нужно диагностировать failing startup probe или другой узкий backend test failure, reviewer может разрешать Codex запускать только сам pytest-тест в bounded-форме, например через `python -m pytest ...::test_name ...`, если это обычная завершаемая test command.
+
+Reviewer должен запрещать Codex запускать напрямую долгоживущие foreground/server/watch-команды, включая:
 - `python -m uvicorn ...`
 - `npm run dev`
 - `vite`
 - `electron .`
-- любые аналогичные команды, которые сами не завершаются.
+- любые аналогичные процессы, которые сами не завершаются.
+
+Если для диагностики действительно нужен прямой запуск server-процесса, reviewer может разрешать это только через bounded wrapper:
+- с явным timeout;
+- с гарантированным завершением процесса;
+- с обязательной фиксацией stdout/stderr;
+- с явным объяснением, почему одного pytest-запуска недостаточно.
+
+Нельзя использовать прямой server run как дефолтный путь проверки, если достаточно bounded pytest-команды.
 
 ### 14.4. Явные команды
 Не писать “прогони тесты”.

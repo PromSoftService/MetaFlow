@@ -1130,18 +1130,6 @@ export const UI_CONFIG = {
     workbenchRightColumnId: 'workbench-right-column',
     editorHostContainerId: 'editor-host-container',
     bottomPanelId: 'bottom-panel',
-    backendPanelId: 'backend-project-catalog',
-    backendListButtonId: 'backend-project-list-button',
-    backendImportButtonId: 'backend-project-import-button',
-    backendCreateInputId: 'backend-project-create-input',
-    backendCreateButtonId: 'backend-project-create-button',
-    backendStatusId: 'backend-project-status',
-    backendStatusLabelId: 'backend-project-status-label',
-    backendListId: 'backend-project-list',
-    backendListLabelId: 'backend-project-list-label',
-    backendEmptyStateId: 'backend-project-empty-state',
-    backendTitleId: 'backend-workspace-title',
-    backendSubtitleId: 'backend-workspace-subtitle',
     processPanelId: 'backend-process-panel',
     processTitleId: 'backend-process-title',
     processContextId: 'backend-process-context',
@@ -1209,31 +1197,6 @@ export const UI_CONFIG = {
     logEntry: 'log-entry',
     logLine: 'log-line',
     logDetails: 'log-details',
-    backendPanel: 'backend-project-catalog',
-    backendPanelHidden: 'is-backend-workspace-browser-hidden',
-    backendPanelHead: 'backend-workspace-browser-head',
-    backendPanelTitle: 'backend-workspace-browser-title',
-    backendPanelSubtitle: 'backend-workspace-browser-subtitle',
-    backendPanelPrimaryActions: 'backend-workspace-browser-primary-actions',
-    backendPanelCreateGroup: 'backend-workspace-browser-create-group',
-    backendPanelStatusWrap: 'backend-workspace-browser-status-wrap',
-    backendPanelStatusLabel: 'backend-workspace-browser-status-label',
-    backendPanelStatus: 'backend-workspace-browser-status',
-    backendPanelListWrap: 'backend-workspace-browser-list-wrap',
-    backendPanelListLabel: 'backend-workspace-browser-list-label',
-    backendPanelList: 'backend-workspace-browser-list',
-    backendPanelEmptyState: 'backend-workspace-browser-empty-state',
-    backendBrowserItem: 'backend-workspace-browser-item',
-    backendBrowserItemMain: 'backend-workspace-browser-item-main',
-    backendBrowserIdentity: 'backend-workspace-browser-identity',
-    backendBrowserName: 'backend-workspace-browser-name',
-    backendBrowserSlug: 'backend-workspace-browser-slug',
-    backendBrowserLock: 'backend-workspace-browser-lock',
-    backendBrowserItemPrimaryActions: 'backend-workspace-browser-item-primary-actions',
-    backendBrowserItemSecondaryActions: 'backend-workspace-browser-item-secondary-actions',
-    backendBrowserPrimaryButton: 'backend-workspace-browser-primary-button',
-    backendBrowserSecondaryButton: 'backend-workspace-browser-secondary-button',
-    backendBrowserButtonDisabled: 'is-disabled',
     processPanel: 'backend-process-panel',
     processPanelTitle: 'backend-process-title',
     processPanelContext: 'backend-process-context',
@@ -1355,15 +1318,6 @@ export const UI_CONFIG = {
       noOp: 'no-op',
       failed: 'failed'
     },
-    backendWorkspaceStartup: {
-      listRefreshReasons: {
-        startup: 'startup',
-        userAction: 'user-action',
-        create: 'create',
-        import: 'import',
-        delete: 'delete'
-      }
-    },
     platformActions: {
       source: PLATFORM_ACTION_WEB_SOURCE,
       loggerSource: PLATFORM_ACTION_WEB_LOGGER_SOURCE,
@@ -1475,34 +1429,6 @@ export const UI_CONFIG = {
     create: 'Создать',
     paramsUndoButton: 'Undo Params',
     paramsRedoButton: 'Redo Params',
-    backendProjectsTitle: 'Shared Workspace',
-    backendProjectsSubtitle: 'Open, create or import backend projects',
-    backendProjectsStatusLabel: 'Result',
-    backendProjectsListLabel: 'Available projects',
-    backendProjectsEmptyState: 'No backend projects yet. Create a project or import an archive.',
-    backendProjectsEmptyStateIdle: 'Workspace browser is ready. Use Refresh to load backend projects.',
-    backendProjectsEmptyStateUnavailable: 'Backend unavailable. Retry Refresh and verify backend connectivity.',
-    backendProjectsStatusIdle: 'Use Refresh to load backend workspace projects.',
-    backendProjectsStatusLoading: 'Loading backend workspace projects...',
-    backendProjectsStatusReady: 'Backend workspace projects loaded.',
-    backendProjectsStatusUnavailable: 'Backend workspace unavailable. Retry Refresh and verify backend connectivity.',
-    backendListProjects: 'Refresh',
-    backendImportProject: 'Import',
-    backendCreateProject: 'Create',
-    backendOpenProject: 'Open',
-    backendExportProject: 'Export',
-    backendDeleteProject: 'Delete',
-    backendProjectNameLabel: 'Name',
-    backendProjectSlugLabel: 'Slug',
-    backendProjectLockLabel: 'Lock',
-    backendProjectLockFree: 'Available',
-    backendOpenProjectAriaPrefix: 'Open backend project',
-    backendDeleteConfirmPrefix: 'Delete backend project:',
-    backendProjectPlaceholder: 'Project name',
-    backendProjectLockedMarker: 'locked',
-    backendProjectLockedByPrefix: 'by',
-    backendOpenProjectLockedTooltipPrefix: 'Project is locked',
-    backendOpenProjectOwnedLockTooltipPrefix: 'Project is locked by you',
     backendWorkspaceSaveProjectAsConfirm: '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043a\u043e\u043f\u0438\u044e \u0432 \u0440\u0430\u0431\u043e\u0447\u0435\u043c \u043f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u0435',
     processPanelTitle: 'Process',
     processContextMissing: 'Open backend project to enable MetaGen generate.',
@@ -1554,10 +1480,10 @@ export const UI_CONFIG = {
       [PLATFORM_ACTION_IDS.closeWorkspaceProject]: 'No opened backend project to close.',
       [PLATFORM_ACTION_IDS.saveWorkspaceProject]: 'Open backend project to save it.',
       [PLATFORM_ACTION_IDS.saveWorkspaceProjectAs]: 'Open backend project to save a workspace copy.',
-      [PLATFORM_ACTION_IDS.exportWorkspaceProject]: 'Open backend project or use Export in workspace browser list.'
+      [PLATFORM_ACTION_IDS.exportWorkspaceProject]: 'Open backend project to export.'
     },
     platformActionStatusMessages: {
-      [PLATFORM_ACTION_IDS.exportWorkspaceProject]: 'Open backend project or use Export in workspace browser list.'
+      [PLATFORM_ACTION_IDS.exportWorkspaceProject]: 'Open backend project to export.'
     }
   }
 };
@@ -1600,23 +1526,7 @@ FILE: ui/index.html
     <div class="workbench-main-layout" id="workbench-main-layout">
       <div class="project-tree-column" id="project-tree-column">
         <div class="side-header" id="project-panel-title"></div>
-        <div class="backend-project-catalog" id="backend-project-catalog" hidden tabindex="-1">
-          <div class="backend-workspace-browser-head">
-            <div id="backend-workspace-title" class="backend-workspace-browser-title"></div>
-            <div id="backend-workspace-subtitle" class="backend-workspace-browser-subtitle"></div>
-          </div>
-          <div class="backend-workspace-browser-primary-actions">
-            <button id="backend-project-list-button" type="button">List</button>
-            <button id="backend-project-import-button" type="button">Import</button>
-            <div class="backend-workspace-browser-create-group">
-              <input id="backend-project-create-input" type="text" placeholder="Project name" />
-              <button id="backend-project-create-button" type="button">Create</button>
-            </div>
-          </div>
-          <div class="backend-workspace-browser-status-wrap">
-            <div id="backend-project-status-label" class="backend-workspace-browser-status-label"></div>
-            <pre id="backend-project-status" class="backend-workspace-browser-status"></pre>
-          </div>
+        <div class="backend-process-surface">
           <div id="backend-process-panel" class="backend-process-panel">
             <div id="backend-process-title" class="backend-process-title"></div>
             <div id="backend-process-context" class="backend-process-context"></div>
@@ -1639,11 +1549,6 @@ FILE: ui/index.html
               </div>
             </div>
             <pre id="backend-process-output" class="backend-process-output"></pre>
-          </div>
-          <div class="backend-workspace-browser-list-wrap">
-            <div id="backend-project-list-label" class="backend-workspace-browser-list-label"></div>
-            <div id="backend-project-list" class="backend-workspace-browser-list"></div>
-            <div id="backend-project-empty-state" class="backend-workspace-browser-empty-state" hidden></div>
           </div>
         </div>
         <div id="project-tree" class="project-tree"></div>
@@ -1986,96 +1891,10 @@ body {
   scrollbar-color: #c4ccd7 transparent;
 }
 
-.backend-project-catalog {
+.backend-process-surface {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-app);
   padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.backend-project-catalog.is-backend-workspace-browser-hidden {
-  display: none;
-}
-
-.backend-workspace-browser-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.backend-workspace-browser-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.backend-workspace-browser-subtitle {
-  font-size: 11px;
-  color: var(--color-text-soft);
-}
-
-.backend-workspace-browser-primary-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.backend-workspace-browser-create-group {
-  display: flex;
-  flex: 1 1 100%;
-  gap: 6px;
-}
-
-.backend-workspace-browser-primary-actions button,
-.backend-workspace-browser-create-group input,
-.backend-workspace-browser-create-group button {
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-bg-app);
-  color: var(--color-text);
-  font-size: 12px;
-  line-height: 1.2;
-  padding: 6px 8px;
-}
-
-.backend-workspace-browser-create-group input {
-  flex: 1;
-  min-width: 0;
-}
-
-.backend-workspace-browser-primary-actions button,
-.backend-workspace-browser-create-group button {
-  cursor: pointer;
-}
-
-.backend-workspace-browser-status-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.backend-workspace-browser-status-label,
-.backend-workspace-browser-list-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-
-.backend-workspace-browser-status {
-  margin: 0;
-  min-height: 42px;
-  max-height: 92px;
-  overflow: auto;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  padding: 6px;
-  font-size: 11px;
-  font-family: Consolas, Monaco, monospace;
-  white-space: pre-wrap;
 }
 
 .backend-process-panel {
@@ -2181,101 +2000,6 @@ body {
 
 .backend-process-output-line.is-system {
   color: var(--color-text-soft);
-}
-
-.backend-workspace-browser-list-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.backend-workspace-browser-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.backend-workspace-browser-empty-state {
-  border: 1px dashed var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg-subtle);
-  color: var(--color-text-soft);
-  font-size: 12px;
-  padding: 10px;
-}
-
-.backend-workspace-browser-item {
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg-subtle);
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.backend-workspace-browser-item-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.backend-workspace-browser-identity {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.backend-workspace-browser-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.backend-workspace-browser-slug,
-.backend-workspace-browser-lock {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.backend-workspace-browser-item-primary-actions,
-.backend-workspace-browser-item-secondary-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
-.backend-workspace-browser-primary-button,
-.backend-workspace-browser-secondary-button {
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 5px 8px;
-  cursor: pointer;
-}
-
-.backend-workspace-browser-primary-button {
-  background: var(--gray-700);
-  border-color: var(--gray-700);
-  color: #fff;
-}
-
-.backend-workspace-browser-secondary-button {
-  background: var(--color-bg-app);
-  color: var(--color-text);
-}
-
-.backend-workspace-browser-primary-button.is-disabled,
-.backend-workspace-browser-primary-button:disabled,
-.backend-workspace-browser-secondary-button:disabled {
-  background: var(--gray-100);
-  border-color: var(--color-border);
-  color: var(--color-text-soft);
-  cursor: not-allowed;
 }
 
 .project-tree::-webkit-scrollbar {
@@ -2799,140 +2523,6 @@ export function getCurrentBackendProjectId({ projectManager, backendSource }) {
   ).trim();
 }
 
-export function normalizeBackendLockedBy(lockedBy) {
-  if (!lockedBy || typeof lockedBy !== 'object') {
-    return null;
-  }
-
-  const userId = String(lockedBy.userId || '').trim();
-  const displayName = String(lockedBy.displayName || '').trim();
-  if (!userId) {
-    return null;
-  }
-
-  return {
-    userId,
-    displayName: displayName || userId
-  };
-}
-
-export function resolveBackendProjectLockState({ lockedBy, currentUserId }) {
-  const normalizedLockedBy = normalizeBackendLockedBy(lockedBy);
-  const normalizedCurrentUserId = String(currentUserId || '').trim();
-  const isLocked = Boolean(normalizedLockedBy);
-  const isOwnedLock = Boolean(
-    isLocked
-    && normalizedCurrentUserId
-    && normalizedLockedBy.userId === normalizedCurrentUserId
-  );
-
-  return {
-    lockedBy: normalizedLockedBy,
-    isLocked,
-    isOwnedLock,
-    isForeignLock: isLocked && !isOwnedLock
-  };
-}
-
-export function getBackendProjectCatalogPresentation({ project, currentUserId, text }) {
-  const lockState = resolveBackendProjectLockState({
-    lockedBy: project?.lockedBy,
-    currentUserId
-  });
-  const projectName = String(project?.name || '').trim();
-  const projectSlug = String(project?.slug || '').trim();
-  const lockMarker = lockState.lockedBy
-    ? ` [${text.backendProjectLockedMarker} ${text.backendProjectLockedByPrefix} ${lockState.lockedBy.displayName}]`
-    : '';
-  const lockText = lockState.lockedBy
-    ? `${text.backendProjectLockedMarker} ${text.backendProjectLockedByPrefix} ${lockState.lockedBy.displayName}`
-    : text.backendProjectLockFree;
-  let openTitle = '';
-  if (lockState.isForeignLock) {
-    openTitle = `${text.backendOpenProjectLockedTooltipPrefix}: ${lockState.lockedBy.displayName}`;
-  } else if (lockState.isOwnedLock) {
-    openTitle = `${text.backendOpenProjectOwnedLockTooltipPrefix}: ${lockState.lockedBy.displayName}`;
-  }
-
-  return {
-    lockState,
-    projectName,
-    projectSlug,
-    lockText,
-    projectLabel: `${projectName} (${projectSlug})${lockMarker}`,
-    openDisabled: lockState.isForeignLock,
-    openTitle
-  };
-}
-
-export function applyBackendWorkspaceBrowserPresentationState({
-  browserNode,
-  hiddenClassName,
-  isVisible
-}) {
-  const visible = Boolean(isVisible);
-  if (!browserNode) {
-    return visible;
-  }
-
-  browserNode.hidden = !visible;
-  if (hiddenClassName) {
-    browserNode.classList?.toggle?.(hiddenClassName, !visible);
-  }
-  browserNode.setAttribute?.('aria-hidden', String(!visible));
-  return visible;
-}
-
-export function resolveBackendWorkspaceStartupRefreshDecision({
-  startupListStrategy,
-  startupListStrategies
-}) {
-  return startupListStrategy === startupListStrategies.autoRefreshOnce;
-}
-
-export function resolveBackendWorkspaceStartupIdlePresentation({ text }) {
-  return {
-    statusText: text.backendProjectsStatusIdle,
-    emptyStateText: text.backendProjectsEmptyStateIdle,
-    isEmptyStateVisible: true
-  };
-}
-
-export function resolveBackendWorkspaceListRefreshPresentation({
-  result,
-  text
-}) {
-  if (!result) {
-    return {
-      projects: [],
-      statusText: text.backendProjectsStatusUnavailable,
-      emptyStateText: text.backendProjectsEmptyStateUnavailable,
-      isEmptyStateVisible: true,
-      isUnavailable: true
-    };
-  }
-
-  const projects = Array.isArray(result?.projects) ? result.projects : [];
-  return {
-    projects,
-    statusText: text.backendProjectsStatusReady,
-    emptyStateText: text.backendProjectsEmptyState,
-    isEmptyStateVisible: projects.length === 0,
-    isUnavailable: false
-  };
-}
-
-export function resolveBackendWorkspaceEntryFocusTarget({
-  backendListButton,
-  backendCreateInput,
-  backendCatalogNode
-}) {
-  return backendListButton
-    || backendCreateInput
-    || backendCatalogNode
-    || null;
-}
-
 export async function runNewProjectCreateFirstTransition({
   confirmSaveIfDirty,
   cancelDecision,
@@ -2991,71 +2581,6 @@ export async function runCloseProjectTransition({
   clearLogs();
   await closeProject();
   await presentBackendWorkspaceBrowser({ refreshProjects: false });
-  return true;
-}
-
-export async function closeDeletedBackendProjectIfOpened({
-  projectId,
-  projectManager,
-  backendSource,
-  tabs,
-  logger,
-  tree,
-  onBeforeClose = null
-}) {
-  const normalizedProjectId = String(projectId || '').trim();
-  if (!normalizedProjectId) {
-    return false;
-  }
-
-  const currentBackendProjectId = getCurrentBackendProjectId({
-    projectManager,
-    backendSource
-  });
-  if (!currentBackendProjectId || currentBackendProjectId !== normalizedProjectId) {
-    return false;
-  }
-
-  await onBeforeClose?.();
-
-  try {
-    await tabs.closeAllTabs();
-  } catch (_error) {
-    // Continue close flow even if one tab fails to close cleanly.
-  }
-  logger.clear();
-  await projectManager?.closeProject?.();
-  await tree.render();
-  return true;
-}
-
-export async function deleteBackendProjectFlow({
-  project,
-  confirmDelete,
-  confirmPrefix,
-  deleteCommandId,
-  executeBackendCommand,
-  closeDeletedProject,
-  refreshBackendProjects
-}) {
-  const projectId = String(project?.id || '').trim();
-  if (!projectId) {
-    return false;
-  }
-
-  const projectLabel = `${project?.name || projectId}`;
-  const confirmed = confirmDelete(`${confirmPrefix} ${projectLabel}`);
-  if (!confirmed) {
-    return false;
-  }
-
-  const commandResult = await executeBackendCommand(deleteCommandId, { projectId });
-  if (!commandResult?.ok) {
-    return false;
-  }
-
-  await closeDeletedProject(projectId);
-  await refreshBackendProjects();
   return true;
 }
 
@@ -3311,18 +2836,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  const backendCatalogNode = document.getElementById(APP_CONFIG.ui.dom.backendPanelId);
-  const backendListButton = document.getElementById(APP_CONFIG.ui.dom.backendListButtonId);
-  const backendImportButton = document.getElementById(APP_CONFIG.ui.dom.backendImportButtonId);
-  const backendCreateInput = document.getElementById(APP_CONFIG.ui.dom.backendCreateInputId);
-  const backendCreateButton = document.getElementById(APP_CONFIG.ui.dom.backendCreateButtonId);
-  const backendStatusNode = document.getElementById(APP_CONFIG.ui.dom.backendStatusId);
-  const backendStatusLabelNode = document.getElementById(APP_CONFIG.ui.dom.backendStatusLabelId);
-  const backendListNode = document.getElementById(APP_CONFIG.ui.dom.backendListId);
-  const backendListLabelNode = document.getElementById(APP_CONFIG.ui.dom.backendListLabelId);
-  const backendEmptyStateNode = document.getElementById(APP_CONFIG.ui.dom.backendEmptyStateId);
-  const backendTitleNode = document.getElementById(APP_CONFIG.ui.dom.backendTitleId);
-  const backendSubtitleNode = document.getElementById(APP_CONFIG.ui.dom.backendSubtitleId);
   const processPanelNode = document.getElementById(APP_CONFIG.ui.dom.processPanelId);
   const processTitleNode = document.getElementById(APP_CONFIG.ui.dom.processTitleId);
   const processContextNode = document.getElementById(APP_CONFIG.ui.dom.processContextId);
@@ -3367,58 +2880,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
   const backendStartupListStrategies = APP_CONFIG.platform.backend.startup.initialProjectListStrategies;
   const backendStartupListStrategy = APP_CONFIG.platform.backend.startup.initialProjectListStrategy;
-  const backendListRefreshReasons = APP_CONFIG.ui.runtime.backendWorkspaceStartup.listRefreshReasons;
   const backendLockReleaseStates = APP_CONFIG.ui.runtime.backendLockLifecycle.releaseResultStates;
   const processRuntimeConfig = APP_CONFIG.ui.runtime.processExecution;
   const processCommandIds = APP_CONFIG.platform.backend.commandContract.commands;
   const processStatusByCode = APP_CONFIG.ui.text.processStatusByCode;
-  let isBackendWorkspaceBrowserVisible = !backendCatalogNode?.hidden;
   let backendRequestCounter = 0;
-
-  if (backendCatalogNode) {
-    backendCatalogNode.classList.add(APP_CONFIG.ui.classNames.backendPanel);
-  }
-
-  if (backendTitleNode) {
-    backendTitleNode.classList.add(APP_CONFIG.ui.classNames.backendPanelTitle);
-    backendTitleNode.textContent = APP_CONFIG.ui.text.backendProjectsTitle;
-  }
-
-  if (backendSubtitleNode) {
-    backendSubtitleNode.classList.add(APP_CONFIG.ui.classNames.backendPanelSubtitle);
-    backendSubtitleNode.textContent = APP_CONFIG.ui.text.backendProjectsSubtitle;
-  }
-
-  if (backendStatusLabelNode) {
-    backendStatusLabelNode.classList.add(APP_CONFIG.ui.classNames.backendPanelStatusLabel);
-    backendStatusLabelNode.textContent = APP_CONFIG.ui.text.backendProjectsStatusLabel;
-  }
-
-  if (backendListLabelNode) {
-    backendListLabelNode.classList.add(APP_CONFIG.ui.classNames.backendPanelListLabel);
-    backendListLabelNode.textContent = APP_CONFIG.ui.text.backendProjectsListLabel;
-  }
-
-  if (backendEmptyStateNode) {
-    backendEmptyStateNode.classList.add(APP_CONFIG.ui.classNames.backendPanelEmptyState);
-    backendEmptyStateNode.textContent = APP_CONFIG.ui.text.backendProjectsEmptyState;
-  }
-
-  if (backendListButton) {
-    backendListButton.textContent = APP_CONFIG.ui.text.backendListProjects;
-  }
-
-  if (backendCreateInput) {
-    backendCreateInput.placeholder = APP_CONFIG.ui.text.backendProjectPlaceholder;
-  }
-
-  if (backendImportButton) {
-    backendImportButton.textContent = APP_CONFIG.ui.text.backendImportProject;
-  }
-
-  if (backendCreateButton) {
-    backendCreateButton.textContent = APP_CONFIG.ui.text.backendCreateProject;
-  }
 
   if (platformActionSurfaceNode) {
     platformActionSurfaceNode.classList.add(APP_CONFIG.ui.classNames.platformActionSurface);
@@ -3503,30 +2969,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   processExitCodeNode?.classList.add(APP_CONFIG.ui.classNames.processPanelMetaValue);
   processOutputNode?.classList.add(APP_CONFIG.ui.classNames.processPanelOutput);
 
-  function setBackendResult(value) {
-    if (!backendStatusNode) {
-      return;
-    }
-
-    backendStatusNode.replaceChildren(
-      typeof value === 'string'
-        ? document.createTextNode(value)
-        : document.createTextNode(JSON.stringify(value, null, 2))
-    );
-  }
-
-  function setBackendEmptyStateVisible(isVisible) {
-    if (backendEmptyStateNode) {
-      backendEmptyStateNode.hidden = !isVisible;
-    }
-  }
-
-  function setBackendEmptyStateMessage(message) {
-    if (!backendEmptyStateNode) {
-      return;
-    }
-
-    backendEmptyStateNode.textContent = message;
+  function setBackendResult(_value) {
+    // Browser panel result output was removed; preserve command execution behavior.
   }
 
   function resolveProcessContextProjectId() {
@@ -3652,126 +3096,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     processOutputNode.scrollTop = processOutputNode.scrollHeight;
   }
 
-  function buildBackendProjectButton({
-    text,
-    className,
-    title = '',
-    disabled = false,
-    ariaLabel = '',
-    onClick
-  }) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.classList.add(className);
-    button.textContent = text;
-    button.disabled = disabled;
-    if (disabled) {
-      button.classList.add(APP_CONFIG.ui.classNames.backendBrowserButtonDisabled);
-    }
-    if (title) {
-      button.title = title;
-    }
-    if (ariaLabel) {
-      button.setAttribute('aria-label', ariaLabel);
-    }
-    button.addEventListener('click', () => {
-      onClick?.();
-    });
-    return button;
-  }
-
-  function renderBackendProjects(projects = []) {
-    if (!backendListNode) {
-      return;
-    }
-
-    backendListNode.replaceChildren();
-
-    if (!Array.isArray(projects) || projects.length === 0) {
-      setBackendEmptyStateMessage(APP_CONFIG.ui.text.backendProjectsEmptyState);
-      setBackendEmptyStateVisible(true);
-      return;
-    }
-    setBackendEmptyStateVisible(false);
-    const currentUserId = APP_CONFIG.platform.backend.userIdentity.userId;
-
-    for (const project of projects) {
-      const projectPresentation = getBackendProjectCatalogPresentation({
-        project,
-        currentUserId,
-        text: APP_CONFIG.ui.text
-      });
-      const projectId = String(project?.id || '').trim();
-      const item = document.createElement('article');
-      const mainRow = document.createElement('div');
-      const identityNode = document.createElement('div');
-      const nameNode = document.createElement('div');
-      const slugNode = document.createElement('div');
-      const lockNode = document.createElement('div');
-      const primaryActions = document.createElement('div');
-      const secondaryActions = document.createElement('div');
-
-      item.classList.add(APP_CONFIG.ui.classNames.backendBrowserItem);
-      mainRow.classList.add(APP_CONFIG.ui.classNames.backendBrowserItemMain);
-      identityNode.classList.add(APP_CONFIG.ui.classNames.backendBrowserIdentity);
-      nameNode.classList.add(APP_CONFIG.ui.classNames.backendBrowserName);
-      slugNode.classList.add(APP_CONFIG.ui.classNames.backendBrowserSlug);
-      lockNode.classList.add(APP_CONFIG.ui.classNames.backendBrowserLock);
-      primaryActions.classList.add(APP_CONFIG.ui.classNames.backendBrowserItemPrimaryActions);
-      secondaryActions.classList.add(APP_CONFIG.ui.classNames.backendBrowserItemSecondaryActions);
-
-      nameNode.textContent = `${APP_CONFIG.ui.text.backendProjectNameLabel}: ${projectPresentation.projectName || projectId}`;
-      slugNode.textContent = `${APP_CONFIG.ui.text.backendProjectSlugLabel}: ${projectPresentation.projectSlug || '-'}`;
-      lockNode.textContent = `${APP_CONFIG.ui.text.backendProjectLockLabel}: ${projectPresentation.lockText}`;
-
-      const openButton = buildBackendProjectButton({
-        text: APP_CONFIG.ui.text.backendOpenProject,
-        className: APP_CONFIG.ui.classNames.backendBrowserPrimaryButton,
-        title: projectPresentation.openTitle,
-        disabled: projectPresentation.openDisabled,
-        ariaLabel: `${APP_CONFIG.ui.text.backendOpenProjectAriaPrefix}: ${projectPresentation.projectName || projectId}`,
-        onClick: () => {
-          void openBackendProject(project);
-        }
-      });
-
-      const exportButton = buildBackendProjectButton({
-        text: APP_CONFIG.ui.text.backendExportProject,
-        className: APP_CONFIG.ui.classNames.backendBrowserSecondaryButton,
-        onClick: () => {
-          void exportBackendProject(project);
-        }
-      });
-
-      const deleteButton = buildBackendProjectButton({
-        text: APP_CONFIG.ui.text.backendDeleteProject,
-        className: APP_CONFIG.ui.classNames.backendBrowserSecondaryButton,
-        onClick: () => {
-          void deleteBackendProject(project);
-        }
-      });
-
-      identityNode.append(nameNode, slugNode, lockNode);
-      primaryActions.appendChild(openButton);
-      mainRow.append(identityNode, primaryActions);
-      secondaryActions.append(exportButton, deleteButton);
-      item.append(mainRow, secondaryActions);
-      backendListNode.appendChild(item);
-    }
-  }
-
-  const startupIdlePresentation = resolveBackendWorkspaceStartupIdlePresentation({
-    text: APP_CONFIG.ui.text
-  });
-  setBackendResult(startupIdlePresentation.statusText);
-  setBackendEmptyStateMessage(startupIdlePresentation.emptyStateText);
-  setBackendEmptyStateVisible(startupIdlePresentation.isEmptyStateVisible);
-  isBackendWorkspaceBrowserVisible = applyBackendWorkspaceBrowserPresentationState({
-    browserNode: backendCatalogNode,
-    hiddenClassName: APP_CONFIG.ui.classNames.backendPanelHidden,
-    isVisible: isBackendWorkspaceBrowserVisible
-  });
-
   function nextBackendRequestId() {
     backendRequestCounter += 1;
     return `${APP_CONFIG.platform.backend.requestIdPrefix}${backendRequestCounter}`;
@@ -3868,40 +3192,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderProcessPanel();
   void syncProcessSurfaceWithContext();
 
-  async function openBackendProject(project) {
-    const projectId = String(project?.id || '').trim();
-    if (!projectId) {
-      return;
-    }
-
-    const canContinue = await confirmSaveIfDirty();
-    if (canContinue === APP_CONFIG.ui.runtime.closeFlowDecisions.cancel) {
-      return;
-    }
-
-    const releaseResult = await releaseBackendProjectLockIfNeeded({
-      reason: APP_CONFIG.ui.runtime.backendLockLifecycle.stopReasonSwitch
-    });
-    if (!releaseResult?.canContinue) {
-      return;
-    }
-
-    const commandResult = await executeBackendCommand(
-      APP_CONFIG.platform.backend.commandContract.commands.openProject,
-      { projectId }
-    );
-
-    if (!commandResult?.ok || !commandResult?.result?.snapshot || !commandResult?.result?.lockToken) {
-      return;
-    }
-
-    await tabs.closeAllTabs();
-    logger.clear();
-    await projectManager.openProjectSnapshot(commandResult.result.snapshot, { lockToken: commandResult.result.lockToken });
-    await tree.render();
-    startBackendHeartbeatIfNeeded(APP_CONFIG.ui.runtime.backendLockLifecycle.startReasonOpen);
-  }
-
   async function releaseBackendProjectLockIfNeeded({ reason = '' } = {}) {
     return backendCommandSessionOrchestrator.releaseBackendProjectLockIfNeeded({ reason });
   }
@@ -3928,122 +3218,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  async function refreshBackendProjects({ reason = backendListRefreshReasons.userAction } = {}) {
-    void reason;
-    setBackendResult(APP_CONFIG.ui.text.backendProjectsStatusLoading);
-    const commandResult = await executeBackendCommand(APP_CONFIG.platform.backend.commandContract.commands.listProjects);
-    const refreshPresentation = resolveBackendWorkspaceListRefreshPresentation({
-      result: commandResult?.ok ? commandResult.result : null,
-      text: APP_CONFIG.ui.text
-    });
-    if (refreshPresentation.isUnavailable) {
-      setBackendResult(refreshPresentation.statusText);
-      setBackendEmptyStateMessage(refreshPresentation.emptyStateText);
-      setBackendEmptyStateVisible(refreshPresentation.isEmptyStateVisible);
-      return;
-    }
-    renderBackendProjects(refreshPresentation.projects);
-    setBackendResult(refreshPresentation.statusText);
-  }
-
-  function setBackendWorkspaceBrowserVisible(isVisible) {
-    isBackendWorkspaceBrowserVisible = applyBackendWorkspaceBrowserPresentationState({
-      browserNode: backendCatalogNode,
-      hiddenClassName: APP_CONFIG.ui.classNames.backendPanelHidden,
-      isVisible
-    });
-    return isBackendWorkspaceBrowserVisible;
-  }
-
-  function revealBackendWorkspaceBrowser() {
-    if (isBackendWorkspaceBrowserVisible) {
-      return;
-    }
-    setBackendWorkspaceBrowserVisible(true);
-  }
-
-  function focusBackendWorkspaceBrowserEntry() {
-    backendCatalogNode?.scrollIntoView?.({ block: 'nearest' });
-    const focusTarget = resolveBackendWorkspaceEntryFocusTarget({
-      backendListButton,
-      backendCreateInput,
-      backendCatalogNode
-    });
-    focusTarget?.focus?.();
-  }
-
-  function focusBackendWorkspaceBrowserCreateInput({ clearInput = false } = {}) {
-    backendCatalogNode?.scrollIntoView?.({ block: 'nearest' });
-    if (!backendCreateInput) {
-      focusBackendWorkspaceBrowserEntry();
-      return;
-    }
-    if (clearInput) {
-      backendCreateInput.value = '';
-    }
-    backendCreateInput.focus();
-    backendCreateInput.select?.();
-  }
-
   async function presentBackendWorkspaceBrowser({
-    refreshProjects = false,
-    refreshReason = backendListRefreshReasons.userAction
+    refreshProjects = false
   } = {}) {
-    revealBackendWorkspaceBrowser();
-    focusBackendWorkspaceBrowserEntry();
     if (refreshProjects) {
-      await refreshBackendProjects({ reason: refreshReason });
+      await executeBackendCommand(
+        APP_CONFIG.platform.backend.commandContract.commands.listProjects,
+        {},
+        { presentResult: false }
+      );
     }
   }
 
   async function presentBackendWorkspaceBrowserForCreateFirst({
-    refreshProjects = true,
-    clearCreateInput = false,
-    refreshReason = backendListRefreshReasons.userAction
+    refreshProjects = true
   } = {}) {
-    revealBackendWorkspaceBrowser();
-    focusBackendWorkspaceBrowserCreateInput({ clearInput: clearCreateInput });
-    if (refreshProjects) {
-      await refreshBackendProjects({ reason: refreshReason });
-      focusBackendWorkspaceBrowserCreateInput({ clearInput: false });
-    }
+    await presentBackendWorkspaceBrowser({ refreshProjects });
   }
 
   function shouldStartupRefreshBackendProjects() {
-    return resolveBackendWorkspaceStartupRefreshDecision({
-      startupListStrategy: backendStartupListStrategy,
-      startupListStrategies: backendStartupListStrategies
-    });
-  }
-
-  async function deleteBackendProject(project) {
-    await deleteBackendProjectFlow({
-      project,
-      confirmDelete: window.confirm,
-      confirmPrefix: APP_CONFIG.ui.text.backendDeleteConfirmPrefix,
-      deleteCommandId: APP_CONFIG.platform.backend.commandContract.commands.deleteProject,
-      executeBackendCommand,
-      closeDeletedProject: async (projectId) => closeDeletedBackendProjectIfOpened({
-        projectId,
-        projectManager,
-        backendSource: APP_CONFIG.project.sources.backend,
-        tabs,
-        logger,
-        tree,
-        onBeforeClose: async () => {
-          stopBackendHeartbeat(APP_CONFIG.ui.runtime.backendLockLifecycle.stopReasonDelete);
-          projectManager?.clearBackendLockToken?.();
-        }
-      }),
-      refreshBackendProjects: () => refreshBackendProjects({ reason: backendListRefreshReasons.delete })
-    });
+    return backendStartupListStrategy === backendStartupListStrategies.autoRefreshOnce;
   }
 
   async function importBackendProject() {
     await importBackendProjectFlow({
       openProjectImportArchiveDialog: () => shell.requestProjectImportArchive(),
       importProjectArchive: (payload) => backendRuntimeClient.importProjectArchive(payload),
-      refreshBackendProjects: () => refreshBackendProjects({ reason: backendListRefreshReasons.import }),
+      refreshBackendProjects: () => Promise.resolve(),
       setBackendResult,
       loggerWarn: (...args) => logger.warn(...args),
       loggerSource: APP_CONFIG.ui.runtime.loggerSources.backend,
@@ -4052,44 +3253,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       activeProcessBusyErrorCode: APP_CONFIG.platform.backend.commandContract.errorCodes.activeProcessBusy
     });
   }
-
-  backendListButton?.addEventListener('click', () => {
-    void refreshBackendProjects({ reason: backendListRefreshReasons.userAction });
-  });
-
-  backendImportButton?.addEventListener('click', () => {
-    void importBackendProject();
-  });
-
-  async function createBackendProject() {
-    const name = String(backendCreateInput?.value || '').trim();
-    if (!name) {
-      return;
-    }
-
-    const commandResult = await executeBackendCommand(
-      APP_CONFIG.platform.backend.commandContract.commands.createProject,
-      { name }
-    );
-    if (commandResult?.ok && commandResult?.result?.project) {
-      if (backendCreateInput) {
-        backendCreateInput.value = '';
-      }
-      await refreshBackendProjects({ reason: backendListRefreshReasons.create });
-    }
-  }
-
-  backendCreateButton?.addEventListener('click', () => {
-    void createBackendProject();
-  });
-
-  backendCreateInput?.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') {
-      return;
-    }
-    event.preventDefault();
-    void createBackendProject();
-  });
 
   function getActiveParamsUndoRedoState() {
     const runtime = tabs.getActiveRuntime?.();
@@ -4283,7 +3446,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
         handleLostBackendProjectLock();
       }
-      return false;
+      return;
     }
 
     projectManager.commitBackendSaveAs({
@@ -4499,8 +3662,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   logger.info(APP_CONFIG.ui.runtime.loggerSources.platform, 'Инициализация MetaPlatform...');
   await presentBackendWorkspaceBrowser({
-    refreshProjects: shouldStartupRefreshBackendProjects(),
-    refreshReason: backendListRefreshReasons.startup
+    refreshProjects: shouldStartupRefreshBackendProjects()
   });
   await tree.render();
 });
