@@ -1,0 +1,348 @@
+diff --git a/rtb/__pycache__/__init__.cpython-314.pyc b/rtb/__pycache__/__init__.cpython-314.pyc
+index b540a8bc1bf0d7c85ba9ea2fcc5e5d1ca46f4758..3f7f25ff9a49b49deabe767df4ed585597033a6a 100644
+GIT binary patch
+delta 18
+YcmZ3%xPp;On~#@^0SLY(Oyrse03(J3I{*Lx
+
+delta 18
+YcmZ3%xPp;On~#@^0SL~7PUM;g03wY92LJ#7
+
+diff --git a/rtb/app/__pycache__/__init__.cpython-314.pyc b/rtb/app/__pycache__/__init__.cpython-314.pyc
+index b7d35c28ddb808ae76aeda5ae84c38af9781b7e5..478ee7de802c1c7bfd13f9d15001a84d3d73ce76 100644
+GIT binary patch
+delta 18
+YcmZ3(xQ3BSn~#@^0SLY(OypVw03;FwM*si-
+
+delta 18
+YcmZ3(xQ3BSn~#@^0SL~7PUKny03#U$6951J
+
+diff --git a/rtb/app/__pycache__/main.cpython-314.pyc b/rtb/app/__pycache__/main.cpython-314.pyc
+index d91cd8d3de05bd13b8f9ee84fb764c5a5449e7fb..64acfc705bfcd004d8defe7cc2f5c84c6b93ed49 100644
+GIT binary patch
+literal 1728
+zcmbVM-ESL35TEs(KN5eWcAPjLj*>J;l?517A~lLD5ELp~qN#gGNFckX&D|!xV&7T2
+z>xA-TBqVsuWB&y5%3o3lO~au)AmE{IMybRrvuB^3M)1N)H#<ACGduH}nR`8xo(5b$
+z&|jUJ2JpK&gex&(E<Ps!eRv24sX>)Uva0w<EmGB_7Vuh4uSR7o;PqO(nvjWrkJhHD
+z({eiCW3^;8B~z==B<o<rjl?bVs+LSQ)Af}hf0;J5X2O_yV`(C5&a4B<rZ3AjM_y2#
+zye!9a>hjr0---@BVFc;=`owF<8JW<RF;f8JS^?VEHb+XC{STY$*d~WIv#;3X(B?+y
+zeX=)Wq0K57`3)$|y->;$@#A-?knh)P$Y$=`H$J)N*mj#8QqE8k<6ciPj$Bgd%=-P0
+zYj-|7CVqC;^Q4fRc1<BYPWRRA#V+?OCWOhpWL8f)o@)xm4;+hqRlLU}t+%P%^LS^?
+z=(*DAu(c1U^#yZnG>u9}wwa%%?Y4JldfeG}T;XSjM~gF?p#^P=@J5HpmS>NTEk<p|
+zMM>vL%!;QJNh^{;;>U%gT=u$_D%+@Z5J4WB4=##G`tT_{jBI@aV56)E4@ip`#E85_
+zHsDx$q3$9UO!m0DbF5H{sXV9@%G-7SqYt+mR*!QGvSE3)<L)<9zIQQ~24eDvSyBX&
+z5P=3~U9Z9AZi9BajSh9(a`&;HGEM5bo}`kQCNH4tJbq#pNgw_OLKgl~<mk0vyFf8m
+ziiB&Nl4{>RG{RIN>?o`~U_xYv$MFVN-uZ$e^GN&zmNLMJFXK_YD%3Rg;SYW8R4)WK
+z{e)=sr0pHL{|`)_MUTP5CBo;_69Ixj071q9SyYNi+7*>=<!Ce5f-wF)?YDzy8%T$%
+zt^m2R)~|rU6;`DPpTf;w!d~v0)RN8tGs9+f_OL3CuYxsYhCuK&G*u`H)oco_mFN1_
+zPx{uWz8wU+Q_B1CJ)APyb+~Fdzc4zLJL6$1TOJo&SK2)GMH%}7KL^E~4s~t8)sMuV
+z36JJ*F#Y-PE}ApE?BXk~6g>8dBYU?zo>#7F>TiU0qX8A+L#FMBE|pe`@gXJ}M&f6v
+zZJU!|eI4Dk{R9p;JHVz78YaNO&p58t?%8Y<;8oZXw>zHQYqNLxn;3?wz4#u<KqG{l
+z!}2-Y{1dj%p^VHq)P9SlpXP7=9DAp)oq_foaz8@uOwXO=R-Smza^+v<m!4Ff-q?P&
+zTsfJ)9ZJJ}kOVUO5@IAW$U!9fZSm{kcg_h}cp1SNy3io9I8fXm5h@>@kVU1eDCLq;
+SR!~Xw;k!rgox(;?&wl_y^oD@|
+
+delta 712
+zcmZWm&ui2`82u)h{Mg-YTI-gT?aHb>1$7T~OG_=HD3V-C2?!#rOSVaIVK<4Bi5@pS
+z)uRyb&+sUC)4K<$QX#SjQ4iiK3SOO=&5GJNym^y(@6Gppc~yO09$z%7Wnk;gosR=a
+z0{F}ivxN)t<B*XQ?t_DDun<Kp&Lvy2WQqlsZN*ZlDmb<^OQ(7Zy68MOileThX$~!Q
+zOFK)maIudCI$EcYIC>qNQXPg1okB+|CrndM`H!c<Jahke=9p)>2>5I3;+dxfPIU!L
+zqw$Sjn<&?AyD`17V>7CfFrhxlUZZ>2L+OQbiYY4DCHd}}!Wc0)EOJ<2kn6pex`ZYX
+z;hphW#yW!(zTl-JTqld!OZnE#3i~9SCL;4(!~4A;5(v*1!1LnM3{v<72wnZo;b})~
+zEay7j)@$t6l!%r+!{@C3Dk=5i2MP7U#{p?DnRtdvcqwN;;EhAPafCNT>D#7}YkRC?
+zHyRK*YbuS)m?`u5-EcH=1267PXOPzj?YG@1YJ2^5KMZM1i5n3$OBHjhafi$<b3F`t
+z{v$u2Vg};%+!zGA!^HE8q!VM?8iigm^skW>7Q?3z?=d)*5keDK{tBBDSe=0VNv*!E
+et-e>Ur1G%}l5)`8Z$25kLuY<wsk(*vfA|gcD2Ukr
+
+diff --git a/rtb/app/api/__pycache__/__init__.cpython-314.pyc b/rtb/app/api/__pycache__/__init__.cpython-314.pyc
+index 54b9551cfc4d7bce883c44df0706bf52ca746044..bcc1bbba4d9dc7703d7a5bdcd4313c962aea8b43 100644
+GIT binary patch
+delta 18
+YcmdnMxPg&Nn~#@^0SLY(OypVy03@CSQvd(}
+
+delta 18
+YcmdnMxPg&Nn~#@^0SL~7PUKn!03)RY9{>OV
+
+diff --git a/rtb/app/api/__pycache__/commands.cpython-314.pyc b/rtb/app/api/__pycache__/commands.cpython-314.pyc
+index 3e00c49146f3535dd9ae07cd82d671ce505af72d..6b7c4a4960a029750095f4442d6ee1be0142c88e 100644
+GIT binary patch
+delta 19
+ZcmX@-e$Jgsn~#@^0SLY(Y~(tk3;;J&1$+Pi
+
+delta 19
+ZcmX@-e$Jgsn~#@^0SL~7Zsa<m3;;GK1xNq@
+
+diff --git a/rtb/app/core/__pycache__/__init__.cpython-314.pyc b/rtb/app/core/__pycache__/__init__.cpython-314.pyc
+index a9f16207a057ce62427044bfee39fcfc4cba05a1..28eea43234a89f511410d2b312af5186d9ebbbab 100644
+GIT binary patch
+delta 18
+YcmdnUxRH@dn~#@^0SLY(OypV)03^W#RsaA1
+
+delta 18
+YcmdnUxRH@dn~#@^0SL~7PUKn+03*l*A^-pY
+
+diff --git a/rtb/app/core/__pycache__/constants.cpython-314.pyc b/rtb/app/core/__pycache__/constants.cpython-314.pyc
+index 6c58a00553217fe391d3cbd3fd65a7b2d9dfad26..1f708575560e92c1c476a952e659f2047b695cde 100644
+GIT binary patch
+delta 408
+zcmZ3Xu}X_in~#@^0SM+L-p=e7oyaG_B*L;$<0=#5lF9#=<QbPvmSa|xU*gXgR3DV9
+z#~9QQ)ELwh)Ev|j)Ed+l)E?BK#}Kq^auV|rD?O&5SwXXd<^Tnj1C`GWnine+G*w3m
+zWH<!qG3m3E2nWp%S`f4_XpufsiAd05Wd_X^n}t|DaMtrC=H%p;$LAMirf23ASBYkn
+zloVL$>l+%G>lpx{p_QqjxiMTgCqFqcCnLYO1T1_@5TZG`C^aQDuOu@ur#R#m)WF=-
+zl8pS6Vi-3gH8CZ%sJM#9IX|xis8%<mvLN*qQ|4qAzA|y<Tg>jRA-7lp{DVVovHJ&v
+zc>4PVYl?2J=9|OF!|m)J6dWJm@8jtlIay4gkZTRlTZ}+le0cLjfo5h8ksBQHK=gr?
+zS&Z!i2Lr3b43Qfw!k0w#f#ig|1-TbYe6FhbUJ&*Bz|X<Y)WH2gjDeN2L+=I)-vmye
+NCIO}<o}yJi^8mUJfSLdR
+
+delta 147
+zcmZ3bwL*hWn~#@^0SL~7-p*_nnaC%>^o)6<##JW9Ig|e}$urKKEXS-WKgXXjs6HrH
+zk1?nrs4=K1s5z)5s5Pi9s6D7dk0EH@<Rs=LJVCScnM#C%W-Bvj&fo07@_}>mTD}TK
+xk<B*za~LN-6)50Z0<?t@h>QC-#|t(yi*R=6-C*IH!1;ldS%9gDr)UvS4gf|zEN1`!
+
+diff --git a/rtb/app/core/__pycache__/settings.cpython-314.pyc b/rtb/app/core/__pycache__/settings.cpython-314.pyc
+index b6dd3d5ccb7a199f14680ac8d2afb2905c9fb221..befe393247ff90acea4ed49de9d8d01f1a33dc61 100644
+GIT binary patch
+delta 19
+ZcmX>geL$K^n~#@^0SLY(Y~<R;3ji-t1mpk!
+
+delta 19
+ZcmX>geL$K^n~#@^0SL~7Zsgj=3ji)91h4=A
+
+diff --git a/rtb/app/core/constants.py b/rtb/app/core/constants.py
+index f517fdc..409fb07 100644
+--- a/rtb/app/core/constants.py
++++ b/rtb/app/core/constants.py
+@@ -148,6 +148,16 @@ PROJECT_LOCKS = {
+     'request_user_id_header': 'X-MetaPlatform-User-Id',
+ }
+ 
++CORS_POLICY = {
++    'allow_origins': [
++        'http://127.0.0.1:5173',
++        'http://localhost:5173',
++    ],
++    'allow_credentials': True,
++    'allow_methods': ['GET', 'POST', 'OPTIONS'],
++    'allow_headers': ['Content-Type', PROJECT_LOCKS['request_user_id_header']],
++}
++
+ DEFAULT_USER = {
+     'id': 'default-user',
+     'username': 'default',
+diff --git a/rtb/app/db/__pycache__/__init__.cpython-314.pyc b/rtb/app/db/__pycache__/__init__.cpython-314.pyc
+index 49d496767b18c0b0dd8eb830aeb825c9d077d88d..06541fd243de845587509d03791e6f0e85c08cfc 100644
+GIT binary patch
+delta 18
+YcmZ3_xSo+qn~#@^0SLY(OypV$03>?^Pyhe`
+
+delta 18
+YcmZ3_xSo+qn~#@^0SL~7PUKn&03(6~8~^|S
+
+diff --git a/rtb/app/db/__pycache__/bootstrap.cpython-314.pyc b/rtb/app/db/__pycache__/bootstrap.cpython-314.pyc
+index 4f6404c448cc82b105a7924df1c1cc48c1fab281..ee75a2441336ddf6f7ba981c036590d000648897 100644
+GIT binary patch
+delta 19
+ZcmZ4Ky3&<Pn~#@^0SLY(Y~-4+1OPFS1qc8D
+
+delta 19
+ZcmZ4Ky3&<Pn~#@^0SL~7ZseM;1OPB(1k?Zk
+
+diff --git a/rtb/app/main.py b/rtb/app/main.py
+index 809d91b..6cac2b7 100644
+--- a/rtb/app/main.py
++++ b/rtb/app/main.py
+@@ -1,10 +1,19 @@
+ я╗┐from fastapi import FastAPI
++from fastapi.middleware.cors import CORSMiddleware
+ 
+ from rtb.app.api.commands import router as commands_router
++from rtb.app.core.constants import CORS_POLICY
+ from rtb.app.db.bootstrap import bootstrap_storage
+ from rtb.app.services.command_dispatcher import process_execution_service
+ 
+ app = FastAPI(title='MetaPlatform Runtime Backend')
++app.add_middleware(
++    CORSMiddleware,
++    allow_origins=CORS_POLICY['allow_origins'],
++    allow_credentials=bool(CORS_POLICY['allow_credentials']),
++    allow_methods=CORS_POLICY['allow_methods'],
++    allow_headers=CORS_POLICY['allow_headers'],
++)
+ 
+ 
+ @app.on_event('startup')
+diff --git a/rtb/app/models/__pycache__/__init__.cpython-314.pyc b/rtb/app/models/__pycache__/__init__.cpython-314.pyc
+index 77df3c331273d4692d9a82bb8ee7b233d285d754..83638b933d547dbebe6deae968dda80f70f6f564 100644
+GIT binary patch
+delta 18
+YcmdnYxS5eln~#@^0SLY(OypV#03`<mTmS$7
+
+delta 18
+YcmdnYxS5eln~#@^0SL~7PUKn%03;3sC;$Ke
+
+diff --git a/rtb/app/models/__pycache__/command.cpython-314.pyc b/rtb/app/models/__pycache__/command.cpython-314.pyc
+index 7724fe26ace0ae4096fc2c905db5b8130a9ce4f9..7c9021975060a00cde4157a70aa0cdaac579bade 100644
+GIT binary patch
+delta 19
+ZcmcaFeqWqRn~#@^0SLY(Y~;Gi4FEG@1vdZy
+
+delta 19
+ZcmcaFeqWqRn~#@^0SL~7ZsfYk4FEDV1p@#8
+
+diff --git a/rtb/app/models/__pycache__/process_execution.cpython-314.pyc b/rtb/app/models/__pycache__/process_execution.cpython-314.pyc
+index dc5a7f92af1bc2fec95bad916aa15d53286cb748..0f07690d874f646d2790c2c5c1553a070de01e77 100644
+GIT binary patch
+delta 19
+ZcmX>sa9Ds#n~#@^0SLY(Y~-@!001pX1X2J1
+
+delta 19
+ZcmX>sa9Ds#n~#@^0SL~7ZsfA$001l;1RekY
+
+diff --git a/rtb/app/models/__pycache__/project_snapshot.cpython-314.pyc b/rtb/app/models/__pycache__/project_snapshot.cpython-314.pyc
+index fd96fe72256eca822fe611b77b1245c45b3093d8..b48bdbe1f4d40cb25ef9c2a5835d548a0fa87c87 100644
+GIT binary patch
+delta 19
+ZcmZ3bvPy+Zn~#@^0SLY(Y~)f90st&U1UUcz
+
+delta 19
+ZcmZ3bvPy+Zn~#@^0SL~7ZsbxB0st!*1O)&9
+
+diff --git a/rtb/app/services/__pycache__/__init__.cpython-314.pyc b/rtb/app/services/__pycache__/__init__.cpython-314.pyc
+index 8fee5c49fc5ac3b463d0cdd6d08f035728ff7494..f9655fe2abfca7b0ef11e8afcc8188e1b2ec58e1 100644
+GIT binary patch
+delta 18
+YcmdnWxRsGhn~#@^0SLY(OypV(03}TXVgLXD
+
+delta 18
+YcmdnWxRsGhn~#@^0SL~7PUKn*03=idE&u=k
+
+diff --git a/rtb/app/services/__pycache__/active_process_policy.cpython-314.pyc b/rtb/app/services/__pycache__/active_process_policy.cpython-314.pyc
+index 9b3ae868e589d40cad8d1d7716ad038955ee608b..be33a6a1fce475b410dedd1219244d4017f7bf0f 100644
+GIT binary patch
+delta 19
+Zcmdliv{{Htn~#@^0SLY(Y~<491OO{81SbFh
+
+delta 19
+Zcmdliv{{Htn~#@^0SL~7ZsgMB1OO@l1M>g?
+
+diff --git a/rtb/app/services/__pycache__/command_dispatcher.cpython-314.pyc b/rtb/app/services/__pycache__/command_dispatcher.cpython-314.pyc
+index cc26241b190520def45b181e28f0942105707234..c3867b4267439c582b12fac05b148bf6a970dfee 100644
+GIT binary patch
+delta 19
+Zcmewz`a6_Mn~#@^0SLY(Y~=c=1pq(g1||Ri
+
+delta 19
+Zcmewz`a6_Mn~#@^0SL~7Zshu?1pq#{1@Zs@
+
+diff --git a/rtb/app/services/__pycache__/errors.cpython-314.pyc b/rtb/app/services/__pycache__/errors.cpython-314.pyc
+index 73818a7194dd35e2bbacbea3dc0f8459a6b8c55e..e622b30a1e91eb03de274059f42f3fd48cd169af 100644
+GIT binary patch
+delta 19
+ZcmZ3iw^)x$n~#@^0SLY(Y~+#@2LLRT1U&!%
+
+delta 19
+ZcmZ3iw^)x$n~#@^0SL~7Zsd{_2LLN)1PK5D
+
+diff --git a/rtb/app/services/__pycache__/process_execution.cpython-314.pyc b/rtb/app/services/__pycache__/process_execution.cpython-314.pyc
+index 472bc3fcb3b3efa1f3c911da6ffe462e20ed2c6b..91792e54035e57eb6ac04c84521d89c7a2cef73f 100644
+GIT binary patch
+delta 21
+bcmbQbhjHp2MlNkWUM>b8_?obhi#rYgLAwQb
+
+delta 21
+bcmbQbhjHp2MlNkWUM>b8I1{>&i#rYgK#m1O
+
+diff --git a/rtb/app/services/__pycache__/project_catalog.cpython-314.pyc b/rtb/app/services/__pycache__/project_catalog.cpython-314.pyc
+index 73e377e756182c2cada627fc7d0a2c42fd1086b6..419c0433bc836bd20ac8e75a44b50e72e6f31ef4 100644
+GIT binary patch
+delta 19
+ZcmX?GeYToQn~#@^0SLY(Y~(s@3jjVa1^WO1
+
+delta 19
+ZcmX?GeYToQn~#@^0SL~7Zsa;_3jjR>1;+pY
+
+diff --git a/rtb/app/services/__pycache__/project_storage.cpython-314.pyc b/rtb/app/services/__pycache__/project_storage.cpython-314.pyc
+index 7a1f82ef700e374f013c9d7fb420a64fa6019eca..4874512353e948d910bf608af2e28991197b89a0 100644
+GIT binary patch
+delta 24
+ecmbQx%QB&tg-e@{mx}=iz9uwsZRKKYV*>z7p9RSP
+
+delta 24
+ecmbQx%QB&tg-e@{mx}=i&V)8{ZRKKYV*>z5)&-RS
+
+diff --git a/rtb/app/utils/__pycache__/__init__.cpython-314.pyc b/rtb/app/utils/__pycache__/__init__.cpython-314.pyc
+index 0bef934f13ca73bb37291c65d547b54f5f02fce0..e063240b5ceff3331cfbc042eeb78e96624d3bff 100644
+GIT binary patch
+delta 18
+YcmdnQxQUTVn~#@^0SLY(OypVt03_rDSpWb4
+
+delta 18
+YcmdnQxQUTVn~#@^0SL~7PUKnv03+)JB>(^b
+
+diff --git a/rtb/app/utils/__pycache__/id_utils.cpython-314.pyc b/rtb/app/utils/__pycache__/id_utils.cpython-314.pyc
+index 07e071438be9f725307651c1e2a154c4759b9527..b7bcd194aac36b8653c1aeb682a0e3d8c3615871 100644
+GIT binary patch
+delta 19
+ZcmZqTYU1M3=HumJ0D`Xx8@Yb4001P@1b+Yk
+
+delta 19
+ZcmZqTYU1M3=HumJ0D?228@Yb4001MV1WNz_
+
+diff --git a/rtb/app/utils/__pycache__/time_utils.cpython-314.pyc b/rtb/app/utils/__pycache__/time_utils.cpython-314.pyc
+index 90517fdc45b445ee259b66f8d15d9368fe15904d..6c627b4c0dcefa361ae2aecbdd6184a9e5a442d0 100644
+GIT binary patch
+delta 19
+Zcmeys`hk^8n~#@^0SLY(Y~*^z1OPL81w8-&
+
+delta 19
+Zcmeys`hk^8n~#@^0SL~7ZsdB#1OPHl1qlEE
+
+diff --git a/rtb/tests/test_imports.py b/rtb/tests/test_imports.py
+index db89fb0..26b6ac2 100644
+--- a/rtb/tests/test_imports.py
++++ b/rtb/tests/test_imports.py
+@@ -7,7 +7,7 @@ import yaml
+ from fastapi.testclient import TestClient
+ 
+ from rtb.app.main import app
+-from rtb.app.core.constants import API_COMMANDS_ENDPOINT, API_PROJECT_IMPORTS_ENDPOINT
++from rtb.app.core.constants import API_COMMANDS_ENDPOINT, API_PROJECT_EXPORTS_ENDPOINT, API_PROJECT_IMPORTS_ENDPOINT
+ from rtb.app.core.settings import SETTINGS
+ from rtb.app.db import bootstrap as db_bootstrap
+ from rtb.app.services import command_dispatcher, project_catalog, project_storage
+@@ -77,6 +77,36 @@ def _post_import(client: TestClient, archive_name: str, archive_bytes: bytes):
+     )
+ 
+ 
++@pytest.mark.parametrize(
++    ('path', 'requested_method', 'requested_headers'),
++    [
++        (API_COMMANDS_ENDPOINT, 'POST', 'content-type,x-metaplatform-user-id'),
++        (API_PROJECT_IMPORTS_ENDPOINT, 'POST', 'content-type'),
++        (f'{API_PROJECT_EXPORTS_ENDPOINT}/preflight-probe', 'GET', ''),
++    ],
++)
++def test_cors_preflight_allows_ui_backend_surface(runtime_env, path, requested_method, requested_headers):
++    client = TestClient(app)
++    headers = {
++        'Origin': 'http://127.0.0.1:5173',
++        'Access-Control-Request-Method': requested_method,
++    }
++    if requested_headers:
++        headers['Access-Control-Request-Headers'] = requested_headers
++
++    response = client.options(path, headers=headers)
++
++    assert response.status_code == 200
++    assert response.headers.get('access-control-allow-origin') == 'http://127.0.0.1:5173'
++    assert response.headers.get('access-control-allow-credentials') == 'true'
++    allow_methods = str(response.headers.get('access-control-allow-methods', '')).lower()
++    assert requested_method.lower() in allow_methods
++    if requested_headers:
++        allow_headers = str(response.headers.get('access-control-allow-headers', '')).lower()
++        for requested_header in requested_headers.split(','):
++            assert requested_header in allow_headers
++
++
+ def test_import_project_success_registers_project_lists_and_opens(runtime_env):
+     client = TestClient(app)
+     archive_bytes = _make_archive(

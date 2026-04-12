@@ -1,0 +1,203 @@
+[ITERATION]
+3
+
+[TASK]
+[ITERATION_TASK_REMINDER]
+Ты работаешь в роли reviewer в итерационном цикле reviewer → Codex → reviewer.
+
+На каждой итерации ты:
+1. получаешь текущую задачу и все доступные материалы;
+2. анализируешь их как reviewer;
+3. формируешь следующий конкретный `codex_task_md` для Codex;
+4. после ответа Codex заново проверяешь результат по коду, diff, артефактам, тестам и другим доступным материалам;
+5. если задача ещё не доведена, формируешь следующий task для Codex;
+6. если для продолжения нужен ответ пользователя или новые материалы, возвращаешь `status = "question"`;
+7. если считаешь, что задача доведена, перед окончательным завершением сначала возвращаешь `status = "question"` и явно спрашиваешь пользователя, завершать работу или нет;
+8. только после явного подтверждения пользователя допускается `status = "done"`.
+
+Твоя роль — не решать задачу вместо Codex вручную, а управлять пошаговым продвижением задачи: проверять текущее состояние, выявлять следующий нужный шаг и направлять Codex дальше.
+
+Продолжай решение исходной задачи итерационно.
+
+На каждой итерации опирайся на:
+- reference attachments из первой итерации;
+- текущий technical channel;
+- текущий model channel;
+- ответ пользователя и follow-up attachments, если они есть.
+
+Каждый раз заново смотри исходные материалы первой итерации, смотри цепочку diff, проверяй код самостоятельно и не полагайся только на summary или тесты.
+
+Если есть баги, регрессии, неполные места, partial cleanup или сомнительные решения — не завершай итерацию, а формируй следующую точную задачу для Codex.
+
+Если требуется дополнительный контекст, ручная проверка пользователя или новые материалы — задай вопрос пользователю через status = "question". Но сначала постарайся максимально продвинуть задачу самостоятельно по текущим материалам.
+
+Если потребуется полный актуальный дамп или дополнительные файлы — явно запрашивай их у пользователя. Не предполагается, что reviewer сам создаёт или редактирует dump, если это отдельно не разрешено текущей задачей.
+
+После любых изменений отдельно проверь:
+- не появились ли новые raw semantic literals / magic strings / magic numbers;
+- не возникли ли новые побочные эффекты вне области задачи;
+- соответствует ли решение исходной постановке задачи;
+- не остались ли незакрытые технические хвосты в зоне изменений.
+
+Общие правила:
+- Не задавай вопрос пользователю, пока Codex ещё ни разу не выполнил ни одного реального implementation pass.
+- До первого реального implementation pass возвращай только status = "continue" с конкретным следующим шагом для Codex.
+- После первого реального implementation pass можешь задать question, если это действительно полезно для UI-проверки, критического решения пользователя, запроса дополнительного контекста или запроса dump.
+- По умолчанию пытайся вести задачу без dump.
+- Dump можно запросить только если он действительно нужен и уже нельзя надёжно продолжать по текущему коду, technical channel, changed files, tests, reference attachments и follow-up материалам.
+- Не создавай dump.
+- Не правь dump.
+
+Специальные правила для этой задачи:
+- Не запускай dump-generating helper, если это не разрешено текущей задачей.
+- Если по задаче требуется проверка helper-скриптов, соблюдай ограничения task.md.
+- Если в этой задаче `export_project_to_txt.py` разрешено проверять только статически — не запускай его и не генерируй dump.
+
+Перед полным завершением работы ты обязан вернуть status = "question" и явно спросить пользователя, завершать работу или нет.
+
+Ручная UI-проверка, успешные тесты, собственная уверенность reviewer или формулировки вида "всё готово" не заменяют этот обязательный шаг.
+
+Возвращать status = "done" без предварительного финального question и явного ответа пользователя запрещено.
+
+# ЖЁСТКИЕ ПРАВИЛА ДЛЯ REVIEWER
+
+1. Ты не имеешь права оставаться в том же scope с verification-only итерацией, если в этом scope ещё есть заметные расхождения с исходной задачей или source of truth.
+
+2. Если текущий scope ещё отличается от исходной задачи или source of truth по структуре, поведению, layout, spacing, typography, alignment, composition, visual rhythm или другой значимой семантике, ты обязан вернуть `status = "continue"` и дать новый `codex_task_md` именно на исправление этих расхождений.
+
+3. Ты не имеешь права переходить к следующему scope, если текущий scope:
+   - ещё выглядит как approximation;
+   - имеет грубые расхождения;
+   - имеет упрощённую, изменённую или переразложенную структуру относительно source of truth;
+   - не доведён до достаточно точного состояния.
+
+4. Если `git diff` пустой, ты обязан выбрать только один из двух вариантов:
+   - либо явно признать текущий scope достаточно близким и перевести Codex на следующий scope;
+   - либо вернуть `continue` с новым конкретным списком оставшихся расхождений в текущем scope.
+
+5. Запрещено повторно выдавать verification-only pass для того же scope без нового списка конкретных исправлений.
+
+6. Каждый новый `codex_task_md` обязан содержать:
+   - точный scope текущей итерации;
+   - список конкретных расхождений или задач;
+   - список файлов, которые можно менять;
+   - список прямых запретов;
+   - список обязательных проверок после изменений.
+
+7. В `review_notes` ты обязан явно писать одно из двух:
+   - `current scope is not yet close enough; continue refinement`
+   - `current scope is close enough; move to next scope`
+
+8. Формулировки вида “в целом близко”, “почти готово”, “можно двигаться дальше” без списка конкретных оснований запрещены.
+
+Сформируй следующий логичный шаг для текущей итерации, опираясь только на проверенные текущие материалы.
+
+[TECHNICAL_CHANNEL]
+{
+  "git_diff_patch": "diff --git a/rtb/app/core/constants.py b/rtb/app/core/constants.py\nindex f517fdc..409fb07 100644\n--- a/rtb/app/core/constants.py\n+++ b/rtb/app/core/constants.py\n@@ -148,6 +148,16 @@ PROJECT_LOCKS = {\n     'request_user_id_header': 'X-MetaPlatform-User-Id',\n }\n \n+CORS_POLICY = {\n+    'allow_origins': [\n+        'http://127.0.0.1:5173',\n+        'http://localhost:5173',\n+    ],\n+    'allow_credentials': True,\n+    'allow_methods': ['GET', 'POST', 'OPTIONS'],\n+    'allow_headers': ['Content-Type', PROJECT_LOCKS['request_user_id_header']],\n+}\n+\n DEFAULT_USER = {\n     'id': 'default-user',\n     'username': 'default',\ndiff --git a/rtb/app/main.py b/rtb/app/main.py\nindex 809d91b..6cac2b7 100644\n--- a/rtb/app/main.py\n+++ b/rtb/app/main.py\n@@ -1,10 +1,19 @@\n я╗┐from fastapi import FastAPI\n+from fastapi.middleware.cors import CORSMiddleware\n \n from rtb.app.api.commands import router as commands_router\n+from rtb.app.core.constants import CORS_POLICY\n from rtb.app.db.bootstrap import bootstrap_storage\n from rtb.app.services.command_dispatcher import process_execution_service\n \n app = FastAPI(title='MetaPlatform Runtime Backend')\n+app.add_middleware(\n+    CORSMiddleware,\n+    allow_origins=CORS_POLICY['allow_origins'],\n+    allow_credentials=bool(CORS_POLICY['allow_credentials']),\n+    allow_methods=CORS_POLICY['allow_methods'],\n+    allow_headers=CORS_POLICY['allow_headers'],\n+)\n \n \n @app.on_event('startup')\ndiff --git a/rtb/tests/test_imports.py b/rtb/tests/test_imports.py\nindex db89fb0..26b6ac2 100644\n--- a/rtb/tests/test_imports.py\n+++ b/rtb/tests/test_imports.py\n@@ -7,7 +7,7 @@ import yaml\n from fastapi.testclient import TestClient\n \n from rtb.app.main import app\n-from rtb.app.core.constants import API_COMMANDS_ENDPOINT, API_PROJECT_IMPORTS_ENDPOINT\n+from rtb.app.core.constants import API_COMMANDS_ENDPOINT, API_PROJECT_EXPORTS_ENDPOINT, API_PROJECT_IMPORTS_ENDPOINT\n from rtb.app.core.settings import SETTINGS\n from rtb.app.db import bootstrap as db_bootstrap\n from rtb.app.services import command_dispatcher, project_catalog, project_storage\n@@ -77,6 +77,36 @@ def _post_import(client: TestClient, archive_name: str, archive_bytes: bytes):\n     )\n \n \n+@pytest.mark.parametrize(\n+    ('path', 'requested_method', 'requested_headers'),\n+    [\n+        (API_COMMANDS_ENDPOINT, 'POST', 'content-type,x-metaplatform-user-id'),\n+        (API_PROJECT_IMPORTS_ENDPOINT, 'POST', 'content-type'),\n+        (f'{API_PROJECT_EXPORTS_ENDPOINT}/preflight-probe', 'GET', ''),\n+    ],\n+)\n+def test_cors_preflight_allows_ui_backend_surface(runtime_env, path, requested_method, requested_headers):\n+    client = TestClient(app)\n+    headers = {\n+        'Origin': 'http://127.0.0.1:5173',\n+        'Access-Control-Request-Method': requested_method,\n+    }\n+    if requested_headers:\n+        headers['Access-Control-Request-Headers'] = requested_headers\n+\n+    response = client.options(path, headers=headers)\n+\n+    assert response.status_code == 200\n+    assert response.headers.get('access-control-allow-origin') == 'http://127.0.0.1:5173'\n+    assert response.headers.get('access-control-allow-credentials') == 'true'\n+    allow_methods = str(response.headers.get('access-control-allow-methods', '')).lower()\n+    assert requested_method.lower() in allow_methods\n+    if requested_headers:\n+        allow_headers = str(response.headers.get('access-control-allow-headers', '')).lower()\n+        for requested_header in requested_headers.split(','):\n+            assert requested_header in allow_headers\n+\n+\n def test_import_project_success_registers_project_lists_and_opens(runtime_env):\n     client = TestClient(app)\n     archive_bytes = _make_archive(\n",
+  "git_diff_stat": " rtb/app/core/constants.py | 10 ++++++++++\n rtb/app/main.py           |  9 +++++++++\n rtb/tests/test_imports.py | 32 +++++++++++++++++++++++++++++++-\n 3 files changed, 50 insertions(+), 1 deletion(-)\n",
+  "changed_files": [
+    "rtb/app/core/constants.py",
+    "rtb/app/main.py",
+    "rtb/tests/test_imports.py"
+  ],
+  "tests_summary": {
+    "overall_status": "passed",
+    "all_passed": true,
+    "commands": [
+      {
+        "command": "cd ./ui && npm.cmd test",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 13.02
+      },
+      {
+        "command": "cd ./ui && npm.cmd run test:integration",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 13.19
+      },
+      {
+        "command": "cd ./ui && npm.cmd run test:backend",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 6.95
+      },
+      {
+        "command": "cd ./ui && npm.cmd run test:all",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 18.31
+      },
+      {
+        "command": "python -c \"from rtb.app.main import app; print(app.title)\"",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 0.32
+      },
+      {
+        "command": "python -m pytest rtb/tests/test_imports.py -k cors_preflight -q",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 0.89
+      },
+      {
+        "command": "cd ui && npm.cmd test",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 13.01
+      },
+      {
+        "command": "cd ui && npm.cmd run test:integration",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 13.2
+      },
+      {
+        "command": "cd ui && npm.cmd run test:backend",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 4.92
+      },
+      {
+        "command": "cd ui && npm.cmd run test:all",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_sec": 18.24
+      }
+    ]
+  }
+}
+
+[MODEL_CHANNEL]
+{
+  "summary": "Scope refined without changing CORS semantics: generated artifacts were removed from diff, only target product files remain, and verification is now reported with one factual status per command.",
+  "what_changed": [
+    "Cleaned generated artifacts from git changes (`rtb/**/__pycache__/*.pyc`) after initial inspection and again after test runs regenerated them.",
+    "Did not modify product code beyond existing CORS/preflight implementation; final changed set is still only the 3 target files.",
+    "Re-verified CORS centralization and no route-level CORS hacks: policy remains in constants and middleware wiring in main app.",
+    "Ran full required verification command list and captured exact outcomes (including environment-caused failures)."
+  ],
+  "risks": [
+    "Backend pytest-based commands currently fail in this environment due filesystem permission denial creating `.pytest-temp-tests/*` (WinError 5), which blocks test execution before CORS assertions run.",
+    "Because of that environment blocker, required pytest command status is failing even though direct bounded preflight probe succeeds."
+  ],
+  "notes": [
+    "Final changed files: [rtb/app/core/constants.py](D:/current/coding/MetaFlow/projects/MetaPlatform/repo/rtb/app/core/constants.py), [rtb/app/main.py](D:/current/coding/MetaFlow/projects/MetaPlatform/repo/rtb/app/main.py), [rtb/tests/test_imports.py](D:/current/coding/MetaFlow/projects/MetaPlatform/repo/rtb/tests/test_imports.py).",
+    "`git diff --stat` after cleanup: 3 files changed, 50 insertions(+), 1 deletion(-).",
+    "`__pycache__` / `.pyc` are no longer present in diff (confirmed by `git status --short` and pattern check).",
+    "`export_project_to_txt.py` sync: not needed for this scope; not run and not edited."
+  ],
+  "high_risk_areas_touched": false,
+  "high_risk_areas": [],
+  "verification_notes": [
+    "1) `python -c \"from rtb.app.main import app; print(app.title)\"` -> exit 0, output `MetaPlatform Runtime Backend`.",
+    "2) `python -m pytest rtb/tests/test_imports.py -k cors_preflight -q` -> exit 1, failed at fixture setup in `rtb/tests/conftest.py:20` with `PermissionError [WinError 5]` creating `.pytest-temp-tests/...` (environment issue).",
+    "3) `cd ui && npm.cmd test` -> exit 0, all UI tests passed (`pass 220`, `fail 0`).",
+    "4) `cd ui && npm.cmd run test:integration` -> exit 0, delegates to `npm test`, passed (`pass 220`, `fail 0`).",
+    "5) `cd ui && npm.cmd run test:backend` -> exit 1, pytest errors (67) with same `PermissionError [WinError 5]` on `.pytest-temp-tests/...` during fixture setup (environment issue).",
+    "6) `cd ui && npm.cmd run test:all` -> exit 1; `npm test` phase passed, backend phase failed with same `PermissionError [WinError 5]` (environment issue).",
+    "7) Diff verification: final `git diff --stat` shows only the 3 target files; no generated artifacts remain changed.",
+    "8) Additional bounded check (supplemental): direct TestClient OPTIONS probes for `/api/commands`, `/api/project-imports`, `/api/project-exports/preflight-probe` all returned `200`, `access-control-allow-origin=http://127.0.0.1:5173`, credentials `true`, and methods/headers from centralized policy."
+  ]
+}

@@ -1,0 +1,95 @@
+diff --git a/rtb/app/core/constants.py b/rtb/app/core/constants.py
+index f517fdc..409fb07 100644
+--- a/rtb/app/core/constants.py
++++ b/rtb/app/core/constants.py
+@@ -148,6 +148,16 @@ PROJECT_LOCKS = {
+     'request_user_id_header': 'X-MetaPlatform-User-Id',
+ }
+ 
++CORS_POLICY = {
++    'allow_origins': [
++        'http://127.0.0.1:5173',
++        'http://localhost:5173',
++    ],
++    'allow_credentials': True,
++    'allow_methods': ['GET', 'POST', 'OPTIONS'],
++    'allow_headers': ['Content-Type', PROJECT_LOCKS['request_user_id_header']],
++}
++
+ DEFAULT_USER = {
+     'id': 'default-user',
+     'username': 'default',
+diff --git a/rtb/app/main.py b/rtb/app/main.py
+index 809d91b..6cac2b7 100644
+--- a/rtb/app/main.py
++++ b/rtb/app/main.py
+@@ -1,10 +1,19 @@
+ я╗┐from fastapi import FastAPI
++from fastapi.middleware.cors import CORSMiddleware
+ 
+ from rtb.app.api.commands import router as commands_router
++from rtb.app.core.constants import CORS_POLICY
+ from rtb.app.db.bootstrap import bootstrap_storage
+ from rtb.app.services.command_dispatcher import process_execution_service
+ 
+ app = FastAPI(title='MetaPlatform Runtime Backend')
++app.add_middleware(
++    CORSMiddleware,
++    allow_origins=CORS_POLICY['allow_origins'],
++    allow_credentials=bool(CORS_POLICY['allow_credentials']),
++    allow_methods=CORS_POLICY['allow_methods'],
++    allow_headers=CORS_POLICY['allow_headers'],
++)
+ 
+ 
+ @app.on_event('startup')
+diff --git a/rtb/tests/test_imports.py b/rtb/tests/test_imports.py
+index db89fb0..26b6ac2 100644
+--- a/rtb/tests/test_imports.py
++++ b/rtb/tests/test_imports.py
+@@ -7,7 +7,7 @@ import yaml
+ from fastapi.testclient import TestClient
+ 
+ from rtb.app.main import app
+-from rtb.app.core.constants import API_COMMANDS_ENDPOINT, API_PROJECT_IMPORTS_ENDPOINT
++from rtb.app.core.constants import API_COMMANDS_ENDPOINT, API_PROJECT_EXPORTS_ENDPOINT, API_PROJECT_IMPORTS_ENDPOINT
+ from rtb.app.core.settings import SETTINGS
+ from rtb.app.db import bootstrap as db_bootstrap
+ from rtb.app.services import command_dispatcher, project_catalog, project_storage
+@@ -77,6 +77,36 @@ def _post_import(client: TestClient, archive_name: str, archive_bytes: bytes):
+     )
+ 
+ 
++@pytest.mark.parametrize(
++    ('path', 'requested_method', 'requested_headers'),
++    [
++        (API_COMMANDS_ENDPOINT, 'POST', 'content-type,x-metaplatform-user-id'),
++        (API_PROJECT_IMPORTS_ENDPOINT, 'POST', 'content-type'),
++        (f'{API_PROJECT_EXPORTS_ENDPOINT}/preflight-probe', 'GET', ''),
++    ],
++)
++def test_cors_preflight_allows_ui_backend_surface(runtime_env, path, requested_method, requested_headers):
++    client = TestClient(app)
++    headers = {
++        'Origin': 'http://127.0.0.1:5173',
++        'Access-Control-Request-Method': requested_method,
++    }
++    if requested_headers:
++        headers['Access-Control-Request-Headers'] = requested_headers
++
++    response = client.options(path, headers=headers)
++
++    assert response.status_code == 200
++    assert response.headers.get('access-control-allow-origin') == 'http://127.0.0.1:5173'
++    assert response.headers.get('access-control-allow-credentials') == 'true'
++    allow_methods = str(response.headers.get('access-control-allow-methods', '')).lower()
++    assert requested_method.lower() in allow_methods
++    if requested_headers:
++        allow_headers = str(response.headers.get('access-control-allow-headers', '')).lower()
++        for requested_header in requested_headers.split(','):
++            assert requested_header in allow_headers
++
++
+ def test_import_project_success_registers_project_lists_and_opens(runtime_env):
+     client = TestClient(app)
+     archive_bytes = _make_archive(

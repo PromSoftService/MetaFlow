@@ -1,0 +1,54 @@
+{
+  "overall_status": "passed",
+  "all_passed": true,
+  "commands": [
+    {
+      "command": "cd ./ui && npm.cmd test",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 13.06
+    },
+    {
+      "command": "cd ./ui && npm.cmd run test:integration",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 13.25
+    },
+    {
+      "command": "cd ./ui && npm.cmd run test:backend",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 5.7
+    },
+    {
+      "command": "cd ./ui && npm.cmd run test:all",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 18.22
+    },
+    {
+      "command": "cd ui && npm.cmd test",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 13.05
+    },
+    {
+      "command": "cd ui && npm.cmd run test:integration",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 13.15
+    },
+    {
+      "command": "cd ui && npm.cmd run test:backend",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 5.03
+    },
+    {
+      "command": "cd ui && npm.cmd run test:all",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_sec": 18.3
+    }
+  ]
+}
