@@ -7,7 +7,7 @@
 # 2) Install Git and Codex CLI separately.
 #
 # 2.1) Create minimal Codex config at:
-#      %USERPROFILE%\.codex\config.toml
+#      $env:USERPROFILE
 #      with content:
 #      personality = "pragmatic"
 #      sandbox_mode = "workspace-write"
@@ -1847,7 +1847,7 @@ def main() -> int:
     )
 
     ensure_repo(git_path, repo_url, branch, repo_dir, retry_policy=repo_retry_policy)
-    normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
+    #normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
     run_setup_commands(repo_dir, setup_commands, retry_policy=setup_retry_policy)
 
     previous_response_id: Optional[str] = None
@@ -2050,7 +2050,7 @@ def main() -> int:
         print("\n[CODEX TASK]")
         print(codex_task_md)
 
-        normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
+        #normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
 
         codex_exit, codex_model_summary = run_codex(
             codex_executable=codex_path,

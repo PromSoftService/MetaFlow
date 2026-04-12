@@ -12723,12 +12723,21 @@ FILE: rtb/app/main.py
 ==================================================
 
 ﻿from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from rtb.app.api.commands import router as commands_router
+from rtb.app.core.constants import CORS_POLICY
 from rtb.app.db.bootstrap import bootstrap_storage
 from rtb.app.services.command_dispatcher import process_execution_service
 
 app = FastAPI(title='MetaPlatform Runtime Backend')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_POLICY['allow_origins'],
+    allow_credentials=bool(CORS_POLICY['allow_credentials']),
+    allow_methods=CORS_POLICY['allow_methods'],
+    allow_headers=CORS_POLICY['allow_headers'],
+)
 
 
 @app.on_event('startup')
@@ -13087,6 +13096,16 @@ PROJECT_LOCKS = {
     'heartbeat_interval_seconds': 10,
     'session_mode_edit': 'edit',
     'request_user_id_header': 'X-MetaPlatform-User-Id',
+}
+
+CORS_POLICY = {
+    'allow_origins': [
+        'http://127.0.0.1:5173',
+        'http://localhost:5173',
+    ],
+    'allow_credentials': True,
+    'allow_methods': ['GET', 'POST', 'OPTIONS'],
+    'allow_headers': ['Content-Type', PROJECT_LOCKS['request_user_id_header']],
 }
 
 DEFAULT_USER = {
