@@ -1,156 +1,119 @@
 # Context
 
-Новая отдельная задача: восстановить рабочую связку web UI ↔ runtime backend для backend workspace browser.
+Новая отдельная задача: исправить только backend policy для `slug`, чтобы удалённые проекты больше не резервировали slug навсегда.
 
-По текущему состоянию:
-- UI работает через Vite dev server на `127.0.0.1:5173`;
-- backend работает отдельно на `127.0.0.1:8000`;
-- при нажатии Refresh браузер шлёт preflight `OPTIONS /api/commands`;
-- backend отвечает `405 Method Not Allowed`;
-- из-за этого UI показывает `Backend workspace unavailable. Retry Refresh and verify backend connectivity.`
+Сейчас поведение такое:
+- создать `qwe` → slug = `qwe`
+- удалить `qwe`
+- создать новый `qwe` → slug = `qwe-2`
+- импорт похожего проекта даёт `qwe-3`
 
-Это означает, что сейчас проблема не в запуске uvicorn как таковом, а в отсутствии корректной CORS/preflight поддержки между web UI и backend.
+По текущему дампу видно, что свободный slug выбирается через `_next_available_slug(...)`, и reviewer должен сначала проверить, не учитываются ли там удалённые проекты как занятые. Эта задача только про это.
 
 # Current scope
 
-Только исправление web-to-backend CORS/preflight integration для текущего dev workflow.
+Только исправление slug reuse policy для create/import после delete.
 
 В этом цикле не делать:
-- общий refactor backend;
-- изменения lock/process semantics;
-- cleanup UI;
-- изменения export helper, кроме случаев если это реально понадобится из-за нового затронутого файла;
-- docs-cleanup вне прямой необходимости;
-- любые unrelated fixes, даже если они заметны рядом.
+- модальное окно выбора проекта;
+- перенос/удаление панели workspace browser;
+- перевод сообщений в общие логи;
+- русский UX cleanup;
+- close confirmation;
+- общий refactor backend workspace flow;
+- unrelated backend cleanup.
 
 # Target semantics
 
 После правки должно быть истинно следующее:
 
-1. Web UI, запущенный через Vite dev server, может делать запросы к backend на `http://127.0.0.1:8000` без preflight failure.
-2. Preflight `OPTIONS` для backend API, используемого UI, больше не падает с `405 Method Not Allowed`.
-3. Нажатие Refresh в backend workspace browser больше не ломается из-за CORS/preflight.
-4. Решение не должно быть точечным “костылём” только для одного endpoint, если проблема относится к общему backend API surface, используемому web UI.
-5. Не должно появиться второй competing CORS policy в другом месте backend.
-6. Все новые policy values должны быть оформлены без новых лишних magic literals вразброс по коду.
+1. Если проект `qwe` удалён и среди живых проектов slug `qwe` свободен, следующий новый проект `qwe` получает slug `qwe`, а не `qwe-2`.
+2. Та же корректная slug policy применяется и к import flow.
+3. Уникальность slug среди живых проектов сохраняется.
+4. Не появляется второй competing slug allocation path.
 
 # What to inspect first
 
-Сначала reviewer должен поручить Codex проверить:
+Reviewer должен поручить Codex сначала проверить:
 
-1. `rtb/app/main.py`
-   - как создаётся FastAPI app;
-   - какие middleware уже подключены;
-   - есть ли CORS middleware;
-   - где лучше всего централизовать CORS policy.
-2. `rtb/app/api/commands.py`
-   - какие HTTP methods реально используются;
-   - нужно ли что-то менять в router после добавления middleware.
-3. `ui/config/ui-config.js`
-4. `shared/config/platform-config.js`
-   - какие backend base URL и web dev origins реально используются сейчас.
-5. `ui/renderer/runtime/adapters/createHttpRuntimeAdapter.js`
-   - как именно отправляются запросы;
-   - подтверждается ли browser preflight scenario.
-6. README/run instructions, если они уже описывают dev startup flow и должны быть синхронизированы с исправленным поведением.
+- `rtb/app/services/project_storage.py`
+  - `_next_available_slug`
+  - `prepare_new_project_metadata`
+  - create flow
+  - import flow
+  - delete flow
+- модель/таблицу проектов и поле `deleted_at`, если оно участвует в soft delete
+- связанные tests на project storage / create / import, если они уже есть
 
 # Required changes
 
-1. Добавить корректную CORS/preflight поддержку в backend entrypoint для текущего web UI dev workflow.
-2. Разрешить origins, реально используемые web UI в dev-режиме. Как минимум проверить необходимость для:
-   - `http://127.0.0.1:5173`
-   - `http://localhost:5173`
-3. Разрешить методы и headers так, чтобы browser preflight для backend API, используемого UI, проходил штатно.
-4. Не делать локальный ad-hoc handler только под один `OPTIONS /api/commands`, если правильное решение — централизованный middleware-level policy.
-5. Если для allowed origins / methods / headers / credentials policy уже есть подходящий config/constants слой, использовать его.
-6. Не разбрасывать новые raw semantic literals по нескольким backend-файлам без необходимости.
-7. Если для dev startup/run instructions нужен минимальный sync, обновить только те текстовые файлы, которые реально расходятся с новым фактическим поведением.
-8. Проверить, не создаёт ли новая CORS policy конфликтов для существующих backend routes.
+1. Исправить backend slug allocation так, чтобы deleted projects не резервировали slug навсегда.
+2. Для выбора slug учитывать только живые проекты, если отдельное постоянное резервирование deleted slug не является уже зафиксированной политикой.
+3. Привести create и import к одной и той же корректной slug policy.
+4. Не ломать существующую уникальность среди активных проектов.
+5. Не вводить новый разрозненный slug policy layer.
+6. Не добавлять новые raw semantic literals / magic strings / magic numbers без необходимости; если нужны shared values, использовать существующий config/constants слой.
 
 # Files allowed to change
 
-Разрешено менять только то, что реально нужно для этого scope:
-
-- `rtb/app/main.py`
-- `rtb/app/api/commands.py` только если это действительно требуется после анализа
-- backend config/constants files, если туда уместно вынести policy values
-- минимально необходимые README/runbook/docs файлы, если без этого остаётся явное расхождение
-- тесты, если они существуют и должны быть обновлены/добавлены под новую семантику
-
-Не менять UI-логику без прямой необходимости.
-Не трогать unrelated backend services.
+Разрешено менять только:
+- `rtb/app/services/project_storage.py`
+- связанные backend models/constants/settings files только если это действительно нужно для slug policy
+- backend tests, если они реально существуют и требуют обновления/добавления
+- `export_project_to_txt.py` только если после изменений helper нужно синхронизировать
 
 # Do not do
 
-1. Не делать широкий backend cleanup.
-2. Не менять command contract без прямой необходимости.
-3. Не менять lock lifecycle, process orchestration и project semantics.
-4. Не добавлять новый competing source of truth для backend origin policy.
-5. Не хардкодить новые policy literals в нескольких местах одновременно.
-6. Не маскировать проблему обходом в UI, если корень проблемы в backend preflight/CORS.
-7. Не объявлять проблему “environment-only”, если реальный лог уже показывает `OPTIONS ... 405`.
-8. Не редактировать dump.
-9. Не запускать долгоживущие foreground/watch/server-команды в `extra_test_commands` без bounded wrapper.
+1. Не менять UI.
+2. Не трогать workspace browser panel.
+3. Не делать модальные окна.
+4. Не менять close/save/lock/process semantics.
+5. Не делать общий backend cleanup.
+6. Не редактировать dump.
+7. Не подменять проблему обходом в UI, если корень в backend slug allocation.
 
 # Magic strings / magic numbers
 
 Reviewer должен отдельно потребовать от Codex:
-
-- не разбрасывать новые origin strings, header names, method lists и policy flags по коду;
-- если есть подходящий config/constants слой, использовать его;
-- не делать бессмысленный over-engineering ради выноса каждого локального литерала;
-- не создавать второй параллельный policy layer рядом с уже существующим.
-
-Особенно внимательно проверить:
-- allowed origins
-- allowed methods
-- allowed headers
-- credentials policy
-- любые новые backend/web integration constants
+- не разбрасывать новые slug-related literals по нескольким файлам;
+- использовать существующий constants/config слой, если появляются shared semantic values;
+- не делать бессмысленный over-extraction локальных одноразовых literals.
 
 # Tests to add or update
 
-Reviewer должен поручить Codex проверить, какие automated tests уже есть для backend API / runtime adapter / integration path, и:
+Reviewer должен поручить Codex добавить или обновить tests как минимум на:
 
-1. добавить или обновить тесты на CORS/preflight поведение, если тестовый контур проекта это поддерживает;
-2. если automated test на это сейчас неуместен или отсутствует инфраструктура, явно зафиксировать это в итоговом отчёте, но не подменять этим обязательные реальные проверки.
+1. slug reuse после delete:
+   - deleted project не должен навсегда занимать slug;
+2. create flow:
+   - после удаления `qwe` новый `qwe` снова получает `qwe`, если среди живых проектов slug свободен;
+3. import flow:
+   - import использует ту же корректную slug policy.
 
-Важно:
-- если тесты реально можно добавить узко и без раздувания scope, их нужно добавить;
-- если нет, reviewer должен потребовать чёткое объяснение, почему именно.
+Если какие-то tests уже есть, их нужно адаптировать, а не дублировать второй конкурирующей веткой.
 
 # Verification
 
-Reviewer должен потребовать от Codex реально прогнать проверки и затем проверить фактические результаты.
+Reviewer должен потребовать от Codex реально прогнать:
+- полный набор тестов проекта;
+- targeted tests для slug/create/import scenario, если такие команды нужны дополнительно.
 
-Обязательно:
+Reviewer должен проверить фактические результаты команд от Codex, а не принимать задачу по описанию.
 
-1. Проверить, что backend стартует после изменений.
-2. Проверить, что preflight `OPTIONS` больше не падает с `405` для backend API surface, используемого UI.
-3. Проверить, что Refresh в backend workspace browser теперь работает в dev workflow или, если остаётся ошибка, зафиксировать уже новый точный failure mode.
-4. Прогнать полный набор тестов по проекту.
-5. Если часть команд не проходит, reviewer должен отделить:
-   - реальный дефект;
-   - ограничение среды;
-   - unrelated pre-existing failure.
-
-Нельзя бездоказательно списывать падение в “среду”.
-
-Команды:
-- reviewer должен поручить Codex прогнать фактические команды проекта;
-- reviewer должен проверить stdout/stderr и итоговые статусы;
-- запрещены долгоживущие foreground/watch/server-команды в `extra_test_commands` без bounded wrapper.
-
-Если для ручной проверки нужен dev server/backend run, это не должно попадать в `extra_test_commands` как бесконечный процесс. Нужен bounded способ проверки или явная фиксация результата без зависания цикла.
+Если тесты падают:
+- отделить реальный дефект от ограничения среды;
+- не списывать в “среду” без stderr/stdout.
 
 # Helper script check
 
 Reviewer должен отдельно потребовать от Codex проверить `export_project_to_txt.py`.
 
-Что проверить:
-1. если появились новые затронутые repo-files, helper должен быть синхронизирован;
-2. helper не должен начать экспортировать тесты, иконки, package-lock files и demo artifacts;
-3. если новые файлы в scope не требуют изменения helper-а, это нужно явно отметить в отчёте.
+Если после правки изменился набор реально затронутых repo files, helper должен быть синхронизирован.
+При этом helper по-прежнему не должен экспортировать:
+- иконки
+- demo artifacts
+- top-level tests
+- package-lock files
 
 # Result report
 
@@ -162,24 +125,23 @@ Reviewer должен потребовать структурированный 
 - Verification
 - Risks / open items
 
-В отчёте обязательно указать:
-1. где именно была причина `OPTIONS ... 405`;
-2. как именно это исправлено;
-3. какие файлы изменены;
-4. вынесены ли новые policy values в config/constants или почему локальное размещение допустимо;
+Обязательно указать:
+1. где именно была причина старого slug behavior;
+2. как теперь работает slug reuse после delete;
+3. как синхронизированы create/import flows;
+4. какие tests добавлены/обновлены;
 5. какие команды реально прогнаны;
 6. результаты полного тестового прогона;
-7. подтверждён ли рабочий Refresh из web UI;
-8. есть ли оставшиеся риски.
+7. остались ли риски.
 
 # DONE
 
 Задача считается DONE только если одновременно выполнено всё ниже:
 
-1. backend больше не отвечает `405 Method Not Allowed` на browser preflight для используемого UI API path;
-2. web UI dev workflow может обращаться к backend без CORS/preflight block на текущем сценарии Refresh;
-3. решение сделано на правильном уровне, без локального одноточечного костыля там, где нужен middleware/config-level fix;
-4. новые policy literals не размазаны по коду без необходимости;
+1. deleted projects больше не резервируют slug навсегда;
+2. новый `qwe` после удаления старого `qwe` получает ожидаемый slug без лишнего `-2`, если среди живых проектов slug свободен;
+3. import использует ту же корректную slug policy;
+4. добавлены/обновлены tests на это поведение;
 5. `export_project_to_txt.py` проверен и синхронизирован при необходимости;
 6. Codex реально прогнал полный набор тестов по проекту;
-7. reviewer проверил фактические результаты команд и не принимает задачу без этого.
+7. reviewer проверил фактические результаты и не принимает задачу без них.

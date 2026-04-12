@@ -1,0 +1,12 @@
+Reading prompt from stdin...
+2026-04-12T10:43:46.777675Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://api.openai.com/v1/responses
+2026-04-12T10:43:46.991641Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://api.openai.com/v1/responses
+2026-04-12T10:43:47.386222Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://api.openai.com/v1/responses
+2026-04-12T10:43:47.970773Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://api.openai.com/v1/responses
+2026-04-12T10:43:49.018721Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://api.openai.com/v1/responses
+2026-04-12T10:43:50.913225Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://api.openai.com/v1/responses
+2026-04-12T10:43:54.072781Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://api.openai.com/v1/responses
+2026-04-12T10:45:52.844209Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.3 seconds
+Output:
+

@@ -450,7 +450,11 @@ Reviewer должен требовать от Codex:
 - не придумывать локальные ad-hoc обходы в отдельных тестах;
 - если backend tests всё равно падают, приложить точный `stderr/stdout` и явно указать, что проблема сохраняется **при уже используемом project-level temp-dir approach**. :contentReference[oaicite:3]{index=3}
 
-### 14.6. Проверка helper-скриптов
+### 14.6 Codex не использовать команду `pytest` напрямую
+Reviewer должен поручать Codex запускать pytest только в форме `python -m pytest ...`.
+Если тестам не нужен pytest cache, reviewer должен по умолчанию добавлять `-p no:cacheprovider`, чтобы Codex не пытался писать `.pytest_cache` внутри repo.
+
+### 14.7. Проверка helper-скриптов
 Если helper-скрипты входят в scope, reviewer должен прямо указывать:
 - проверять их только статически или запуском;
 - допустима ли генерация dump;
