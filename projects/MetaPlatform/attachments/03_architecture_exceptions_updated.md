@@ -40,8 +40,8 @@
 - Обычный save не должен очищать `generated/`.
 - Это уже принятая семантика, не спорный пункт.
 
-### 0.7. Helper scripts используют ручной whitelist
-- `create_project_structure.py` и `export_project_to_txt.py` должны оставаться whitelist-based, если отдельным решением не изменён сам подход.
+### 0.7. Export helper использует ручной whitelist
+- `export_project_to_txt.py` должен оставаться whitelist-based, если отдельным решением не изменён сам подход.
 - Автосканирование не предлагать как “очевидное улучшение” по умолчанию.
 
 ### 0.8. Export helper экспортирует whitelist, а не “весь честный repo dump”
@@ -71,11 +71,21 @@
 - Frontend и runtime backend — разные контуры.
 - Repo cleanup не должен смешивать backend move с раздачей built UI или другим соседним scope.
 
-### 1.4. Helper scripts должны синхронно отражать фактический layout
-При любом переносе каталогов/helper paths оба helper-скрипта должны обновляться вместе.
+### 1.4. Export helper должен отражать фактический layout
+При любом переносе каталогов, изменении path/wiring и корректировке repo layout `export_project_to_txt.py` должен обновляться вместе с фактической структурой проекта.
 
 ### 1.5. Два briefing-документа не являются обязательной частью repo layout
 `01_project_doctrine.md` и `03_architecture_exceptions.md` допустимы как внешние документы для reviewer, но их не нужно считать обязательными repo artifacts и не нужно возвращать в helper whitelist/export.
+
+### 1.6. README / runbook / docs допустимы в scope, если они реально участвуют в системе
+README, runbook и другая текстовая документация не считаются “запрещённым классом файлов”.
+Если такой файл:
+- участвует в тестах;
+- нужен для корректного review;
+- входит в согласованный scope;
+- должен быть синхронизирован с актуальным поведением системы,
+
+то его изменение допустимо и может быть обязательной частью задачи.
 
 ---
 
@@ -133,7 +143,7 @@
 - имя проекта через project file / Save As;
 - GUID-only identity;
 - `generated/` вне обычного save cleanup;
-- ручной whitelist helper scripts;
+- ручной whitelist export helper;
 - whitelist-based export;
 - наличие placeholder-level модулей MetaLab/MetaView;
 - допустимость рекурсивного scan-layer;
@@ -147,10 +157,11 @@
 1. не нарушен ли текущий layout course;
 2. не расползся ли scope за пределы задачи;
 3. не появились ли новые magic strings / magic numbers вне config/constants слоя без причины;
-4. синхронизированы ли helper scripts;
-5. не вернулись ли в export/icons/demo/top-level tests/лишние docs;
+4. актуален ли export helper;
+5. не вернулись ли в export/icons/demo/top-level tests/лишние briefing docs;
 6. соответствуют ли test/run commands фактическому layout проекта;
-7. не появился ли compatibility-мусор после завершённого переноса.
+7. не появился ли compatibility-мусор после завершённого переноса;
+8. не выпали ли из scope docs/runbook файлы, если они реально участвуют в тестах или runtime contract.
 
 ---
 
@@ -165,7 +176,7 @@
 
 Важно:
 - не смешивать эти классы между собой;
-- не раздувать текущую задачу техдолгом “раз уж уже полезли в этот файл”; 
+- не раздувать текущую задачу техдолгом “раз уж уже полезли в этот файл”;
 - не предлагать дедупликацию или унификацию просто “ради красоты”, если она не даёт практического выигрыша в текущем scope.
 
 ---

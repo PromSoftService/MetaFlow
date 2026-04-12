@@ -932,3 +932,30 @@ Reviewer должен считать ошибкой и возвращать но
 
 Главное правило:
 **вынесение должно уменьшать архитектурный шум и укреплять source of truth, а не превращаться в механическую борьбу против любых литералов вообще.**
+
+---
+
+## Windows execution specifics for Codex
+
+### npm on PowerShell
+Codex запускает npm-команды через PowerShell на Windows, используй `npm.cmd`, а не `npm`, чтобы не упираться в execution policy для `npm.ps1`.
+
+Примеры:
+- `npm.cmd test`
+- `npm.cmd run test:integration`
+- `npm.cmd run test:backend`
+- `npm.cmd run test:all`
+
+### Backend tests and local temp directory
+Если backend-тесты на pytest в среде Codex падают из-за permission errors в системном temp-каталоге (например, `pytest-of-<user>` under `%LOCALAPPDATA%\\Temp`), не пытайся чинить это изменениями продуктового кода или тестовой логики до подтверждения причины.
+
+В таком случае reviewer должен направлять Codex запускать backend-проверки с локальным temp-каталогом внутри репозитория через bounded wrapper, например с переопределением `TEMP` и `TMP` на временную папку в рабочем дереве репо.
+
+Сначала исключай проблемы execution environment, и только потом трактуй падение как дефект backend-кода или тестов.
+
+### Validation principle
+Если команда не стартовала из-за shell/policy/temp/cache/environment issue, это не считается доказательством дефекта продуктового кода.
+Reviewer должен отделять:
+1. проблемы запуска команды;
+2. инфраструктурные ограничения среды;
+3. реальные падения тестов по логике проекта.

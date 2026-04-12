@@ -24,10 +24,13 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
-codex.patch
 package-lock.json
-runtime_backend/**/__pycache__/
-runtime_backend/runtime_data/platform.db
+rtb/runtime_data/platform.db
+.pytest_cache/
+.pytest-temp-tests/
+pytest-cache-files-*/
+__pycache__/
+.tmp/
 
 
 ==================================================
@@ -843,168 +846,6 @@ export const UI_CONFIG = {
 
 
 ==================================================
-FILE: create_project_structure.py
-==================================================
-
-#!/usr/bin/env python3
-from __future__ import annotations
-
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent
-
-PROJECT_FILES = [
-  # Shared helper whitelist: include active app/config/runtime backend sources only.
-  # Exclude top-level tests/, public/icons/, and project-examples/demo-feedmill/ in both helper scripts.
-  '.gitignore',
-  'ui/config/app-config.js',
-  'ui/config/logger-config.js',
-  'shared/config/platform-config.js',
-  'shared/config/project-config.js',
-  'ui/config/ui-config.js',
-  'create_project_structure.py',
-  'export_project_to_txt.py',
-  'ui/package.json',
-  'ui/renderer/app.js',
-  'ui/renderer/core/commandBus.js',
-  'ui/renderer/core/layout.js',
-  'ui/renderer/core/logger.js',
-  'ui/renderer/core/loggerShared.js',
-  'ui/renderer/core/moduleRegistry.js',
-  'ui/renderer/core/platformCommands.js',
-  'ui/renderer/core/projectManager.js',
-  'ui/renderer/editors/metagen/createMetaGenEditor.js',
-  'ui/renderer/editors/metalab/createMetaLabEditor.js',
-  'ui/renderer/editors/metaview/createMetaViewEditor.js',
-  'ui/renderer/editors/shared/editorHost.js',
-  'ui/index.html',
-  'ui/renderer/modules/metagen/metagenCommands.js',
-  'ui/renderer/modules/metagen/metagenConfig.js',
-  'ui/renderer/modules/metagen/metagenDocumentFactory.js',
-  'ui/renderer/modules/metagen/metagenGeneratorBridge.js',
-  'ui/renderer/modules/metagen/metagenParamsHistoryController.js',
-  'ui/renderer/modules/metagen/metagenParamsUndoRedoHotkeys.js',
-  'ui/renderer/modules/metagen/metagenModule.js',
-  'ui/renderer/modules/metagen/metagenSchema.js',
-  'ui/renderer/modules/metagen/metagenParamsContract.js',
-  'ui/renderer/modules/metagen/metagenDataContract.js',
-  'ui/renderer/modules/metagen/metagenInstancesContract.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenDataSheet.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenInstancesSheet.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenParamsSheet.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenSimpleSheet.js',
-  'ui/renderer/modules/metagen/tables/finalizeActiveTableEditing.js',
-  'ui/renderer/modules/metagen/tables/finalizeEditingOnContextLeave.js',
-  'ui/renderer/modules/metagen/tables/metaGenParamsTableAutoStyle.js',
-  'ui/renderer/modules/metagen/tables/metaGenParamsTableAutoStyleInterpretation.js',
-  'ui/renderer/modules/metagen/tables/sheetSnapshot.js',
-  'ui/renderer/modules/metalab/metalabCommands.js',
-  'ui/renderer/modules/metalab/metalabConfig.js',
-  'ui/renderer/modules/metalab/metalabDocumentFactory.js',
-  'ui/renderer/modules/metalab/metalabModule.js',
-  'ui/renderer/modules/metaview/metaviewCommands.js',
-  'ui/renderer/modules/metaview/metaviewConfig.js',
-  'ui/renderer/modules/metaview/metaviewDocumentFactory.js',
-  'ui/renderer/modules/metaview/metaviewModule.js',
-  'ui/renderer/runtime/documentLoader.js',
-  'ui/renderer/runtime/documentRecordIdentity.js',
-  'ui/renderer/runtime/documentSnapshot.js',
-  'ui/renderer/runtime/appCloseCoordinator.js',
-  'ui/renderer/runtime/backendCommandSessionOrchestrator.js',
-  'ui/renderer/runtime/backendProjectExportFlow.js',
-  'ui/renderer/runtime/browserShellAdapter.js',
-  'ui/renderer/runtime/createShellAdapter.js',
-  'ui/renderer/runtime/shellContract.js',
-  'ui/renderer/runtime/idFactory.js',
-  'ui/renderer/runtime/naming.js',
-  'ui/styles/styles.css',
-  'ui/renderer/ui/applyStaticText.js',
-  'ui/renderer/ui/createProjectTree.js',
-  'ui/renderer/ui/pngIconRenderer.js',
-  'ui/renderer/ui/projectTree/treeAdapter.js',
-  'ui/renderer/ui/createWorkbenchTabs.js',
-  'ui/renderer/ui/dialogs.js',
-  'ui/renderer/ui/editorContextLifecycle.js',
-  'ui/renderer/ui/tabEditLifecycle.js',
-  'ui/renderer/ui/workbenchShell.js',
-  'ui/renderer/core/loggerSinks.js',
-  'ui/renderer/runtime/projectPaths.js',
-  'ui/vite.config.js',
-  'ui/renderer/runtime/runtimeClientContract.js',
-  'ui/renderer/runtime/runtimeClient.js',
-  'ui/renderer/runtime/processPollingLifecycle.js',
-  'ui/renderer/runtime/processExecutionOrchestrator.js',
-  'ui/renderer/runtime/adapters/createHttpRuntimeAdapter.js',
-  'runtime_backend/__init__.py',
-  'runtime_backend/requirements.txt',
-  'runtime_backend/app/__init__.py',
-  'runtime_backend/app/main.py',
-  'runtime_backend/app/api/__init__.py',
-  'runtime_backend/app/api/commands.py',
-  'runtime_backend/app/core/__init__.py',
-  'runtime_backend/app/core/constants.py',
-  'runtime_backend/app/core/settings.py',
-  'runtime_backend/app/db/__init__.py',
-  'runtime_backend/app/db/bootstrap.py',
-  'runtime_backend/app/models/__init__.py',
-  'runtime_backend/app/models/command.py',
-  'runtime_backend/app/models/process_execution.py',
-  'runtime_backend/app/models/project_snapshot.py',
-  'runtime_backend/app/services/__init__.py',
-  'runtime_backend/app/services/errors.py',
-  'runtime_backend/app/services/active_process_policy.py',
-  'runtime_backend/app/services/command_dispatcher.py',
-  'runtime_backend/app/services/process_execution.py',
-  'runtime_backend/app/services/project_catalog.py',
-  'runtime_backend/app/services/project_storage.py',
-  'runtime_backend/app/utils/__init__.py',
-  'runtime_backend/app/utils/id_utils.py',
-  'runtime_backend/app/utils/metagen_runner.py',
-  'runtime_backend/app/utils/time_utils.py',
-]
-
-
-def ensure_project_structure() -> tuple[int, int]:
-  created_dirs = 0
-  created_files = 0
-
-  for relative_path in PROJECT_FILES:
-    file_path = ROOT / relative_path
-    parent_dir = file_path.parent
-
-    if parent_dir != ROOT:
-      missing_chain: list[Path] = []
-      current = parent_dir
-
-      while current != ROOT and not current.exists():
-        missing_chain.append(current)
-        current = current.parent
-
-      if missing_chain:
-        parent_dir.mkdir(parents=True, exist_ok=True)
-        created_dirs += len(missing_chain)
-
-    if not file_path.exists():
-      file_path.touch()
-      created_files += 1
-
-  return created_dirs, created_files
-
-
-def main() -> None:
-  created_dirs, created_files = ensure_project_structure()
-  print(
-    'Project structure is ready. '
-    f'Created directories: {created_dirs}, created files: {created_files}.'
-  )
-
-
-if __name__ == '__main__':
-  main()
-
-
-
-==================================================
 FILE: export_project_to_txt.py
 ==================================================
 
@@ -1025,7 +866,6 @@ PROJECT_FILES = [
   'shared/config/platform-config.js',
   'shared/config/project-config.js',
   'ui/config/ui-config.js',
-  'create_project_structure.py',
   'export_project_to_txt.py',
   'ui/package.json',
   'ui/renderer/app.js',
@@ -1098,32 +938,33 @@ PROJECT_FILES = [
   'ui/renderer/runtime/processPollingLifecycle.js',
   'ui/renderer/runtime/processExecutionOrchestrator.js',
   'ui/renderer/runtime/adapters/createHttpRuntimeAdapter.js',
-  'runtime_backend/__init__.py',
-  'runtime_backend/requirements.txt',
-  'runtime_backend/app/__init__.py',
-  'runtime_backend/app/main.py',
-  'runtime_backend/app/api/__init__.py',
-  'runtime_backend/app/api/commands.py',
-  'runtime_backend/app/core/__init__.py',
-  'runtime_backend/app/core/constants.py',
-  'runtime_backend/app/core/settings.py',
-  'runtime_backend/app/db/__init__.py',
-  'runtime_backend/app/db/bootstrap.py',
-  'runtime_backend/app/models/__init__.py',
-  'runtime_backend/app/models/command.py',
-  'runtime_backend/app/models/process_execution.py',
-  'runtime_backend/app/models/project_snapshot.py',
-  'runtime_backend/app/services/__init__.py',
-  'runtime_backend/app/services/errors.py',
-  'runtime_backend/app/services/active_process_policy.py',
-  'runtime_backend/app/services/command_dispatcher.py',
-  'runtime_backend/app/services/process_execution.py',
-  'runtime_backend/app/services/project_catalog.py',
-  'runtime_backend/app/services/project_storage.py',
-  'runtime_backend/app/utils/__init__.py',
-  'runtime_backend/app/utils/id_utils.py',
-  'runtime_backend/app/utils/metagen_runner.py',
-  'runtime_backend/app/utils/time_utils.py',
+  'rtb/README.md',
+  'rtb/__init__.py',
+  'rtb/requirements.txt',
+  'rtb/app/__init__.py',
+  'rtb/app/main.py',
+  'rtb/app/api/__init__.py',
+  'rtb/app/api/commands.py',
+  'rtb/app/core/__init__.py',
+  'rtb/app/core/constants.py',
+  'rtb/app/core/settings.py',
+  'rtb/app/db/__init__.py',
+  'rtb/app/db/bootstrap.py',
+  'rtb/app/models/__init__.py',
+  'rtb/app/models/command.py',
+  'rtb/app/models/process_execution.py',
+  'rtb/app/models/project_snapshot.py',
+  'rtb/app/services/__init__.py',
+  'rtb/app/services/errors.py',
+  'rtb/app/services/active_process_policy.py',
+  'rtb/app/services/command_dispatcher.py',
+  'rtb/app/services/process_execution.py',
+  'rtb/app/services/project_catalog.py',
+  'rtb/app/services/project_storage.py',
+  'rtb/app/utils/__init__.py',
+  'rtb/app/utils/id_utils.py',
+  'rtb/app/utils/metagen_runner.py',
+  'rtb/app/utils/time_utils.py',
 ]
 
 
@@ -1163,7 +1004,6 @@ if __name__ == '__main__':
   export_files()
 
 
-
 ==================================================
 FILE: ui/package.json
 ==================================================
@@ -1175,10 +1015,10 @@ FILE: ui/package.json
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test ../tests/*.test.js",
-    "test:all": "node --test ../tests/*.test.js && node --test ../tests/*.test.js && set PYTHONPATH=..&& python -m pytest ../runtime_backend/tests -q",
-    "test:backend": "set PYTHONPATH=..&& python -m pytest ../runtime_backend/tests -q",
-    "test:integration": "node --test ../tests/*.test.js"
+    "test": "node --test --test-isolation=none ../tests/*.test.js",
+    "test:integration": "npm.cmd test",
+    "test:backend": "set PYTHONPATH=..&& python -m pytest ..\\rtb\\tests -q -p no:cacheprovider",
+    "test:all": "npm.cmd test && npm.cmd run test:backend"
   },
   "dependencies": {
     "split.js": "^1.6.5",
@@ -12212,14 +12052,92 @@ export function createHttpRuntimeAdapter({
 
 
 ==================================================
-FILE: runtime_backend/__init__.py
+FILE: rtb/README.md
+==================================================
+
+# MetaPlatform
+
+Web-only IDE runtime: frontend on Vite + runtime backend on FastAPI.
+
+## Project Runtime
+
+- **Renderer UI** - web interface for the application.
+- **Vite** - dev server for frontend.
+- **Runtime backend** - Python API, backend workspace, import/export, process execution, lock/heartbeat/save/close semantics.
+
+## Main Workflows
+
+- **Primary flow:** backend workspace.
+- **File operations:** only **import/export**.
+- Backend runs **separately**.
+- `npm run dev` **does not start backend**.
+
+### Backend workspace
+
+- Browse backend projects
+- Create backend project
+- Open backend project
+- Save backend project
+- Save As as a workspace copy
+- Close backend project
+- Delete backend project
+
+### File operations
+
+- **Import**
+- **Export**
+
+## Install
+
+From repository root:
+
+```bash
+cd ui && npm install
+python -m pip install -r rtb/requirements.txt
+```
+
+## Run In Development
+
+Use **two terminals** from repository root.
+
+### Terminal 1 - backend
+
+```bash
+python -m uvicorn rtb.app.main:app --host 127.0.0.1 --port 8000
+```
+
+### Terminal 2 - web UI
+
+```bash
+cd ui && npm run dev
+```
+
+## Test Suite
+
+From repository root:
+
+```bash
+cd ./ui && npm.cmd test
+cd ./ui && npm.cmd run test:integration
+cd ./ui && npm.cmd run test:backend
+```
+
+Full required run:
+
+```bash
+cd ./ui && npm.cmd run test:all
+```
+
+
+==================================================
+FILE: rtb/__init__.py
 ==================================================
 
 ﻿
 
 
 ==================================================
-FILE: runtime_backend/requirements.txt
+FILE: rtb/requirements.txt
 ==================================================
 
 fastapi
@@ -12230,21 +12148,21 @@ pytest
 httpx
 
 ==================================================
-FILE: runtime_backend/app/__init__.py
+FILE: rtb/app/__init__.py
 ==================================================
 
 
 
 
 ==================================================
-FILE: runtime_backend/app/main.py
+FILE: rtb/app/main.py
 ==================================================
 
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 
-from runtime_backend.app.api.commands import router as commands_router
-from runtime_backend.app.db.bootstrap import bootstrap_storage
-from runtime_backend.app.services.command_dispatcher import process_execution_service
+from rtb.app.api.commands import router as commands_router
+from rtb.app.db.bootstrap import bootstrap_storage
+from rtb.app.services.command_dispatcher import process_execution_service
 
 app = FastAPI(title='MetaPlatform Runtime Backend')
 
@@ -12261,18 +12179,19 @@ def _shutdown() -> None:
 
 app.include_router(commands_router)
 
-==================================================
-FILE: runtime_backend/app/api/__init__.py
-==================================================
-
-
-
 
 ==================================================
-FILE: runtime_backend/app/api/commands.py
+FILE: rtb/app/api/__init__.py
 ==================================================
 
-from pathlib import Path
+
+
+
+==================================================
+FILE: rtb/app/api/commands.py
+==================================================
+
+﻿from pathlib import Path
 from typing import Any
 from email.parser import BytesParser
 from email.policy import default as email_default_policy
@@ -12281,7 +12200,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
 
-from runtime_backend.app.core.constants import (
+from rtb.app.core.constants import (
     API_COMMANDS_ENDPOINT,
     API_PROJECT_EXPORTS_ENDPOINT,
     API_PROJECT_IMPORTS_ENDPOINT,
@@ -12289,15 +12208,15 @@ from runtime_backend.app.core.constants import (
     ERROR_CODES,
     PROJECT_IMPORT_POLICY,
 )
-from runtime_backend.app.core.settings import SETTINGS
-from runtime_backend.app.models.command import CommandRequest
-from runtime_backend.app.services.command_dispatcher import (
+from rtb.app.core.settings import SETTINGS
+from rtb.app.models.command import CommandRequest
+from rtb.app.services.command_dispatcher import (
     dispatch_command,
     ensure_platform_command_allowed_while_process_active,
     make_error_response,
     project_storage_service,
 )
-from runtime_backend.app.services.errors import ActiveProcessBusyIssue, ProjectCreateIssue, ProjectImportIssue, ValidationIssue
+from rtb.app.services.errors import ActiveProcessBusyIssue, ProjectCreateIssue, ProjectImportIssue, ValidationIssue
 
 router = APIRouter()
 
@@ -12444,15 +12363,16 @@ async def import_project_archive(request: Request):
         ).model_dump(by_alias=True)
 
 
-==================================================
-FILE: runtime_backend/app/core/__init__.py
-==================================================
-
-
-
 
 ==================================================
-FILE: runtime_backend/app/core/constants.py
+FILE: rtb/app/core/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: rtb/app/core/constants.py
 ==================================================
 
 ﻿from pathlib import Path
@@ -12495,7 +12415,7 @@ COMMANDS = {
         'process_get_state': 'process.getState',
         'process_read_output': 'process.readOutput',
         'process_stop': 'process.stop',
-        'import_project': 'project.import',
+        'import_project': 'importProject',
     }
 }
 
@@ -12517,7 +12437,7 @@ PROCESS_EXECUTION = {
         'system': 'system',
     },
     'metagen_runner': {
-        'module_path': 'runtime_backend.app.utils.metagen_runner',
+        'module_path': 'rtb.app.utils.metagen_runner',
         'default_steps': 16,
         'min_steps': 1,
         'max_steps': 80,
@@ -12611,8 +12531,9 @@ DEFAULT_USER = {
 }
 
 
+
 ==================================================
-FILE: runtime_backend/app/core/settings.py
+FILE: rtb/app/core/settings.py
 ==================================================
 
 ﻿from dataclasses import dataclass
@@ -12678,21 +12599,21 @@ SETTINGS = load_settings()
 
 
 ==================================================
-FILE: runtime_backend/app/db/__init__.py
+FILE: rtb/app/db/__init__.py
 ==================================================
 
 
 
 
 ==================================================
-FILE: runtime_backend/app/db/bootstrap.py
+FILE: rtb/app/db/bootstrap.py
 ==================================================
 
 ﻿import sqlite3
 from pathlib import Path
 
-from runtime_backend.app.core.settings import SETTINGS
-from runtime_backend.app.utils.time_utils import utc_now_iso
+from rtb.app.core.settings import SETTINGS
+from rtb.app.utils.time_utils import utc_now_iso
 
 
 def connect(sqlite_path: Path | None = None) -> sqlite3.Connection:
@@ -12878,15 +12799,16 @@ def _table_exists(db: sqlite3.Connection, table_name: str) -> bool:
     return row is not None
 
 
-==================================================
-FILE: runtime_backend/app/models/__init__.py
-==================================================
-
-
-
 
 ==================================================
-FILE: runtime_backend/app/models/command.py
+FILE: rtb/app/models/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: rtb/app/models/command.py
 ==================================================
 
 ﻿from typing import Any
@@ -12923,7 +12845,7 @@ class CommandResponse(BaseModel):
 
 
 ==================================================
-FILE: runtime_backend/app/models/process_execution.py
+FILE: rtb/app/models/process_execution.py
 ==================================================
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -12952,7 +12874,7 @@ class ProcessStopPayload(BaseModel):
 
 
 ==================================================
-FILE: runtime_backend/app/models/project_snapshot.py
+FILE: rtb/app/models/project_snapshot.py
 ==================================================
 
 from typing import Any
@@ -13008,14 +12930,14 @@ class SaveProjectAsPayload(LockBoundProjectPayload):
 
 
 ==================================================
-FILE: runtime_backend/app/services/__init__.py
+FILE: rtb/app/services/__init__.py
 ==================================================
 
 
 
 
 ==================================================
-FILE: runtime_backend/app/services/errors.py
+FILE: rtb/app/services/errors.py
 ==================================================
 
 ﻿class ValidationIssue(Exception):
@@ -13091,13 +13013,13 @@ class ProcessStopFailedIssue(ProcessExecutionIssue):
 
 
 ==================================================
-FILE: runtime_backend/app/services/active_process_policy.py
+FILE: rtb/app/services/active_process_policy.py
 ==================================================
 
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from runtime_backend.app.core.constants import ACTIVE_PROCESS_COMMAND_POLICY, PROCESS_EXECUTION
-from runtime_backend.app.services.errors import ActiveProcessBusyIssue
+from rtb.app.core.constants import ACTIVE_PROCESS_COMMAND_POLICY, PROCESS_EXECUTION
+from rtb.app.services.errors import ActiveProcessBusyIssue
 
 
 def is_command_allowed_during_active_process(command_id: str) -> bool:
@@ -13132,18 +13054,19 @@ def assert_command_allowed_during_active_process(*, command_id: str, active_proc
     )
 
 
+
 ==================================================
-FILE: runtime_backend/app/services/command_dispatcher.py
+FILE: rtb/app/services/command_dispatcher.py
 ==================================================
 
 ﻿from pydantic import ValidationError
 
-from runtime_backend.app.core.constants import COMMANDS, ERROR_CODES
-from runtime_backend.app.core.settings import SETTINGS
-from runtime_backend.app.models.command import CommandRequest, CommandResponse
-from runtime_backend.app.services import project_catalog
-from runtime_backend.app.services.active_process_policy import assert_command_allowed_during_active_process
-from runtime_backend.app.services.errors import (
+from rtb.app.core.constants import COMMANDS, ERROR_CODES
+from rtb.app.core.settings import SETTINGS
+from rtb.app.models.command import CommandRequest, CommandResponse
+from rtb.app.services import project_catalog
+from rtb.app.services.active_process_policy import assert_command_allowed_during_active_process
+from rtb.app.services.errors import (
     ActiveProcessBusyIssue,
     LostProjectLockIssue,
     NoActiveProcessIssue,
@@ -13157,8 +13080,8 @@ from runtime_backend.app.services.errors import (
     ProjectSaveIssue,
     ValidationIssue,
 )
-from runtime_backend.app.services.process_execution import ProcessExecutionService
-from runtime_backend.app.services.project_storage import ProjectStorageService
+from rtb.app.services.process_execution import ProcessExecutionService
+from rtb.app.services.project_storage import ProjectStorageService
 
 project_storage_service = ProjectStorageService()
 process_execution_service = ProcessExecutionService()
@@ -13355,11 +13278,12 @@ def dispatch_command(request: CommandRequest, *, user_id: str | None = None) -> 
         )
 
 
+
 ==================================================
-FILE: runtime_backend/app/services/process_execution.py
+FILE: rtb/app/services/process_execution.py
 ==================================================
 
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import subprocess
 import sys
@@ -13368,17 +13292,17 @@ from dataclasses import dataclass
 from typing import Any, TextIO
 from uuid import uuid4
 
-from runtime_backend.app.core.constants import COMMANDS, PROCESS_EXECUTION
-from runtime_backend.app.core.settings import SETTINGS
-from runtime_backend.app.db.bootstrap import connect
-from runtime_backend.app.models.process_execution import (
+from rtb.app.core.constants import COMMANDS, PROCESS_EXECUTION
+from rtb.app.core.settings import SETTINGS
+from rtb.app.db.bootstrap import connect
+from rtb.app.models.process_execution import (
     MetaGenGeneratePayload,
     ProcessReadOutputPayload,
     ProcessStatePayload,
     ProcessStopPayload,
 )
-from runtime_backend.app.services.errors import ActiveProcessBusyIssue, NoActiveProcessIssue, ProcessStopFailedIssue, ValidationIssue
-from runtime_backend.app.utils.time_utils import utc_now_iso
+from rtb.app.services.errors import ActiveProcessBusyIssue, NoActiveProcessIssue, ProcessStopFailedIssue, ValidationIssue
+from rtb.app.utils.time_utils import utc_now_iso
 
 
 @dataclass
@@ -13793,22 +13717,23 @@ class ProcessExecutionService:
         }
 
 
+
 ==================================================
-FILE: runtime_backend/app/services/project_catalog.py
+FILE: rtb/app/services/project_catalog.py
 ==================================================
 
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from runtime_backend.app.core.constants import PROJECT_STRUCTURE
-from runtime_backend.app.core.settings import SETTINGS
-from runtime_backend.app.db.bootstrap import connect
-from runtime_backend.app.services.errors import ProjectCreateIssue, ProjectDeleteIssue, ProjectNotFoundIssue, ValidationIssue
-from runtime_backend.app.utils.id_utils import make_project_id, slugify
-from runtime_backend.app.utils.time_utils import utc_now_iso
+from rtb.app.core.constants import PROJECT_STRUCTURE
+from rtb.app.core.settings import SETTINGS
+from rtb.app.db.bootstrap import connect
+from rtb.app.services.errors import ProjectCreateIssue, ProjectDeleteIssue, ProjectNotFoundIssue, ValidationIssue
+from rtb.app.utils.id_utils import make_project_id, slugify
+from rtb.app.utils.time_utils import utc_now_iso
 
 
 @dataclass(frozen=True)
@@ -14127,11 +14052,12 @@ def delete_project(payload: dict) -> dict:
     }
 
 
+
 ==================================================
-FILE: runtime_backend/app/services/project_storage.py
+FILE: rtb/app/services/project_storage.py
 ==================================================
 
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import shutil
 import time
@@ -14143,15 +14069,15 @@ from uuid import uuid4
 
 import yaml
 
-from runtime_backend.app.core.constants import (
+from rtb.app.core.constants import (
     API_PROJECT_EXPORTS_ENDPOINT,
     PROJECT_EXPORT_ARTIFACT_MAX_AGE_SECONDS,
     PROJECT_IMPORT_POLICY,
     PROJECT_STRUCTURE,
 )
-from runtime_backend.app.core.settings import SETTINGS
-from runtime_backend.app.db.bootstrap import connect
-from runtime_backend.app.models.project_snapshot import (
+from rtb.app.core.settings import SETTINGS
+from rtb.app.db.bootstrap import connect
+from rtb.app.models.project_snapshot import (
     CloseProjectPayload,
     ProjectSnapshot,
     ProjectSnapshotDocument,
@@ -14160,8 +14086,8 @@ from runtime_backend.app.models.project_snapshot import (
     SaveProjectAsPayload,
     SaveAllPayload,
 )
-from runtime_backend.app.services import project_catalog
-from runtime_backend.app.services.errors import (
+from rtb.app.services import project_catalog
+from rtb.app.services.errors import (
     LostProjectLockIssue,
     ProjectCreateIssue,
     ProjectExportIssue,
@@ -14172,7 +14098,7 @@ from runtime_backend.app.services.errors import (
     ProjectSaveIssue,
     ValidationIssue,
 )
-from runtime_backend.app.utils.time_utils import utc_now_iso
+from rtb.app.utils.time_utils import utc_now_iso
 
 
 class ProjectStorageService:
@@ -15510,15 +15436,16 @@ class ProjectStorageService:
         )
 
 
-==================================================
-FILE: runtime_backend/app/utils/__init__.py
-==================================================
-
-
-
 
 ==================================================
-FILE: runtime_backend/app/utils/id_utils.py
+FILE: rtb/app/utils/__init__.py
+==================================================
+
+
+
+
+==================================================
+FILE: rtb/app/utils/id_utils.py
 ==================================================
 
 ﻿import re
@@ -15539,7 +15466,7 @@ def slugify(value: str) -> str:
 
 
 ==================================================
-FILE: runtime_backend/app/utils/metagen_runner.py
+FILE: rtb/app/utils/metagen_runner.py
 ==================================================
 
 from __future__ import annotations
@@ -15579,7 +15506,7 @@ if __name__ == '__main__':
 
 
 ==================================================
-FILE: runtime_backend/app/utils/time_utils.py
+FILE: rtb/app/utils/time_utils.py
 ==================================================
 
 ﻿from datetime import datetime, timezone

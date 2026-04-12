@@ -16,6 +16,9 @@
 #      [windows]
 #      sandbox = "elevated"
 #
+#      [projects.'D:\current\coding\MetaPlatform']
+#      trust_level = "trusted"
+#
 #      [notice.model_migrations]
 #      "gpt-5.3-codex" = "gpt-5.4"
 #
