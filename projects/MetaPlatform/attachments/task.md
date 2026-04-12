@@ -1,155 +1,148 @@
-# task.md
+# Context
 
-## Коротко
-Финальная узкая задача: убрать tracked runtime/test artifacts из git diff, привести `.gitignore` к чистому и актуальному виду для текущего pytest/runtime flow, затем повторно прогнать тесты и подтвердить, что нерелевантный мусор больше не возвращается в diff.
+Новая отдельная задача: убрать запрещённый JS-слой `ui/renderer/ui/pngIconRenderer.js` и привести UI к правилу, что PNG-иконки существуют только как assets, без специализированного icon renderer helper-а в коде.
 
-## Контекст
-Root-cause analysis и точечный fix test contract уже сделаны:
-- backend temp issue закрыта через repo-local `tmp_path` fixture;
-- `cacheprovider` отключён в фактическом `test:backend` execution path через `ui/package.json`;
-- reviewer уже подтвердил, что текущий незавершённый хвост — это cleanup tracked artifacts и избыточные pytest/runtime ignore rules.
+По текущему дампу видно, что:
+- файл `ui/renderer/ui/pngIconRenderer.js` существует;
+- он используется как минимум из `ui/renderer/ui/applyStaticText.js` и `ui/renderer/ui/createProjectTree.js`;
+- это конфликтует с проектным правилом, что отдельный icon renderer JS для PNG запрещён.
 
-Сейчас в technical channel ещё фигурируют tracked artifacts:
-- `rtb/runtime_data/platform.db`
-- `rtb/tests/__pycache__/...pyc`
+Эта итерация должна убрать именно этот слой и его использования, не расширяя scope на большой UI-refactor.
 
-Также `.gitignore` содержит смесь актуальных, дублирующих и, вероятно, устаревших правил для pytest/runtime мусора.
+# Current scope
 
-## Current scope
-Только:
-1. решить `rtb/runtime_data/platform.db` и `rtb/tests/__pycache__/...` как tracked artifacts;
-2. привести в порядок `.gitignore` только в части pytest/runtime cleanup;
-3. прогнать тесты ещё раз;
-4. проверить, что после повторного прогона нерелевантный мусор не возвращается в diff.
+Только удаление зависимости UI от `ui/renderer/ui/pngIconRenderer.js` и синхронизация связанных мест.
 
-Не выходи за этот scope.
+Не переходить в соседние темы:
+- не делать общий cleanup UI;
+- не менять lock/process/backend lifecycle;
+- не менять module/editor semantics;
+- не делать общий asset pipeline refactor;
+- не трогать документы 01/02/03 в этом цикле, если только не потребуется минимальная синхронизация из-за прямого расхождения с итоговым состоянием.
 
-## Target semantics
-После правки должно быть истинно всё ниже:
-- `rtb/runtime_data/platform.db` больше не tracked artifact в diff;
-- `rtb/tests/__pycache__/...pyc` больше не tracked artifact в diff;
-- `.gitignore` отражает текущий repo layout и текущий pytest/runtime execution path без явных дублей и устаревших правил в этой зоне;
-- `cd ui; npm.cmd run test:backend` проходит;
-- `cd ui; npm.cmd run test:all` проходит;
-- после повторного прогона `git status --short` не показывает новый нерелевантный runtime/test мусор;
-- `pytest-cache-files-*` больше не появляются как новый мусор после backend/all test flow.
+# Target semantics
 
-## What to inspect first
-Сначала проверь:
-- `.gitignore`
-- `ui/package.json`
-- `rtb/tests/conftest.py`
-- текущий `git status --short`
+После правки должно быть истинно следующее:
 
-Затем отдельно проверь:
-- tracked ли сейчас `rtb/runtime_data/platform.db`
-- tracked ли сейчас `rtb/tests/__pycache__/...`
-- какие pytest/runtime ignore rules реально нужны под текущий flow:
-  - `.pytest_cache/`
-  - `.pytest-temp-tests/`
-  - `pytest-cache-files-*/`
-  - `__pycache__/`
-  - `.tmp/`
-- какие rules выглядят дублирующими или устаревшими для текущего repo layout
-- существуют ли в проекте ещё реальные пути, ради которых нужны старые ignore entries вроде `runtime_backend/...`
+1. В рабочем UI-коде больше нет специализированного helper-а `ui/renderer/ui/pngIconRenderer.js`.
+2. `applyStaticText.js`, `createProjectTree.js` и другие затронутые UI-места больше не импортируют и не вызывают этот helper.
+3. PNG-иконки, если они реально нужны UI, используются только как assets / обычные пути / обычные DOM-элементы без отдельного renderer abstraction layer.
+4. Не должно появиться нового параллельного icon helper-а с тем же смыслом под другим именем.
+5. `export_project_to_txt.py` должен быть актуализирован: удалённый `pngIconRenderer.js` не должен оставаться в whitelist.
+6. Полный набор тестов по проекту должен быть реально прогнан Codex, reviewer должен проверить фактические результаты.
 
-## Required changes
-1. Убери из git tracking:
-   - `rtb/runtime_data/platform.db`
-   - `rtb/tests/__pycache__/...`
-   Используй корректный git-based cleanup, а не только локальное удаление файлов без решения tracking problem.
+# What to inspect first
 
-2. Обнови `.gitignore` только в зоне pytest/runtime artifacts.
-   - Оставь только реально нужные правила под текущий repo layout и текущий execution path.
-   - Удали явные дубли и устаревшие rules, если они действительно уже не нужны.
-   - Не делай общий cleanup `.gitignore` вне этого scope.
+Сначала поручи Codex проверить в репозитории:
 
-3. Не меняй test contract повторно, если это не требуется.
-   - `ui/package.json` и `rtb/tests/conftest.py` трогай только если повторная проверка покажет реальный незакрытый дефект.
-   - Если текущий flow уже работает, не перерабатывай его заново.
+1. `ui/renderer/ui/pngIconRenderer.js` — что именно он делает и какой контракт даёт вызывающим местам.
+2. Все импорты и использования `pngIconRenderer` по репозиторию.
+3. `ui/renderer/ui/applyStaticText.js`
+4. `ui/renderer/ui/createProjectTree.js`
+5. Любые соседние UI-файлы, которые могут зависеть от того же icon contract.
+6. `export_project_to_txt.py` — наличие `ui/renderer/ui/pngIconRenderer.js` в `PROJECT_FILES`.
+7. Текущий способ хранения и использования PNG assets, чтобы не заменить удаление helper-а на скрытый второй renderer layer.
 
-4. После cleanup повторно прогоняй тесты и смотри именно на возврат мусора.
-   - Отдельно зафиксируй, появляется ли снова:
-     - `pytest-cache-files-*`
-     - `.pytest_cache`
-     - `.pytest-temp-tests`
-     - `__pycache__`
-     - `platform.db`
-   - Важно не “ничего не должно существовать на диске вообще”, а “нерелевантный мусор не должен возвращаться в git diff”.
+# Required changes
 
-## Files allowed to change
-Можно менять только:
-- `.gitignore`
+1. Найди и удали `ui/renderer/ui/pngIconRenderer.js`, если после анализа его можно полностью вывести из рабочего графа зависимостей.
+2. Если вызывающие места используют helper только для генерации DOM/URL/markup для PNG-иконок, перенеси эту логику прямо в локальные места использования или в уже существующий допустимый UI-слой без создания нового специализированного icon renderer helper-а.
+3. Обнови `ui/renderer/ui/applyStaticText.js`, чтобы он больше не зависел от `pngIconRenderer`.
+4. Обнови `ui/renderer/ui/createProjectTree.js`, чтобы он больше не зависел от `pngIconRenderer`.
+5. Проверь, нет ли других импортов/вызовов `pngIconRenderer`, и убери их.
+6. Не вводи новый файл вида `iconRenderer`, `pngRenderer`, `assetIconRenderer`, `iconHelper` и т.п. с той же запрещённой семантикой.
+7. Если для оставшейся логики нужны строки путей, class names, markers или иные shared semantic values, не оставляй новые raw semantic literals — используй существующий config/constants слой.
+8. Актуализируй `export_project_to_txt.py`: удалённый `ui/renderer/ui/pngIconRenderer.js` не должен оставаться в whitelist.
+9. Проверь, не появились ли после правки мёртвые импорты, неиспользуемые ветки и partially-updated fragments в затронутых UI-файлах.
+10. Не менять package-lock files и не добавлять их в export.
 
-Можно:
-- удалить tracked runtime/test artifacts из git index и рабочего дерева, если это необходимо для корректного cleanup.
+# Files allowed to change
 
-Только при прямой необходимости по результатам проверки:
-- `ui/package.json`
-- `rtb/tests/conftest.py`
+Разрешено менять только:
+- `ui/renderer/ui/pngIconRenderer.js`
+- `ui/renderer/ui/applyStaticText.js`
+- `ui/renderer/ui/createProjectTree.js`
+- другие UI-файлы только если после проверки там действительно есть прямой импорт/вызов `pngIconRenderer`
+- `export_project_to_txt.py`
+- связанные тесты, если они действительно существуют и требуют адаптации к корректной семантике
 
-Новые файлы не создавать без необходимости.
-README, helper scripts, docs и export whitelist не трогать.
+Не создавать новые helper-файлы для иконного renderer-слоя.
 
-## Do not do
-- Не возвращайся к общему RCA.
-- Не делай новый refactor test pipeline.
-- Не трогай README, `export_project_to_txt.py`, docs и UI/runtime код вне текущего scope.
-- Не оставляй tracked binary/runtime artifacts в финальном diff.
-- Не раздувай cleanup до общего “наведения порядка по проекту”.
-- Не добавляй новые ignore rules без проверки, что они реально нужны.
-- Не держи одновременно общий и узко-дублирующий ignore rule, если один уже покрывает второй.
+# Do not do
 
-## Verification
-Обязательно приведи фактические результаты этих команд:
+1. Не делать общий refactor UI.
+2. Не менять backend, runtime client, process orchestration, lock lifecycle.
+3. Не менять layout/naming/structure за пределами узкого icon-related scope.
+4. Не заменять удаление `pngIconRenderer` новым helper-слоем под другим именем.
+5. Не тащить в задачу cleanup несвязанных файлов “раз уж уже открыты”.
+6. Не редактировать dump.
+7. Не генерировать новый dump, если это отдельно не требуется для проверки helper-а.
+8. Не добавлять package-lock files в export.
+9. Не оставлять новые raw semantic literals / magic strings / magic numbers, если для них уже существует подходящий config/constants слой.
+10. Не подгонять тесты под неправильную реализацию.
 
-```powershell
-git status --short
-cd ui; npm.cmd run test:backend
-cd ui; npm.cmd run test:all
-git status --short
-```
+# Verification
 
-Если для cleanup tracking нужны дополнительные команды, тоже перечисли их явно, например:
-```powershell
-git rm --cached rtb/runtime_data/platform.db
-git rm --cached -r rtb/tests/__pycache__
-```
+Reviewer должен потребовать от Codex реально прогнать команды и затем проверить фактические результаты.
 
-После тестов отдельно проверь и укажи:
-- вернулись ли `pytest-cache-files-*`
-- появилась ли `.pytest_cache`
-- появилась ли `.pytest-temp-tests`
-- вернулись ли `__pycache__`
-- вернулся ли `rtb/runtime_data/platform.db` в diff
+Обязательные проверки:
 
-## Result report
-Итоговый отчёт дай строго в таком виде:
+1. Поиск по репозиторию:
+   - убедиться, что `pngIconRenderer` больше нигде не импортируется и не используется.
+2. Статическая проверка:
+   - убедиться, что удалённый файл не остался в `export_project_to_txt.py`.
+3. Полный прогон тестов по проекту.
+4. Дополнительно проверить, что после удаления helper-а не осталось:
+   - мёртвых импортов;
+   - unreachable branches;
+   - второго competing source of truth для icon logic;
+   - новых raw semantic literals.
+5. Отдельно проверить, что в `export_project_to_txt.py` по-прежнему не экспортируются:
+   - иконки;
+   - тесты;
+   - package-lock files.
 
-1. **Tracked artifacts**
-   - что было tracked
-   - как именно решено
+Команды проверки:
+- reviewer должен поручить Codex прогнать полный набор тестовых команд фактического проекта;
+- reviewer должен проверить, что Codex привёл фактический stdout/stderr и статусы команд;
+- в extra_test_commands запрещены любые долгоживущие foreground/watch/server-команды без bounded wrapper.
 
-2. **.gitignore cleanup**
-   - какие rules оставлены
-   - какие removed как дубли/устаревшие
-   - почему итоговый набор достаточен
+# Helper script check
 
-3. **Verification**
-   - полный список реально выполненных команд
-   - результат каждой команды
-   - `git status --short` до и после
+Reviewer должен отдельно потребовать от Codex проверить и актуализировать `export_project_to_txt.py`.
 
-4. **Final state**
-   - остался ли нерелевантный runtime/test мусор в diff
-   - появляются ли ещё `pytest-cache-files-*`
-   - `DONE` / `NOT DONE`
+В рамках этой задачи достаточно:
+- статически обновить whitelist;
+- не запускать helper, если это не требуется дополнительно;
+- не оставлять в whitelist `ui/renderer/ui/pngIconRenderer.js`.
 
-## DONE criterion
-DONE только если одновременно:
-- `rtb/runtime_data/platform.db` больше не tracked artifact в diff;
-- `rtb/tests/__pycache__/...` больше не tracked artifact в diff;
-- `.gitignore` очищен от явных дублей/устаревших pytest/runtime rules в текущем scope;
-- `cd ui; npm.cmd run test:backend` проходит;
-- `cd ui; npm.cmd run test:all` проходит;
-- повторная проверка `git status --short` не показывает новый нерелевантный runtime/test мусор.
+# Result report
+
+Reviewer должен потребовать от Codex структурированный итоговый отчёт в формате:
+
+- Summary
+- Changed files
+- What changed
+- Verification
+- Risks / open items
+
+В отчёте обязательно перечислить:
+1. какие файлы изменены;
+2. удалён ли `ui/renderer/ui/pngIconRenderer.js` полностью;
+3. где были убраны его импорты/вызовы;
+4. как обновлён `export_project_to_txt.py`;
+5. какие команды реально прогнаны;
+6. результаты полного тестового прогона;
+7. остались ли риски или открытые вопросы.
+
+# DONE
+
+Задача считается DONE только если одновременно выполнено всё ниже:
+
+1. `ui/renderer/ui/pngIconRenderer.js` удалён или полностью выведен из рабочего использования без замены на новый запрещённый renderer helper.
+2. В репозитории не осталось импортов/использований `pngIconRenderer`.
+3. Все затронутые UI-файлы синхронизированы и не содержат мёртвых хвостов.
+4. `export_project_to_txt.py` актуализирован и больше не содержит `ui/renderer/ui/pngIconRenderer.js`.
+5. Package-lock files не добавлены в export.
+6. Codex реально прогнал полный набор тестов по проекту.
+7. Reviewer проверил фактические результаты команд и не принимает задачу без этого.

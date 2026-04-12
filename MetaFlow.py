@@ -557,6 +557,42 @@ def ensure_repo(
     )
 
 
+
+def normalize_windows_workspace_acl(
+    repo_dir: Path,
+    retry_policy: RetryPolicy,
+) -> None:
+    if os.name != "nt":
+        return
+
+    computer_name = os.environ.get("COMPUTERNAME", "").strip()
+    user_name = os.environ.get("USERNAME", "").strip()
+
+    if not computer_name or not user_name:
+        fail("Cannot resolve Windows COMPUTERNAME/USERNAME for workspace ACL normalization.")
+
+    current_user = f"{computer_name}\\{user_name}"
+    codex_group = f"{computer_name}\\CodexSandboxUsers"
+
+    banner("WINDOWS WORKSPACE ACL")
+    info(f"Normalizing ACL for workspace: {repo_dir}")
+    info(f"Granting FullControl to current user: {current_user}")
+    info(f"Granting FullControl to Codex sandbox group: {codex_group}")
+
+    commands = [
+        ["takeown", "/f", str(repo_dir), "/r", "/d", "y"],
+        ["icacls", str(repo_dir), "/inheritance:e", "/t", "/c"],
+        ["icacls", str(repo_dir), "/grant", f"{current_user}:(OI)(CI)F", "/t", "/c"],
+        ["icacls", str(repo_dir), "/grant", r"BUILTIN\Administrators:(OI)(CI)F", "/t", "/c"],
+        ["icacls", str(repo_dir), "/grant", r"NT AUTHORITY\SYSTEM:(OI)(CI)F", "/t", "/c"],
+        ["icacls", str(repo_dir), "/grant", f"{codex_group}:(OI)(CI)F", "/t", "/c"],
+    ]
+
+    for cmd in commands:
+        run_command_with_retries(cmd, retry_policy=retry_policy)
+
+
+
 def run_setup_commands(repo_dir: Path, setup_commands: List[str], retry_policy: RetryPolicy) -> None:
     if not setup_commands:
         return
@@ -1721,6 +1757,7 @@ def main() -> int:
     )
 
     ensure_repo(git_path, repo_url, branch, repo_dir, retry_policy=repo_retry_policy)
+    normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
     run_setup_commands(repo_dir, setup_commands, retry_policy=setup_retry_policy)
 
     previous_response_id: Optional[str] = None
@@ -1922,6 +1959,8 @@ def main() -> int:
 
         print("\n[CODEX TASK]")
         print(codex_task_md)
+
+        normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
 
         codex_exit, codex_model_summary = run_codex(
             codex_executable=codex_path,

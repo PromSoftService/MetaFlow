@@ -34,53 +34,185 @@ __pycache__/
 
 
 ==================================================
-FILE: ui/config/app-config.js
+FILE: export_project_to_txt.py
 ==================================================
 
-import { PLATFORM_CONFIG } from '../../shared/config/platform-config.js';
-import { PROJECT_CONFIG } from '../../shared/config/project-config.js';
-import { UI_CONFIG } from './ui-config.js';
-import { LOGGER_CONFIG } from './logger-config.js';
+#!/usr/bin/env python3
+from __future__ import annotations
 
-export const APP_CONFIG = {
-  platform: PLATFORM_CONFIG,
-  project: PROJECT_CONFIG,
-  ui: UI_CONFIG,
-  logger: LOGGER_CONFIG
-};
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+OUTPUT_FILE = ROOT / 'metaplatform_project_dump.txt'
+
+PROJECT_FILES = [
+  # Hardcoded whitelist for the current repo state.
+  # Keep this list in sync with the actual working repo.
+  # Do not include icons, tests, package-lock files, demo artifacts,
+  # briefing docs, or cache artifacts.
+
+  '.gitignore',
+  'export_project_to_txt.py',
+
+  'shared/config/platform-config.js',
+  'shared/config/project-config.js',
+
+  'tools/metagen/metagen_siemens_generator.py',
+
+  'ui/config/app-config.js',
+  'ui/config/logger-config.js',
+  'ui/config/ui-config.js',
+  'ui/index.html',
+  'ui/package.json',
+  'ui/styles/styles.css',
+  'ui/vite.config.js',
+
+  'ui/renderer/app.js',
+
+  'ui/renderer/core/commandBus.js',
+  'ui/renderer/core/layout.js',
+  'ui/renderer/core/logger.js',
+  'ui/renderer/core/loggerShared.js',
+  'ui/renderer/core/loggerSinks.js',
+  'ui/renderer/core/moduleRegistry.js',
+  'ui/renderer/core/platformCommands.js',
+  'ui/renderer/core/projectManager.js',
+
+  'ui/renderer/editors/metagen/createMetaGenEditor.js',
+  'ui/renderer/editors/metalab/createMetaLabEditor.js',
+  'ui/renderer/editors/metaview/createMetaViewEditor.js',
+  'ui/renderer/editors/shared/editorHost.js',
+
+  'ui/renderer/modules/metagen/metagenCommands.js',
+  'ui/renderer/modules/metagen/metagenConfig.js',
+  'ui/renderer/modules/metagen/metagenDataContract.js',
+  'ui/renderer/modules/metagen/metagenDocumentFactory.js',
+  'ui/renderer/modules/metagen/metagenGeneratorBridge.js',
+  'ui/renderer/modules/metagen/metagenInstancesContract.js',
+  'ui/renderer/modules/metagen/metagenModule.js',
+  'ui/renderer/modules/metagen/metagenParamsContract.js',
+  'ui/renderer/modules/metagen/metagenParamsHistoryController.js',
+  'ui/renderer/modules/metagen/metagenParamsUndoRedoHotkeys.js',
+  'ui/renderer/modules/metagen/metagenSchema.js',
+
+  'ui/renderer/modules/metagen/tables/createMetaGenDataSheet.js',
+  'ui/renderer/modules/metagen/tables/createMetaGenInstancesSheet.js',
+  'ui/renderer/modules/metagen/tables/createMetaGenParamsSheet.js',
+  'ui/renderer/modules/metagen/tables/createMetaGenSimpleSheet.js',
+  'ui/renderer/modules/metagen/tables/finalizeActiveTableEditing.js',
+  'ui/renderer/modules/metagen/tables/finalizeEditingOnContextLeave.js',
+  'ui/renderer/modules/metagen/tables/metaGenParamsTableAutoStyle.js',
+  'ui/renderer/modules/metagen/tables/metaGenParamsTableAutoStyleInterpretation.js',
+  'ui/renderer/modules/metagen/tables/sheetSnapshot.js',
+
+  'ui/renderer/modules/metalab/metalabCommands.js',
+  'ui/renderer/modules/metalab/metalabConfig.js',
+  'ui/renderer/modules/metalab/metalabDocumentFactory.js',
+  'ui/renderer/modules/metalab/metalabModule.js',
+
+  'ui/renderer/modules/metaview/metaviewCommands.js',
+  'ui/renderer/modules/metaview/metaviewConfig.js',
+  'ui/renderer/modules/metaview/metaviewDocumentFactory.js',
+  'ui/renderer/modules/metaview/metaviewModule.js',
+
+  'ui/renderer/runtime/adapters/createHttpRuntimeAdapter.js',
+  'ui/renderer/runtime/appCloseCoordinator.js',
+  'ui/renderer/runtime/backendCommandSessionOrchestrator.js',
+  'ui/renderer/runtime/backendProjectExportFlow.js',
+  'ui/renderer/runtime/browserShellAdapter.js',
+  'ui/renderer/runtime/createShellAdapter.js',
+  'ui/renderer/runtime/documentLoader.js',
+  'ui/renderer/runtime/documentRecordIdentity.js',
+  'ui/renderer/runtime/documentSnapshot.js',
+  'ui/renderer/runtime/idFactory.js',
+  'ui/renderer/runtime/naming.js',
+  'ui/renderer/runtime/processExecutionOrchestrator.js',
+  'ui/renderer/runtime/processPollingLifecycle.js',
+  'ui/renderer/runtime/projectPaths.js',
+  'ui/renderer/runtime/runtimeClient.js',
+  'ui/renderer/runtime/runtimeClientContract.js',
+  'ui/renderer/runtime/shellContract.js',
+
+  'ui/renderer/ui/applyStaticText.js',
+  'ui/renderer/ui/createProjectTree.js',
+  'ui/renderer/ui/createWorkbenchTabs.js',
+  'ui/renderer/ui/dialogs.js',
+  'ui/renderer/ui/editorContextLifecycle.js',
+  'ui/renderer/ui/projectTree/treeAdapter.js',
+  'ui/renderer/ui/tabEditLifecycle.js',
+  'ui/renderer/ui/workbenchShell.js',
+
+  'rtb/README.md',
+  'rtb/__init__.py',
+  'rtb/requirements.txt',
+
+  'rtb/app/__init__.py',
+  'rtb/app/main.py',
+
+  'rtb/app/api/__init__.py',
+  'rtb/app/api/commands.py',
+
+  'rtb/app/core/__init__.py',
+  'rtb/app/core/constants.py',
+  'rtb/app/core/settings.py',
+
+  'rtb/app/db/__init__.py',
+  'rtb/app/db/bootstrap.py',
+
+  'rtb/app/models/__init__.py',
+  'rtb/app/models/command.py',
+  'rtb/app/models/process_execution.py',
+  'rtb/app/models/project_snapshot.py',
+
+  'rtb/app/services/__init__.py',
+  'rtb/app/services/active_process_policy.py',
+  'rtb/app/services/command_dispatcher.py',
+  'rtb/app/services/errors.py',
+  'rtb/app/services/process_execution.py',
+  'rtb/app/services/project_catalog.py',
+  'rtb/app/services/project_storage.py',
+
+  'rtb/app/utils/__init__.py',
+  'rtb/app/utils/id_utils.py',
+  'rtb/app/utils/metagen_runner.py',
+  'rtb/app/utils/time_utils.py',
+]
 
 
-==================================================
-FILE: ui/config/logger-config.js
-==================================================
+def export_files() -> None:
+  lines: list[str] = []
+  lines.append('=' * 50)
+  lines.append('PROJECT EXPORT')
+  lines.append('=' * 50)
+  lines.append('')
 
-export const LOGGER_CONFIG = {
-  levelNames: {
-    debug: 'debug',
-    info: 'info',
-    warn: 'warn',
-    error: 'error',
-    none: 'none'
-  },
+  for relative_path in PROJECT_FILES:
+    file_path = ROOT / relative_path
 
-  levels: {
-    debug: 10,
-    info: 20,
-    warn: 30,
-    error: 40,
-    none: 50
-  },
-  console: {
-    methodsByLevel: {
-      error: 'error',
-      warn: 'warn'
-    },
-    defaultMethod: 'log'
-  },
-  format: {
-    prettyPrintIndent: 2
-  }
-};
+    lines.append('=' * 50)
+    lines.append(f'FILE: {relative_path}')
+    lines.append('=' * 50)
+    lines.append('')
+
+    if not file_path.exists():
+      lines.append('[FILE NOT FOUND]')
+      lines.append('')
+      continue
+
+    try:
+      content = file_path.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+      content = file_path.read_text(encoding='utf-8', errors='replace')
+
+    lines.append(content)
+    lines.append('')
+
+  OUTPUT_FILE.write_text('\n'.join(lines), encoding='utf-8')
+  print(f'Export finished: {OUTPUT_FILE}')
+
+
+if __name__ == '__main__':
+  export_files()
 
 
 ==================================================
@@ -300,6 +432,592 @@ export const PROJECT_CONFIG = {
     backupPrefix: '.backup-'
   },
 
+};
+
+
+==================================================
+FILE: tools/metagen/metagen_siemens_generator.py
+==================================================
+
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import ast
+import re
+import sys
+import shutil
+from collections import OrderedDict
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable
+
+import yaml
+
+METAGEN_KIND = "metagen.component"
+SCL_ENCODING = "utf-8"
+TEMPLATE_VERSION = "0.1"
+TEMPLATE_OPTIMIZED_ACCESS = "TRUE"
+CONF_DB_NAME = "Conf_DB"
+MAIN_FB_NAME = "_MetaGenMain"
+MAIN_DB_NAME = None
+
+# Defaults for library instance DBs. Unknown FB types fall back to DEFAULT_LIBRARY_* values.
+DEFAULT_LIBRARY_VERSION = "0.1"
+DEFAULT_LIBRARY_OPTIMIZED_ACCESS = "TRUE"
+LIBRARY_INSTANCE_METADATA: dict[str, dict[str, str]] = {
+    "CCabinetController": {"version": "2.3", "optimized_access": "TRUE"},
+    "CCascade": {"version": "0.2", "optimized_access": "FALSE"},
+}
+
+PARAM_TOKEN_RE = re.compile(r"\|([^|]+)\|")
+EVAL_TOKEN_RE = re.compile(r"%(.*?)%", re.DOTALL)
+
+DATA_COLUMN_TYPE = "Тип"
+DATA_COLUMN_DB = "Блок данных"
+DATA_COLUMN_TAG = "Имя переменной"
+DATA_COLUMN_VALUE = "Значение"
+DATA_COLUMN_COMMENT = "Комментарий"
+DATA_COLUMN_CONF = "Conf"
+
+
+@dataclass(frozen=True)
+class InstanceSpec:
+    name: str
+    fb_type: str
+
+
+@dataclass(frozen=True)
+class ConfEntry:
+    tag: str
+    data_type: str
+    value: str
+    comment: str
+
+
+@dataclass
+class TemplateDoc:
+    source_path: Path
+    name: str
+    params_header: list[str]
+    params_rows: list[list[str]]
+    data_columns: list[str]
+    data_rows: list[list[str]]
+    instances_rows: list[list[str]]
+    code_text: str
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate Siemens SCL artifacts from MetaGen YAML documents. "
+            "Inputs may be YAML files and/or directories. Directories are searched recursively "
+            "for YAML files with kind: metagen.component."
+        )
+    )
+    parser.add_argument(
+        "inputs",
+        nargs="+",
+        help="YAML files and/or directories to scan recursively.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        "-o",
+        required=True,
+        help="Directory where generated .scl files will be written. No subdirectories are created.",
+    )
+    return parser.parse_args()
+
+
+def sanitize_cli_path(value: str) -> str:
+    """Normalize Windows shell path quirks.
+
+    In PowerShell/native Windows process launching, a quoted path ending with a backslash
+    may arrive with a stray trailing double quote, for example:
+    Such a quote is never valid in a Windows path, so we can safely trim it.
+    """
+    sanitized = value.strip()
+    while sanitized.endswith(('"', "'")):
+        sanitized = sanitized[:-1]
+    return sanitized
+
+
+def main() -> int:
+    args = parse_args()
+    input_paths = [Path(sanitize_cli_path(value)).expanduser().resolve() for value in args.inputs]
+    output_dir = Path(sanitize_cli_path(args.output_dir)).expanduser().resolve()
+
+    yaml_paths = discover_metagen_yaml_paths(input_paths)
+    if not yaml_paths:
+        raise SystemExit("No MetaGen YAML documents found in the provided inputs.")
+
+    documents = [load_template_doc(path) for path in yaml_paths]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    clean_output_directory(output_dir)
+
+    conf_entries = collect_conf_entries(documents)
+    library_instances = collect_library_instances(documents)
+    template_names = [document.name for document in documents]
+
+    write_text(output_dir / f"{CONF_DB_NAME}.scl", render_conf_db(conf_entries))
+
+    for instance in library_instances.values():
+        write_text(output_dir / f"{instance.name}.scl", render_library_instance_db(instance))
+
+    for document in documents:
+        fb_name = document.name
+        db_name = f"{fb_name}_DB"
+        write_text(output_dir / f"{fb_name}.scl", render_template_fb(document))
+        write_text(output_dir / f"{db_name}.scl", render_template_db(fb_name))
+
+    write_text(output_dir / f"{MAIN_FB_NAME}.scl", render_main_fb(template_names))
+
+    return 0
+
+
+def discover_metagen_yaml_paths(input_paths: Iterable[Path]) -> list[Path]:
+    discovered: list[Path] = []
+    seen: set[Path] = set()
+
+    for input_path in input_paths:
+        if not input_path.exists():
+            raise FileNotFoundError(f"Input path does not exist: {input_path}")
+
+        if input_path.is_dir():
+            candidates = sorted(
+                path for path in input_path.rglob("*") if path.is_file() and path.suffix.lower() in {".yaml", ".yml"}
+            )
+        else:
+            candidates = [input_path]
+
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if resolved in seen:
+                continue
+            if is_metagen_component_yaml(resolved):
+                discovered.append(resolved)
+                seen.add(resolved)
+
+    return discovered
+
+
+def is_metagen_component_yaml(path: Path) -> bool:
+    if path.suffix.lower() not in {".yaml", ".yml"}:
+        return False
+    try:
+        text = path.read_text(encoding=SCL_ENCODING)
+    except UnicodeDecodeError:
+        text = path.read_text(encoding="utf-8-sig")
+    try:
+        payload = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return False
+    return isinstance(payload, dict) and payload.get("kind") == METAGEN_KIND
+
+
+def load_template_doc(path: Path) -> TemplateDoc:
+    payload = yaml.safe_load(path.read_text(encoding=SCL_ENCODING))
+    if not isinstance(payload, dict) or payload.get("kind") != METAGEN_KIND:
+        raise ValueError(f"Unsupported MetaGen document: {path}")
+
+    component = require_dict(payload, "component", path)
+    params = require_dict(payload, "params", path)
+    data = require_dict(payload, "data", path)
+    instances = require_dict(payload, "instances", path)
+    code = require_dict(payload, "code", path)
+
+    name = str(component.get("name") or "").strip()
+    if not name:
+        raise ValueError(f"component.name is required in {path}")
+
+    params_header = normalize_string_list(params.get("header", []), path, "params.header")
+    params_rows = normalize_rows(params.get("rows", []), len(params_header), path, "params.rows")
+
+    data_columns = normalize_string_list(data.get("columns", []), path, "data.columns")
+    if not data_columns:
+        raise ValueError(f"data.columns is required in {path}")
+    data_rows = normalize_rows(data.get("rows", []), len(data_columns), path, "data.rows")
+
+    instances_rows = normalize_rows(instances.get("rows", []), 2, path, "instances.rows")
+    code_text = str(code.get("text") or "")
+
+    return TemplateDoc(
+        source_path=path,
+        name=name,
+        params_header=params_header,
+        params_rows=params_rows,
+        data_columns=data_columns,
+        data_rows=data_rows,
+        instances_rows=instances_rows,
+        code_text=code_text,
+    )
+
+
+def require_dict(payload: dict[str, Any], key: str, path: Path) -> dict[str, Any]:
+    value = payload.get(key)
+    if not isinstance(value, dict):
+        raise ValueError(f"{key} must be a mapping in {path}")
+    return value
+
+
+def normalize_string_list(values: Any, path: Path, field_name: str) -> list[str]:
+    if not isinstance(values, list):
+        raise ValueError(f"{field_name} must be a list in {path}")
+    return ["" if value is None else str(value) for value in values]
+
+
+def normalize_rows(values: Any, expected_length: int, path: Path, field_name: str) -> list[list[str]]:
+    if not isinstance(values, list):
+        raise ValueError(f"{field_name} must be a list in {path}")
+
+    normalized: list[list[str]] = []
+    for index, row in enumerate(values):
+        if row is None:
+            normalized.append([""] * expected_length)
+            continue
+        if not isinstance(row, list):
+            raise ValueError(f"{field_name}[{index}] must be a list in {path}")
+        if len(row) > expected_length:
+            raise ValueError(
+                f"{field_name}[{index}] has {len(row)} items, expected at most {expected_length} in {path}"
+            )
+        normalized_row = ["" if value is None else stringify_scalar(value) for value in row]
+        if len(normalized_row) < expected_length:
+            normalized_row.extend([""] * (expected_length - len(normalized_row)))
+        normalized.append(normalized_row)
+    return normalized
+
+
+def stringify_scalar(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return str(value)
+
+
+def build_param_contexts(document: TemplateDoc) -> list[dict[str, str]]:
+    header = document.params_header
+    rows = document.params_rows
+    if not header:
+        return [{}]
+
+    if not rows:
+        return [dict(zip(header, [""] * len(header), strict=False))]
+
+    return [dict(zip(header, row, strict=False)) for row in rows]
+
+
+def apply_template(text: str, context: dict[str, str]) -> str:
+    def replace_param(match: re.Match[str]) -> str:
+        key = match.group(1)
+        return context.get(key, match.group(0))
+
+    substituted = PARAM_TOKEN_RE.sub(replace_param, text)
+
+    def replace_eval(match: re.Match[str]) -> str:
+        expr = match.group(1)
+        env: dict[str, Any] = {}
+        env.update(context)
+        try:
+            env.update({name: parse_eval_value(value) for name, value in context.items()})
+        except Exception:
+            pass
+        value = eval(expr, {"__builtins__": __builtins__}, env)
+        return stringify_scalar(value)
+
+    return EVAL_TOKEN_RE.sub(replace_eval, substituted)
+
+
+def parse_eval_value(value: str) -> Any:
+    if value == "":
+        return ""
+    lowered = value.strip().lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    try:
+        return ast.literal_eval(value)
+    except Exception:
+        return value
+
+
+def collect_conf_entries(documents: Iterable[TemplateDoc]) -> list[ConfEntry]:
+    entries: list[ConfEntry] = []
+    seen_tags: set[str] = set()
+
+    for document in documents:
+        contexts = build_param_contexts(document)
+        column_index = build_column_index(document.data_columns)
+        required_columns = {DATA_COLUMN_TYPE, DATA_COLUMN_TAG, DATA_COLUMN_VALUE, DATA_COLUMN_COMMENT, DATA_COLUMN_CONF}
+        missing = required_columns - set(column_index)
+        if missing:
+            raise ValueError(f"Missing required data columns {sorted(missing)} in {document.source_path}")
+
+        for context in contexts:
+            for row in document.data_rows:
+                mapped = row_to_mapping(document.data_columns, row)
+                conf_flag = mapped.get(DATA_COLUMN_CONF, "").strip()
+                if not conf_flag:
+                    continue
+                tag = apply_template(mapped[DATA_COLUMN_TAG], context).strip()
+                if not tag:
+                    continue
+                if tag in seen_tags:
+                    continue
+                seen_tags.add(tag)
+                data_type = normalize_scl_type(apply_template(mapped[DATA_COLUMN_TYPE], context).strip())
+                entries.append(
+                    ConfEntry(
+                        tag=tag,
+                        data_type=data_type,
+                        value=normalize_scl_value(apply_template(mapped[DATA_COLUMN_VALUE], context).strip(), data_type),
+                        comment=apply_template(mapped[DATA_COLUMN_COMMENT], context).strip(),
+                    )
+                )
+    return entries
+
+
+def collect_library_instances(documents: Iterable[TemplateDoc]) -> OrderedDict[str, InstanceSpec]:
+    instances: OrderedDict[str, InstanceSpec] = OrderedDict()
+    for document in documents:
+        contexts = build_param_contexts(document)
+        for context in contexts:
+            for row in document.instances_rows:
+                if not any(cell.strip() for cell in row):
+                    continue
+                raw_name = row[0].strip()
+                raw_type = row[1].strip() if len(row) > 1 else ""
+                if not raw_name or not raw_type:
+                    continue
+                name = apply_template(raw_name, context).strip()
+                fb_type = apply_template(raw_type, context).strip()
+                existing = instances.get(name)
+                if existing and existing.fb_type != fb_type:
+                    raise ValueError(
+                        f"Conflicting instance type for {name}: {existing.fb_type!r} vs {fb_type!r}"
+                    )
+                instances.setdefault(name, InstanceSpec(name=name, fb_type=fb_type))
+    return instances
+
+
+def build_column_index(columns: list[str]) -> dict[str, int]:
+    return {name: index for index, name in enumerate(columns)}
+
+
+def row_to_mapping(columns: list[str], row: list[str]) -> dict[str, str]:
+    return {column: row[index] for index, column in enumerate(columns)}
+
+
+def normalize_scl_type(value: str) -> str:
+    if not value:
+        return value
+    mapping = {
+        "bool": "Bool",
+        "int": "Int",
+        "dint": "DInt",
+        "real": "Real",
+        "word": "Word",
+    }
+    return mapping.get(value.lower(), value)
+
+
+def normalize_scl_value(value: str, data_type: str) -> str:
+    if value == "":
+        return value
+    lowered = value.lower()
+    normalized_type = data_type.lower()
+
+    if normalized_type == "bool":
+        if lowered in {"0", "false"}:
+            return "false"
+        if lowered in {"1", "true"}:
+            return "true"
+
+    if normalized_type == "real":
+        if re.fullmatch(r"[-+]?\d+", value):
+            return f"{value}.0"
+
+    if lowered in {"true", "false"}:
+        return lowered
+
+    return value
+
+
+def render_conf_db(entries: list[ConfEntry]) -> str:
+    header_lines = [
+        f'DATA_BLOCK "{CONF_DB_NAME}"',
+        "{ S7_Optimized_Access := 'TRUE' }",
+        "VERSION : 0.1",
+        "NON_RETAIN",
+        "   VAR RETAIN",
+    ]
+
+    for entry in entries:
+        comment = f"   // {entry.comment}" if entry.comment else ""
+        header_lines.append(f"      {entry.tag} : {entry.data_type};{comment}")
+
+    header_lines.extend(["   END_VAR", "", "", "BEGIN"])
+
+    body_lines = [f"   {entry.tag} := {entry.value};" for entry in entries]
+
+    return "\n".join(header_lines + body_lines + ["", "END_DATA_BLOCK", ""])
+
+
+def render_library_instance_db(instance: InstanceSpec) -> str:
+    metadata = LIBRARY_INSTANCE_METADATA.get(instance.fb_type, {})
+    version = metadata.get("version", DEFAULT_LIBRARY_VERSION)
+    optimized_access = metadata.get("optimized_access", DEFAULT_LIBRARY_OPTIMIZED_ACCESS)
+    lines = [
+        f'DATA_BLOCK "{instance.name}"',
+        f"{{ S7_Optimized_Access := '{optimized_access}' }}",
+        f"VERSION : {version}",
+        "NON_RETAIN",
+        f'"{instance.fb_type}"',
+        "",
+        "BEGIN",
+        "",
+        "END_DATA_BLOCK",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def render_template_db(fb_name: str) -> str:
+    db_name = f"{fb_name}_DB"
+    lines = [
+        f'DATA_BLOCK "{db_name}"',
+        "{ S7_Optimized_Access := 'TRUE' }",
+        "VERSION : 0.1",
+        "NON_RETAIN",
+        f'"{fb_name}"',
+        "",
+        "BEGIN",
+        "",
+        "END_DATA_BLOCK",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def render_template_fb(document: TemplateDoc) -> str:
+    rendered_body = render_template_code(document)
+    lines = [
+        f'FUNCTION_BLOCK "{document.name}"',
+        "{ S7_Optimized_Access := 'TRUE' }",
+        "VERSION : 0.1",
+        "",
+        "BEGIN",
+        "",
+    ]
+    if rendered_body:
+        lines.extend(rendered_body.splitlines())
+    lines.extend(["", "END_FUNCTION_BLOCK", ""])
+    return "\n".join(lines)
+
+
+def render_main_fb(template_names: list[str]) -> str:
+    body_lines: list[str] = []
+    for template_name in template_names:
+        body_lines.append(f'        "{template_name}_DB"();')
+        body_lines.append("")
+    lines = [
+        f'FUNCTION_BLOCK "{MAIN_FB_NAME}"',
+        "{ S7_Optimized_Access := 'TRUE' }",
+        "VERSION : 0.1",
+        "",
+        "BEGIN",
+        "",
+        *body_lines,
+        "END_FUNCTION_BLOCK",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def render_template_code(document: TemplateDoc) -> str:
+    contexts = build_param_contexts(document)
+    chunks: list[str] = []
+
+    for context in contexts:
+        rendered = apply_template(document.code_text, context)
+        rendered = preserve_template_code(rendered)
+        if rendered:
+            chunks.append(rendered)
+    return "\n".join(chunks)
+
+
+def preserve_template_code(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n").strip("\n")
+
+def write_text(path: Path, content: str) -> None:
+    path.write_text(content, encoding=SCL_ENCODING, newline="\n")
+
+
+
+def clean_output_directory(output_dir: Path) -> None:
+    for child in output_dir.iterdir():
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:  # pragma: no cover - CLI friendly error path.
+        print(f"Error: {exc}", file=sys.stderr)
+        raise
+
+
+==================================================
+FILE: ui/config/app-config.js
+==================================================
+
+import { PLATFORM_CONFIG } from '../../shared/config/platform-config.js';
+import { PROJECT_CONFIG } from '../../shared/config/project-config.js';
+import { UI_CONFIG } from './ui-config.js';
+import { LOGGER_CONFIG } from './logger-config.js';
+
+export const APP_CONFIG = {
+  platform: PLATFORM_CONFIG,
+  project: PROJECT_CONFIG,
+  ui: UI_CONFIG,
+  logger: LOGGER_CONFIG
+};
+
+
+==================================================
+FILE: ui/config/logger-config.js
+==================================================
+
+export const LOGGER_CONFIG = {
+  levelNames: {
+    debug: 'debug',
+    info: 'info',
+    warn: 'warn',
+    error: 'error',
+    none: 'none'
+  },
+
+  levels: {
+    debug: 10,
+    info: 20,
+    warn: 30,
+    error: 40,
+    none: 50
+  },
+  console: {
+    methodsByLevel: {
+      error: 'error',
+      warn: 'warn'
+    },
+    defaultMethod: 'log'
+  },
+  format: {
+    prettyPrintIndent: 2
+  }
 };
 
 
@@ -846,162 +1564,113 @@ export const UI_CONFIG = {
 
 
 ==================================================
-FILE: export_project_to_txt.py
+FILE: ui/index.html
 ==================================================
 
-#!/usr/bin/env python3
-from __future__ import annotations
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title></title>
+  <link rel="stylesheet" href="/styles/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <div class="top-panel">
+      <div class="top-panel-left">
+        <span id="top-panel-title"></span>
+      </div>
+      <div class="top-panel-right">
+        <div id="platform-action-surface">
+          <button id="platform-action-create-workspace-project-button" type="button"></button>
+          <button id="platform-action-browse-workspace-projects-button" type="button"></button>
+          <button id="platform-action-close-workspace-project-button" type="button"></button>
+          <button id="platform-action-save-workspace-project-button" type="button"></button>
+          <button id="platform-action-save-workspace-project-as-button" type="button"></button>
+          <button id="platform-action-import-workspace-project-button" type="button"></button>
+          <button id="platform-action-export-workspace-project-button" type="button"></button>
+          <button id="platform-action-exit-button" type="button"></button>
+        </div>
+        <button id="top-panel-params-undo" type="button" disabled></button>
+        <button id="top-panel-params-redo" type="button" disabled></button>
+      </div>
+    </div>
 
-from pathlib import Path
+    <div class="workbench-main-layout" id="workbench-main-layout">
+      <div class="project-tree-column" id="project-tree-column">
+        <div class="side-header" id="project-panel-title"></div>
+        <div class="backend-project-catalog" id="backend-project-catalog" hidden tabindex="-1">
+          <div class="backend-workspace-browser-head">
+            <div id="backend-workspace-title" class="backend-workspace-browser-title"></div>
+            <div id="backend-workspace-subtitle" class="backend-workspace-browser-subtitle"></div>
+          </div>
+          <div class="backend-workspace-browser-primary-actions">
+            <button id="backend-project-list-button" type="button">List</button>
+            <button id="backend-project-import-button" type="button">Import</button>
+            <div class="backend-workspace-browser-create-group">
+              <input id="backend-project-create-input" type="text" placeholder="Project name" />
+              <button id="backend-project-create-button" type="button">Create</button>
+            </div>
+          </div>
+          <div class="backend-workspace-browser-status-wrap">
+            <div id="backend-project-status-label" class="backend-workspace-browser-status-label"></div>
+            <pre id="backend-project-status" class="backend-workspace-browser-status"></pre>
+          </div>
+          <div id="backend-process-panel" class="backend-process-panel">
+            <div id="backend-process-title" class="backend-process-title"></div>
+            <div id="backend-process-context" class="backend-process-context"></div>
+            <div class="backend-process-actions">
+              <button id="backend-process-generate-button" type="button">Generate</button>
+              <button id="backend-process-stop-button" type="button">Stop</button>
+            </div>
+            <div class="backend-process-meta">
+              <div class="backend-process-meta-row">
+                <span id="backend-process-command-label" class="backend-process-meta-label">Command</span>
+                <span id="backend-process-command" class="backend-process-meta-value"></span>
+              </div>
+              <div class="backend-process-meta-row">
+                <span id="backend-process-status-label" class="backend-process-meta-label">Status</span>
+                <span id="backend-process-status" class="backend-process-meta-value"></span>
+              </div>
+              <div class="backend-process-meta-row">
+                <span id="backend-process-exit-code-label" class="backend-process-meta-label">Exit code</span>
+                <span id="backend-process-exit-code" class="backend-process-meta-value"></span>
+              </div>
+            </div>
+            <pre id="backend-process-output" class="backend-process-output"></pre>
+          </div>
+          <div class="backend-workspace-browser-list-wrap">
+            <div id="backend-project-list-label" class="backend-workspace-browser-list-label"></div>
+            <div id="backend-project-list" class="backend-workspace-browser-list"></div>
+            <div id="backend-project-empty-state" class="backend-workspace-browser-empty-state" hidden></div>
+          </div>
+        </div>
+        <div id="project-tree" class="project-tree"></div>
+      </div>
 
-ROOT = Path(__file__).resolve().parent
-OUTPUT_FILE = ROOT / 'metaplatform_project_dump.txt'
+      <div class="workbench-right-column" id="workbench-right-column">
+        <div class="tabs-bar">
+          <div class="tabs-list" id="tabs-list"></div>
+        </div>
 
-PROJECT_FILES = [
-  # Shared helper whitelist: include active app/config/runtime backend sources only.
-  # Exclude top-level tests/, public/icons/, and project-examples/demo-feedmill/ in both helper scripts.
-  '.gitignore',
-  'ui/config/app-config.js',
-  'ui/config/logger-config.js',
-  'shared/config/platform-config.js',
-  'shared/config/project-config.js',
-  'ui/config/ui-config.js',
-  'export_project_to_txt.py',
-  'ui/package.json',
-  'ui/renderer/app.js',
-  'ui/renderer/core/commandBus.js',
-  'ui/renderer/core/layout.js',
-  'ui/renderer/core/logger.js',
-  'ui/renderer/core/loggerShared.js',
-  'ui/renderer/core/moduleRegistry.js',
-  'ui/renderer/core/platformCommands.js',
-  'ui/renderer/core/projectManager.js',
-  'ui/renderer/editors/metagen/createMetaGenEditor.js',
-  'ui/renderer/editors/metalab/createMetaLabEditor.js',
-  'ui/renderer/editors/metaview/createMetaViewEditor.js',
-  'ui/renderer/editors/shared/editorHost.js',
-  'ui/index.html',
-  'ui/renderer/modules/metagen/metagenCommands.js',
-  'ui/renderer/modules/metagen/metagenConfig.js',
-  'ui/renderer/modules/metagen/metagenDocumentFactory.js',
-  'ui/renderer/modules/metagen/metagenGeneratorBridge.js',
-  'ui/renderer/modules/metagen/metagenParamsHistoryController.js',
-  'ui/renderer/modules/metagen/metagenParamsUndoRedoHotkeys.js',
-  'ui/renderer/modules/metagen/metagenModule.js',
-  'ui/renderer/modules/metagen/metagenSchema.js',
-  'ui/renderer/modules/metagen/metagenParamsContract.js',
-  'ui/renderer/modules/metagen/metagenDataContract.js',
-  'ui/renderer/modules/metagen/metagenInstancesContract.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenDataSheet.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenInstancesSheet.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenParamsSheet.js',
-  'ui/renderer/modules/metagen/tables/createMetaGenSimpleSheet.js',
-  'ui/renderer/modules/metagen/tables/finalizeActiveTableEditing.js',
-  'ui/renderer/modules/metagen/tables/finalizeEditingOnContextLeave.js',
-  'ui/renderer/modules/metagen/tables/metaGenParamsTableAutoStyle.js',
-  'ui/renderer/modules/metagen/tables/metaGenParamsTableAutoStyleInterpretation.js',
-  'ui/renderer/modules/metagen/tables/sheetSnapshot.js',
-  'ui/renderer/modules/metalab/metalabCommands.js',
-  'ui/renderer/modules/metalab/metalabConfig.js',
-  'ui/renderer/modules/metalab/metalabDocumentFactory.js',
-  'ui/renderer/modules/metalab/metalabModule.js',
-  'ui/renderer/modules/metaview/metaviewCommands.js',
-  'ui/renderer/modules/metaview/metaviewConfig.js',
-  'ui/renderer/modules/metaview/metaviewDocumentFactory.js',
-  'ui/renderer/modules/metaview/metaviewModule.js',
-  'ui/renderer/runtime/documentLoader.js',
-  'ui/renderer/runtime/documentRecordIdentity.js',
-  'ui/renderer/runtime/documentSnapshot.js',
-  'ui/renderer/runtime/appCloseCoordinator.js',
-  'ui/renderer/runtime/backendCommandSessionOrchestrator.js',
-  'ui/renderer/runtime/backendProjectExportFlow.js',
-  'ui/renderer/runtime/browserShellAdapter.js',
-  'ui/renderer/runtime/createShellAdapter.js',
-  'ui/renderer/runtime/shellContract.js',
-  'ui/renderer/runtime/idFactory.js',
-  'ui/renderer/runtime/naming.js',
-  'ui/styles/styles.css',
-  'ui/renderer/ui/applyStaticText.js',
-  'ui/renderer/ui/createProjectTree.js',
-  'ui/renderer/ui/pngIconRenderer.js',
-  'ui/renderer/ui/projectTree/treeAdapter.js',
-  'ui/renderer/ui/createWorkbenchTabs.js',
-  'ui/renderer/ui/dialogs.js',
-  'ui/renderer/ui/editorContextLifecycle.js',
-  'ui/renderer/ui/tabEditLifecycle.js',
-  'ui/renderer/ui/workbenchShell.js',
-  'ui/renderer/core/loggerSinks.js',
-  'ui/renderer/runtime/projectPaths.js',
-  'ui/vite.config.js',
-  'ui/renderer/runtime/runtimeClientContract.js',
-  'ui/renderer/runtime/runtimeClient.js',
-  'ui/renderer/runtime/processPollingLifecycle.js',
-  'ui/renderer/runtime/processExecutionOrchestrator.js',
-  'ui/renderer/runtime/adapters/createHttpRuntimeAdapter.js',
-  'rtb/README.md',
-  'rtb/__init__.py',
-  'rtb/requirements.txt',
-  'rtb/app/__init__.py',
-  'rtb/app/main.py',
-  'rtb/app/api/__init__.py',
-  'rtb/app/api/commands.py',
-  'rtb/app/core/__init__.py',
-  'rtb/app/core/constants.py',
-  'rtb/app/core/settings.py',
-  'rtb/app/db/__init__.py',
-  'rtb/app/db/bootstrap.py',
-  'rtb/app/models/__init__.py',
-  'rtb/app/models/command.py',
-  'rtb/app/models/process_execution.py',
-  'rtb/app/models/project_snapshot.py',
-  'rtb/app/services/__init__.py',
-  'rtb/app/services/errors.py',
-  'rtb/app/services/active_process_policy.py',
-  'rtb/app/services/command_dispatcher.py',
-  'rtb/app/services/process_execution.py',
-  'rtb/app/services/project_catalog.py',
-  'rtb/app/services/project_storage.py',
-  'rtb/app/utils/__init__.py',
-  'rtb/app/utils/id_utils.py',
-  'rtb/app/utils/metagen_runner.py',
-  'rtb/app/utils/time_utils.py',
-]
+        <div class="document-vertical-layout" id="document-vertical-layout">
+          <div class="editor-host-container" id="editor-host-container">
+            <div class="editor-host" id="editor-host"></div>
+          </div>
 
+          <div class="bottom-panel" id="bottom-panel">
+            <div class="bottom-panel-header" id="bottom-panel-header"></div>
+            <div class="bottom-panel-content" id="log-output"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-def export_files() -> None:
-  lines: list[str] = []
-  lines.append('=' * 50)
-  lines.append('PROJECT EXPORT')
-  lines.append('=' * 50)
-  lines.append('')
-
-  for relative_path in PROJECT_FILES:
-    file_path = ROOT / relative_path
-
-    lines.append('=' * 50)
-    lines.append(f'FILE: {relative_path}')
-    lines.append('=' * 50)
-    lines.append('')
-
-    if not file_path.exists():
-      lines.append('[FILE NOT FOUND]')
-      lines.append('')
-      continue
-
-    try:
-      content = file_path.read_text(encoding='utf-8')
-    except UnicodeDecodeError:
-      content = file_path.read_text(encoding='utf-8', errors='replace')
-
-    lines.append(content)
-    lines.append('')
-
-  OUTPUT_FILE.write_text('\n'.join(lines), encoding='utf-8')
-  print(f'Export finished: {OUTPUT_FILE}')
-
-
-if __name__ == '__main__':
-  export_files()
+  <script type="module" src="/renderer/app.js"></script>
+</body>
+</html>
 
 
 ==================================================
@@ -1034,6 +1703,1057 @@ FILE: ui/package.json
     "vite": "^5.0.0"
   }
 }
+
+
+==================================================
+FILE: ui/styles/styles.css
+==================================================
+
+:root {
+  --gray-900: #111827;
+  --gray-700: #374151;
+  --gray-500: #6b7280;
+  --gray-300: #d1d5db;
+  --gray-200: #e5e7eb;
+  --gray-100: #f3f4f6;
+  --gray-050: #f9fafb;
+
+  --color-bg-app: #ffffff;
+  --color-bg-layout: var(--gray-050);
+  --color-bg-muted: var(--gray-100);
+  --color-bg-subtle: var(--gray-050);
+  --color-border: var(--gray-200);
+  --color-border-soft: var(--gray-200);
+  --color-text: var(--gray-900);
+  --color-text-muted: var(--gray-700);
+  --color-text-soft: var(--gray-500);
+  --color-tab-bg: var(--gray-100);
+  --color-tab-bg-active: #ffffff;
+  --color-tab-hover: var(--gray-200);
+  --color-gutter-hover: var(--gray-500);
+
+  --tabs-bar-height: 42px;
+  --tabs-padding-x: 10px;
+  --tab-fixed-width: 180px;
+  --tab-font-size: 13px;
+  --tab-close-size: 18px;
+  --panel-padding-x: 12px;
+  --gutter-size: 4px;
+
+  --tree-row-border-radius: 6px;
+  --tree-row-padding-x: 10px;
+  --tree-row-padding-y: 8px;
+  --tree-module-row-font-size: 12px;
+  --tree-module-row-letter-spacing: 0.04em;
+  --tree-component-indent: 16px;
+  --tree-hover-bg: var(--gray-100);
+  --tree-selected-bg: var(--gray-300);
+}
+
+
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  background: var(--color-bg-layout);
+  color: var(--color-text);
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.top-panel {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: var(--color-bg-app);
+  border-bottom: 1px solid var(--color-border);
+  flex: 0 0 auto;
+}
+
+.top-panel-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.top-panel-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.top-panel-right button {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  color: var(--color-text);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.top-panel-right button:disabled {
+  color: var(--color-text-soft);
+  background: var(--color-bg-subtle);
+  cursor: not-allowed;
+}
+
+.platform-action-surface {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.platform-action-button {
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  color: var(--color-text);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.top-panel-title-text {
+  font-weight: 600;
+}
+
+.project-title {
+  color: var(--color-text-muted);
+}
+
+.tabs-bar {
+  height: var(--tabs-bar-height);
+  background-color: var(--color-bg-muted);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.tabs-list {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #c4ccd7 transparent;
+}
+
+.tabs-list::-webkit-scrollbar {
+  height: 7px;
+}
+
+.tabs-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs-list::-webkit-scrollbar-thumb {
+  background: #c4ccd7;
+  border-radius: 999px;
+}
+
+.tabs-list::-webkit-scrollbar-thumb:hover {
+  background: #aab4c2;
+}
+
+.workbench-tab {
+  width: var(--tab-fixed-width);
+  min-width: var(--tab-fixed-width);
+  max-width: var(--tab-fixed-width);
+  height: 100%;
+  border: none;
+  border-right: 1px solid var(--color-border-soft);
+  background: var(--color-tab-bg);
+  color: var(--color-text-muted);
+  padding: 0 var(--tabs-padding-x);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  font-size: var(--tab-font-size);
+  text-align: left;
+  flex: 0 0 var(--tab-fixed-width);
+  box-sizing: border-box;
+}
+
+.workbench-tab:hover {
+  background: var(--color-tab-hover);
+}
+
+.workbench-tab.is-active {
+  background: var(--color-tab-bg-active);
+  color: var(--color-text);
+  box-shadow: inset 0 -2px 0 0 var(--gray-700);
+}
+
+.workbench-tab-title {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-tab-close-button {
+  width: var(--tab-close-size);
+  height: var(--tab-close-size);
+  min-width: var(--tab-close-size);
+  border: none;
+  background: transparent;
+  color: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  line-height: 1;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.workbench-tab-close-button:hover,
+.workbench-tab-close-button:focus-visible {
+  background: var(--gray-200);
+  color: var(--color-text);
+  outline: none;
+}
+
+.workbench-main-layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
+.project-tree-column {
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  display: flex;
+  flex-direction: column;
+}
+
+.side-header {
+  height: var(--tabs-bar-height);
+  box-sizing: border-box;
+  padding: 0 var(--panel-padding-x);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.panel-header-text {
+  line-height: 1;
+}
+
+.project-tree {
+  overflow: auto;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #c4ccd7 transparent;
+}
+
+.backend-project-catalog {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.backend-project-catalog.is-backend-workspace-browser-hidden {
+  display: none;
+}
+
+.backend-workspace-browser-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.backend-workspace-browser-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.backend-workspace-browser-subtitle {
+  font-size: 11px;
+  color: var(--color-text-soft);
+}
+
+.backend-workspace-browser-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.backend-workspace-browser-create-group {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 6px;
+}
+
+.backend-workspace-browser-primary-actions button,
+.backend-workspace-browser-create-group input,
+.backend-workspace-browser-create-group button {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg-app);
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 6px 8px;
+}
+
+.backend-workspace-browser-create-group input {
+  flex: 1;
+  min-width: 0;
+}
+
+.backend-workspace-browser-primary-actions button,
+.backend-workspace-browser-create-group button {
+  cursor: pointer;
+}
+
+.backend-workspace-browser-status-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.backend-workspace-browser-status-label,
+.backend-workspace-browser-list-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.backend-workspace-browser-status {
+  margin: 0;
+  min-height: 42px;
+  max-height: 92px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  padding: 6px;
+  font-size: 11px;
+  font-family: Consolas, Monaco, monospace;
+  white-space: pre-wrap;
+}
+
+.backend-process-panel {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-subtle);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backend-process-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.backend-process-context {
+  font-size: 11px;
+  color: var(--color-text-soft);
+}
+
+.backend-process-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.backend-process-actions button {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.backend-process-action-primary {
+  background: var(--gray-700);
+  border-color: var(--gray-700);
+  color: #fff;
+}
+
+.backend-process-action-secondary {
+  background: var(--color-bg-app);
+  color: var(--color-text);
+}
+
+.backend-process-actions button.is-disabled,
+.backend-process-actions button:disabled {
+  background: var(--gray-100);
+  border-color: var(--color-border);
+  color: var(--color-text-soft);
+  cursor: not-allowed;
+}
+
+.backend-process-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.backend-process-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.backend-process-meta-label {
+  color: var(--color-text-muted);
+}
+
+.backend-process-meta-value {
+  color: var(--color-text);
+  text-align: right;
+}
+
+.backend-process-output {
+  margin: 0;
+  min-height: 52px;
+  max-height: 140px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  padding: 6px;
+  font-size: 11px;
+  font-family: Consolas, Monaco, monospace;
+  white-space: pre-wrap;
+}
+
+.backend-process-output-line {
+  display: block;
+}
+
+.backend-process-output-line.is-stdout {
+  color: var(--color-text);
+}
+
+.backend-process-output-line.is-stderr {
+  color: #991b1b;
+}
+
+.backend-process-output-line.is-system {
+  color: var(--color-text-soft);
+}
+
+.backend-workspace-browser-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.backend-workspace-browser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backend-workspace-browser-empty-state {
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-soft);
+  font-size: 12px;
+  padding: 10px;
+}
+
+.backend-workspace-browser-item {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-subtle);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backend-workspace-browser-item-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.backend-workspace-browser-identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.backend-workspace-browser-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.backend-workspace-browser-slug,
+.backend-workspace-browser-lock {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.backend-workspace-browser-item-primary-actions,
+.backend-workspace-browser-item-secondary-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.backend-workspace-browser-primary-button,
+.backend-workspace-browser-secondary-button {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.backend-workspace-browser-primary-button {
+  background: var(--gray-700);
+  border-color: var(--gray-700);
+  color: #fff;
+}
+
+.backend-workspace-browser-secondary-button {
+  background: var(--color-bg-app);
+  color: var(--color-text);
+}
+
+.backend-workspace-browser-primary-button.is-disabled,
+.backend-workspace-browser-primary-button:disabled,
+.backend-workspace-browser-secondary-button:disabled {
+  background: var(--gray-100);
+  border-color: var(--color-border);
+  color: var(--color-text-soft);
+  cursor: not-allowed;
+}
+
+.project-tree::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.project-tree::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.project-tree::-webkit-scrollbar-thumb {
+  background: #c4ccd7;
+  border-radius: 999px;
+}
+
+.project-tree::-webkit-scrollbar-thumb:hover {
+  background: #aab4c2;
+}
+
+
+.project-node {
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.tree-node-project-row {
+  border-color: var(--gray-200);
+  background: var(--gray-200);
+}
+
+.tree-module-block {
+  margin-top: 12px;
+}
+
+.tree-module-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tree-section-header {
+  margin: 0 0 8px;
+  font-size: var(--tree-module-row-font-size);
+  font-weight: 700;
+  letter-spacing: var(--tree-module-row-letter-spacing);
+  text-transform: uppercase;
+  color: var(--gray-700);
+}
+
+.tree-item {
+  margin-bottom: 0;
+}
+
+.tree-node-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--tree-row-border-radius);
+  background: transparent;
+  transition: background-color 120ms ease-in-out, border-color 120ms ease-in-out;
+}
+
+.tree-node-document-row {
+  padding-left: 0;
+}
+
+.tree-node-row:hover {
+  background: var(--tree-hover-bg);
+  border-color: var(--gray-200);
+}
+
+.tree-node-row.is-selected {
+  background: var(--tree-selected-bg);
+  border-color: var(--gray-300);
+}
+
+.tree-node-label {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  padding: var(--tree-row-padding-y) var(--tree-row-padding-x);
+  cursor: pointer;
+  font: inherit;
+  overflow: hidden;
+}
+
+.tree-node-label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-node-disclosure {
+  width: 14px;
+  min-width: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-700);
+}
+
+.tree-node-disclosure-spacer {
+  opacity: 0;
+}
+
+.tree-node-icon {
+  color: var(--gray-700);
+}
+
+.tree-node-action-icon {
+  color: var(--gray-700);
+}
+
+.tree-node-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+  opacity: 0;
+  transition: opacity 120ms ease-in-out;
+}
+
+.tree-node-row:hover .tree-node-actions,
+.tree-node-row.is-selected .tree-node-actions {
+  opacity: 1;
+}
+
+.tree-node-action-button {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  color: var(--color-text-muted);
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  border-radius: 4px;
+  font: inherit;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tree-node-action-button:hover {
+  background: var(--gray-100);
+  color: var(--color-text);
+}
+
+
+.workbench-inline-rename-input,
+.tree-inline-rename-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  color: var(--color-text);
+  padding: 4px 8px;
+  font: inherit;
+}
+
+
+.workbench-right-column {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.document-vertical-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.editor-host-container {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  background: var(--color-bg-app);
+}
+
+.editor-host {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  min-width: 0;
+}
+
+.workbench-page {
+  position: absolute;
+  inset: 0;
+  display: none;
+  min-height: 0;
+  min-width: 0;
+}
+
+.workbench-page.is-active {
+  display: block;
+}
+
+.metagen-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.metagen-editor-grid {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  background-color: var(--color-bg-layout);
+}
+
+/* APP_CONFIG.ui.classNames.editorRightStack */
+.metagen-editor-right-stack {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  box-shadow: -1px 0 0 0 var(--color-border);
+}
+
+.metagen-editor-center-stack {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.metagen-editor-center-stack > .metagen-editor-panel {
+  box-shadow: none;
+}
+
+.metagen-editor-panel {
+  height: 100%;
+  background-color: var(--color-bg-app);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  box-shadow: -1px 0 0 0 var(--color-border);
+  border: none;
+}
+
+.metagen-editor-panel:first-child {
+  box-shadow: none;
+}
+
+.metagen-editor-panel-header {
+  padding: 10px var(--panel-padding-x);
+  background-color: var(--color-bg-muted);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  user-select: none;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metagen-editor-panel-content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  background: var(--color-bg-app);
+}
+
+.metagen-editor-table-container {
+  position: absolute;
+  inset: 0;
+  background: #fff !important;
+  background-image: none !important;
+}
+
+.metagen-editor-table-container *,
+.metagen-editor-table-container *::before,
+.metagen-editor-table-container *::after {
+  background-image: none !important;
+}
+
+.metagen-editor-textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  padding: 10px 12px;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.bottom-panel {
+  background-color: var(--color-bg-app);
+  color: var(--color-text);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.bottom-panel-header {
+  padding: 8px var(--panel-padding-x);
+  background-color: var(--color-bg-muted);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-icon-host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.ui-icon-host svg {
+  display: block;
+}
+
+.ui-icon-host img {
+  display: block;
+}
+
+.bottom-panel-content {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 12px;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background-color: var(--color-bg-app);
+  color: var(--color-text);
+}
+
+.log-entry { margin: 2px 0; }
+.log-line { white-space: pre-wrap; }
+.log-details {
+  margin-left: 16px;
+  color: var(--color-text-soft);
+  white-space: pre-wrap;
+}
+
+.gutter {
+  background-color: var(--color-border);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transition: background-color 0.2s;
+}
+
+.gutter:hover {
+  background-color: var(--color-gutter-hover);
+}
+
+.gutter.gutter-horizontal {
+  cursor: col-resize;
+  width: var(--gutter-size) !important;
+}
+
+.gutter.gutter-vertical {
+  cursor: row-resize;
+  height: var(--gutter-size) !important;
+}
+
+
+.tree-item-delete {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  cursor: pointer;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+}
+
+.meta-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.meta-dialog {
+  width: 360px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.meta-dialog-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.meta-dialog-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  padding: 8px;
+}
+
+.meta-dialog-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.meta-dialog-button {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-app);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.meta-dialog-button-primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+
+==================================================
+FILE: ui/vite.config.js
+==================================================
+
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  root: '.',
+  publicDir: './public',
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true
+  }
+});
 
 
 ==================================================
@@ -2938,6 +4658,87 @@ export function normalizeLogDetails(details) {
 
 
 ==================================================
+FILE: ui/renderer/core/loggerSinks.js
+==================================================
+
+import { APP_CONFIG } from '../../config/app-config.js';
+
+const LOG_ENTRY_CLASS = APP_CONFIG.ui.classNames.logEntry;
+const LOG_LINE_CLASS = APP_CONFIG.ui.classNames.logLine;
+const LOG_DETAILS_CLASS = APP_CONFIG.ui.classNames.logDetails;
+const CONSOLE_METHODS_BY_LEVEL = APP_CONFIG.logger.console.methodsByLevel;
+const DEFAULT_CONSOLE_METHOD = APP_CONFIG.logger.console.defaultMethod;
+
+export function createDomLogSink({ output }) {
+  return {
+    write(entry) {
+      if (!output) {
+        return;
+      }
+
+      const node = document.createElement('div');
+      node.className = LOG_ENTRY_CLASS;
+
+      const lineNode = document.createElement('div');
+      lineNode.className = LOG_LINE_CLASS;
+      lineNode.textContent = entry.line;
+      node.appendChild(lineNode);
+
+      if (entry.detailsText) {
+        const detailsNode = document.createElement('pre');
+        detailsNode.className = LOG_DETAILS_CLASS;
+        detailsNode.textContent = entry.detailsText;
+        node.appendChild(detailsNode);
+      }
+
+      output.appendChild(node);
+      output.scrollTo({ top: output.scrollHeight });
+    },
+    clear() {
+      if (output) {
+        output.innerHTML = '';
+      }
+    }
+  };
+}
+
+export function createConsoleLogSink({ mirrorToConsole = APP_CONFIG.platform?.logging?.mirrorToConsole } = {}) {
+  return {
+    write(entry) {
+      if (!mirrorToConsole) {
+        return;
+      }
+
+      const methodName = CONSOLE_METHODS_BY_LEVEL[entry.level] || DEFAULT_CONSOLE_METHOD;
+      const method = console[methodName]?.bind(console) ?? console[DEFAULT_CONSOLE_METHOD].bind(console);
+      method(entry.line);
+
+      if (entry.detailsText) {
+        method(entry.detailsText);
+      }
+    },
+    clear() {}
+  };
+}
+
+export function createMemoryLogSink() {
+  const entries = [];
+
+  return {
+    write(entry) {
+      entries.push(entry);
+    },
+    clear() {
+      entries.length = 0;
+    },
+    getEntries() {
+      return [...entries];
+    }
+  };
+}
+
+
+==================================================
 FILE: ui/renderer/core/moduleRegistry.js
 ==================================================
 
@@ -4592,116 +6393,6 @@ export function clearMountElement(mountElement) {
 }
 
 ==================================================
-FILE: ui/index.html
-==================================================
-
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title></title>
-  <link rel="stylesheet" href="/styles/styles.css" />
-</head>
-<body>
-  <div id="app">
-    <div class="top-panel">
-      <div class="top-panel-left">
-        <span id="top-panel-title"></span>
-      </div>
-      <div class="top-panel-right">
-        <div id="platform-action-surface">
-          <button id="platform-action-create-workspace-project-button" type="button"></button>
-          <button id="platform-action-browse-workspace-projects-button" type="button"></button>
-          <button id="platform-action-close-workspace-project-button" type="button"></button>
-          <button id="platform-action-save-workspace-project-button" type="button"></button>
-          <button id="platform-action-save-workspace-project-as-button" type="button"></button>
-          <button id="platform-action-import-workspace-project-button" type="button"></button>
-          <button id="platform-action-export-workspace-project-button" type="button"></button>
-          <button id="platform-action-exit-button" type="button"></button>
-        </div>
-        <button id="top-panel-params-undo" type="button" disabled></button>
-        <button id="top-panel-params-redo" type="button" disabled></button>
-      </div>
-    </div>
-
-    <div class="workbench-main-layout" id="workbench-main-layout">
-      <div class="project-tree-column" id="project-tree-column">
-        <div class="side-header" id="project-panel-title"></div>
-        <div class="backend-project-catalog" id="backend-project-catalog" hidden tabindex="-1">
-          <div class="backend-workspace-browser-head">
-            <div id="backend-workspace-title" class="backend-workspace-browser-title"></div>
-            <div id="backend-workspace-subtitle" class="backend-workspace-browser-subtitle"></div>
-          </div>
-          <div class="backend-workspace-browser-primary-actions">
-            <button id="backend-project-list-button" type="button">List</button>
-            <button id="backend-project-import-button" type="button">Import</button>
-            <div class="backend-workspace-browser-create-group">
-              <input id="backend-project-create-input" type="text" placeholder="Project name" />
-              <button id="backend-project-create-button" type="button">Create</button>
-            </div>
-          </div>
-          <div class="backend-workspace-browser-status-wrap">
-            <div id="backend-project-status-label" class="backend-workspace-browser-status-label"></div>
-            <pre id="backend-project-status" class="backend-workspace-browser-status"></pre>
-          </div>
-          <div id="backend-process-panel" class="backend-process-panel">
-            <div id="backend-process-title" class="backend-process-title"></div>
-            <div id="backend-process-context" class="backend-process-context"></div>
-            <div class="backend-process-actions">
-              <button id="backend-process-generate-button" type="button">Generate</button>
-              <button id="backend-process-stop-button" type="button">Stop</button>
-            </div>
-            <div class="backend-process-meta">
-              <div class="backend-process-meta-row">
-                <span id="backend-process-command-label" class="backend-process-meta-label">Command</span>
-                <span id="backend-process-command" class="backend-process-meta-value"></span>
-              </div>
-              <div class="backend-process-meta-row">
-                <span id="backend-process-status-label" class="backend-process-meta-label">Status</span>
-                <span id="backend-process-status" class="backend-process-meta-value"></span>
-              </div>
-              <div class="backend-process-meta-row">
-                <span id="backend-process-exit-code-label" class="backend-process-meta-label">Exit code</span>
-                <span id="backend-process-exit-code" class="backend-process-meta-value"></span>
-              </div>
-            </div>
-            <pre id="backend-process-output" class="backend-process-output"></pre>
-          </div>
-          <div class="backend-workspace-browser-list-wrap">
-            <div id="backend-project-list-label" class="backend-workspace-browser-list-label"></div>
-            <div id="backend-project-list" class="backend-workspace-browser-list"></div>
-            <div id="backend-project-empty-state" class="backend-workspace-browser-empty-state" hidden></div>
-          </div>
-        </div>
-        <div id="project-tree" class="project-tree"></div>
-      </div>
-
-      <div class="workbench-right-column" id="workbench-right-column">
-        <div class="tabs-bar">
-          <div class="tabs-list" id="tabs-list"></div>
-        </div>
-
-        <div class="document-vertical-layout" id="document-vertical-layout">
-          <div class="editor-host-container" id="editor-host-container">
-            <div class="editor-host" id="editor-host"></div>
-          </div>
-
-          <div class="bottom-panel" id="bottom-panel">
-            <div class="bottom-panel-header" id="bottom-panel-header"></div>
-            <div class="bottom-panel-content" id="log-output"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="/renderer/app.js"></script>
-</body>
-</html>
-
-
-==================================================
 FILE: ui/renderer/modules/metagen/metagenCommands.js
 ==================================================
 
@@ -5060,6 +6751,77 @@ export const METAGEN_CONFIG = {
 
 
 ==================================================
+FILE: ui/renderer/modules/metagen/metagenDataContract.js
+==================================================
+
+import { METAGEN_CONFIG } from './metagenConfig.js';
+
+function normalizeRowLike(value) {
+  if (Array.isArray(value)) {
+    return value.map((cell) => cell ?? '');
+  }
+
+  if (value == null) {
+    return [];
+  }
+
+  return [value];
+}
+
+export function normalizeMetaGenDataDocument(dataDocument, tableConfig = {}) {
+  const fallbackColumns = Array.isArray(tableConfig?.headers) ? [...tableConfig.headers] : [];
+
+  const columns = Array.isArray(dataDocument?.columns) && dataDocument.columns.length > 0
+    ? [...dataDocument.columns]
+    : fallbackColumns;
+
+  const rows = Array.isArray(dataDocument?.rows)
+    ? dataDocument.rows.map((row) => normalizeRowLike(row))
+    : [];
+
+  return {
+    format: METAGEN_CONFIG.documentFormats.table,
+    columns,
+    rows
+  };
+}
+
+
+export function hasPersistedMetaGenDataShape(dataDocument) {
+  if (!dataDocument || typeof dataDocument !== 'object') {
+    return false;
+  }
+
+  const hasRows = Array.isArray(dataDocument.rows) && dataDocument.rows.length > 0;
+  const hasColumns = Array.isArray(dataDocument.columns) && dataDocument.columns.length > 0;
+
+  return hasRows || hasColumns;
+}
+
+export function getMetaGenDataRequiredDimensions(dataDocument, tableConfig = {}, options = {}) {
+  const normalized = normalizeMetaGenDataDocument(dataDocument, tableConfig);
+  const bootstrapRows = Math.max(1, Number(tableConfig?.rows) || 1);
+  const bootstrapColumns = Math.max(1, Array.isArray(tableConfig?.headers) ? tableConfig.headers.length : 0);
+
+  const widestRow = normalized.rows.reduce(
+    (maxValue, row) => Math.max(maxValue, Array.isArray(row) ? row.length : 0),
+    0
+  );
+
+  // Runtime sheet semantics: always open at max(bootstrap seed, persisted payload shape).
+  // Persisted payload itself stays compact via extract/save path.
+  const payloadRows = normalized.rows.length || 1;
+  const payloadColumns = Math.max(normalized.columns.length || 0, widestRow || 0, 1);
+
+  return {
+    rowCount: Math.max(bootstrapRows, payloadRows),
+    columnCount: Math.max(bootstrapColumns, payloadColumns),
+    normalized
+  };
+}
+
+
+==================================================
 FILE: ui/renderer/modules/metagen/metagenDocumentFactory.js
 ==================================================
 
@@ -5133,6 +6895,183 @@ export function createMetaGenGeneratorBridge({
     async generate(payload = {}) {
       return launchGenerate(payload);
     }
+  };
+}
+
+
+==================================================
+FILE: ui/renderer/modules/metagen/metagenInstancesContract.js
+==================================================
+
+import { METAGEN_CONFIG } from './metagenConfig.js';
+
+function normalizeRowLike(value) {
+  if (Array.isArray(value)) {
+    return value.map((cell) => cell ?? '');
+  }
+
+  if (value == null) {
+    return [];
+  }
+
+  return [value];
+}
+
+function normalizeInstancesRow(row, fixedColumnCount) {
+  const normalizedRow = normalizeRowLike(row).slice(0, fixedColumnCount);
+
+  while (normalizedRow.length < fixedColumnCount) {
+    normalizedRow.push('');
+  }
+
+  return normalizedRow;
+}
+
+export function normalizeMetaGenInstancesDocument(instancesDocument, tableConfig = {}) {
+  const fixedColumnCount = Math.max(1, Number(tableConfig?.fixedColumnCount) || 1);
+  const rows = Array.isArray(instancesDocument?.rows)
+    ? instancesDocument.rows.map((row) => normalizeInstancesRow(row, fixedColumnCount))
+    : [];
+
+  return {
+    format: METAGEN_CONFIG.documentFormats.list,
+    rows
+  };
+}
+
+export function hasPersistedMetaGenInstancesShape(instancesDocument) {
+  if (!instancesDocument || typeof instancesDocument !== 'object') {
+    return false;
+  }
+
+  return Array.isArray(instancesDocument.rows) && instancesDocument.rows.length > 0;
+}
+
+export function getMetaGenInstancesRequiredDimensions(instancesDocument, tableConfig = {}) {
+  const normalized = normalizeMetaGenInstancesDocument(instancesDocument, tableConfig);
+  const bootstrapRows = Math.max(1, Number(tableConfig?.rows) || 1);
+  const fixedColumnCount = Math.max(1, Number(tableConfig?.fixedColumnCount) || 1);
+  const payloadRows = normalized.rows.length || 1;
+
+  return {
+    rowCount: Math.max(bootstrapRows, payloadRows),
+    columnCount: fixedColumnCount,
+    normalized
+  };
+}
+
+
+==================================================
+FILE: ui/renderer/modules/metagen/metagenModule.js
+==================================================
+
+import { APP_CONFIG } from '../../../config/app-config.js';
+import { createMetaGenDocument } from './metagenDocumentFactory.js';
+import { validateMetaGenDocument } from './metagenSchema.js';
+import { createMetaGenEditor } from '../../editors/metagen/createMetaGenEditor.js';
+import { slugifyDocumentName } from '../../runtime/naming.js';
+import { METAGEN_CONFIG } from './metagenConfig.js';
+
+export function createMetaGenModule({ logger }) {
+  return {
+    id: METAGEN_CONFIG.moduleId,
+    name: METAGEN_CONFIG.moduleName,
+    documentKinds: [METAGEN_CONFIG.documentKind],
+
+    getDefaultName() {
+      return METAGEN_CONFIG.defaults.newDocumentName;
+    },
+
+    createDefaultDocument({ name }) {
+      return createMetaGenDocument({ name });
+    },
+
+    getFileName(document) {
+      return `${slugifyDocumentName(document?.component?.name || METAGEN_CONFIG.defaults.newDocumentName)}${APP_CONFIG.project.fileExtensions.default}`;
+    },
+
+    validate(document) {
+      return validateMetaGenDocument(document);
+    },
+
+    async openDocument({ documentRecord, mountElement, onDirty }) {
+      return createMetaGenEditor({
+        documentRecord,
+        mountElement,
+        logger,
+        onDirty,
+        onSave: async (nextRecord) => {
+          const validation = validateMetaGenDocument(nextRecord.document);
+
+          if (!validation.isValid) {
+            logger.warn(METAGEN_CONFIG.moduleId, 'Документ MetaGen не прошёл валидацию', validation.errors);
+            throw new Error(validation.errors.join('; '));
+          }
+
+          return true;
+        }
+      });
+    }
+  };
+}
+
+
+==================================================
+FILE: ui/renderer/modules/metagen/metagenParamsContract.js
+==================================================
+
+import { METAGEN_CONFIG } from './metagenConfig.js';
+
+function normalizeRowLike(value) {
+  if (Array.isArray(value)) {
+    return value.map((cell) => cell ?? '');
+  }
+
+  if (value == null) {
+    return [];
+  }
+
+  return [value];
+}
+
+export function normalizeMetaGenParamsDocument(paramsDocument) {
+  if (Array.isArray(paramsDocument)) {
+    const rows = paramsDocument.map((row) => normalizeRowLike(row));
+
+    return {
+      format: METAGEN_CONFIG.documentFormats.headerPlusRows,
+      header: rows[0] || [],
+      rows: rows.slice(1)
+    };
+  }
+
+  const header = normalizeRowLike(paramsDocument?.header);
+  const rows = Array.isArray(paramsDocument?.rows)
+    ? paramsDocument.rows.map((row) => normalizeRowLike(row))
+    : [];
+
+  return {
+    format: METAGEN_CONFIG.documentFormats.headerPlusRows,
+    header,
+    rows
+  };
+}
+
+export function getMetaGenParamsRequiredDimensions(paramsDocument, tableConfig, options = {}) {
+  const normalized = normalizeMetaGenParamsDocument(paramsDocument);
+  const rows = [normalized.header, ...normalized.rows];
+  // Runtime sheet semantics: always open at max(bootstrap seed, persisted payload shape).
+  // Persisted payload itself stays compact via extract/save path.
+  const payloadRows = rows.length || 1;
+  const requiredRows = Math.max(Number(tableConfig?.rows) || 1, payloadRows);
+  const widestRow = rows.reduce((maxValue, row) => Math.max(maxValue, Array.isArray(row) ? row.length : 0), 0);
+  const payloadColumns = widestRow || 1;
+  const requiredColumns = Math.max(Number(tableConfig?.defaultColumns) || 1, payloadColumns);
+
+  return {
+    rowCount: requiredRows,
+    columnCount: requiredColumns,
+    normalized
   };
 }
 
@@ -5310,61 +7249,6 @@ export function bindMetaGenParamsUndoRedoHotkeys({
 
 
 ==================================================
-FILE: ui/renderer/modules/metagen/metagenModule.js
-==================================================
-
-import { APP_CONFIG } from '../../../config/app-config.js';
-import { createMetaGenDocument } from './metagenDocumentFactory.js';
-import { validateMetaGenDocument } from './metagenSchema.js';
-import { createMetaGenEditor } from '../../editors/metagen/createMetaGenEditor.js';
-import { slugifyDocumentName } from '../../runtime/naming.js';
-import { METAGEN_CONFIG } from './metagenConfig.js';
-
-export function createMetaGenModule({ logger }) {
-  return {
-    id: METAGEN_CONFIG.moduleId,
-    name: METAGEN_CONFIG.moduleName,
-    documentKinds: [METAGEN_CONFIG.documentKind],
-
-    getDefaultName() {
-      return METAGEN_CONFIG.defaults.newDocumentName;
-    },
-
-    createDefaultDocument({ name }) {
-      return createMetaGenDocument({ name });
-    },
-
-    getFileName(document) {
-      return `${slugifyDocumentName(document?.component?.name || METAGEN_CONFIG.defaults.newDocumentName)}${APP_CONFIG.project.fileExtensions.default}`;
-    },
-
-    validate(document) {
-      return validateMetaGenDocument(document);
-    },
-
-    async openDocument({ documentRecord, mountElement, onDirty }) {
-      return createMetaGenEditor({
-        documentRecord,
-        mountElement,
-        logger,
-        onDirty,
-        onSave: async (nextRecord) => {
-          const validation = validateMetaGenDocument(nextRecord.document);
-
-          if (!validation.isValid) {
-            logger.warn(METAGEN_CONFIG.moduleId, 'Документ MetaGen не прошёл валидацию', validation.errors);
-            throw new Error(validation.errors.join('; '));
-          }
-
-          return true;
-        }
-      });
-    }
-  };
-}
-
-
-==================================================
 FILE: ui/renderer/modules/metagen/metagenSchema.js
 ==================================================
 
@@ -5399,199 +7283,6 @@ export function validateMetaGenDocument(document) {
   return {
     isValid: errors.length === 0,
     errors
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/modules/metagen/metagenParamsContract.js
-==================================================
-
-import { METAGEN_CONFIG } from './metagenConfig.js';
-
-function normalizeRowLike(value) {
-  if (Array.isArray(value)) {
-    return value.map((cell) => cell ?? '');
-  }
-
-  if (value == null) {
-    return [];
-  }
-
-  return [value];
-}
-
-export function normalizeMetaGenParamsDocument(paramsDocument) {
-  if (Array.isArray(paramsDocument)) {
-    const rows = paramsDocument.map((row) => normalizeRowLike(row));
-
-    return {
-      format: METAGEN_CONFIG.documentFormats.headerPlusRows,
-      header: rows[0] || [],
-      rows: rows.slice(1)
-    };
-  }
-
-  const header = normalizeRowLike(paramsDocument?.header);
-  const rows = Array.isArray(paramsDocument?.rows)
-    ? paramsDocument.rows.map((row) => normalizeRowLike(row))
-    : [];
-
-  return {
-    format: METAGEN_CONFIG.documentFormats.headerPlusRows,
-    header,
-    rows
-  };
-}
-
-export function getMetaGenParamsRequiredDimensions(paramsDocument, tableConfig, options = {}) {
-  const normalized = normalizeMetaGenParamsDocument(paramsDocument);
-  const rows = [normalized.header, ...normalized.rows];
-  // Runtime sheet semantics: always open at max(bootstrap seed, persisted payload shape).
-  // Persisted payload itself stays compact via extract/save path.
-  const payloadRows = rows.length || 1;
-  const requiredRows = Math.max(Number(tableConfig?.rows) || 1, payloadRows);
-  const widestRow = rows.reduce((maxValue, row) => Math.max(maxValue, Array.isArray(row) ? row.length : 0), 0);
-  const payloadColumns = widestRow || 1;
-  const requiredColumns = Math.max(Number(tableConfig?.defaultColumns) || 1, payloadColumns);
-
-  return {
-    rowCount: requiredRows,
-    columnCount: requiredColumns,
-    normalized
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/modules/metagen/metagenDataContract.js
-==================================================
-
-import { METAGEN_CONFIG } from './metagenConfig.js';
-
-function normalizeRowLike(value) {
-  if (Array.isArray(value)) {
-    return value.map((cell) => cell ?? '');
-  }
-
-  if (value == null) {
-    return [];
-  }
-
-  return [value];
-}
-
-export function normalizeMetaGenDataDocument(dataDocument, tableConfig = {}) {
-  const fallbackColumns = Array.isArray(tableConfig?.headers) ? [...tableConfig.headers] : [];
-
-  const columns = Array.isArray(dataDocument?.columns) && dataDocument.columns.length > 0
-    ? [...dataDocument.columns]
-    : fallbackColumns;
-
-  const rows = Array.isArray(dataDocument?.rows)
-    ? dataDocument.rows.map((row) => normalizeRowLike(row))
-    : [];
-
-  return {
-    format: METAGEN_CONFIG.documentFormats.table,
-    columns,
-    rows
-  };
-}
-
-
-export function hasPersistedMetaGenDataShape(dataDocument) {
-  if (!dataDocument || typeof dataDocument !== 'object') {
-    return false;
-  }
-
-  const hasRows = Array.isArray(dataDocument.rows) && dataDocument.rows.length > 0;
-  const hasColumns = Array.isArray(dataDocument.columns) && dataDocument.columns.length > 0;
-
-  return hasRows || hasColumns;
-}
-
-export function getMetaGenDataRequiredDimensions(dataDocument, tableConfig = {}, options = {}) {
-  const normalized = normalizeMetaGenDataDocument(dataDocument, tableConfig);
-  const bootstrapRows = Math.max(1, Number(tableConfig?.rows) || 1);
-  const bootstrapColumns = Math.max(1, Array.isArray(tableConfig?.headers) ? tableConfig.headers.length : 0);
-
-  const widestRow = normalized.rows.reduce(
-    (maxValue, row) => Math.max(maxValue, Array.isArray(row) ? row.length : 0),
-    0
-  );
-
-  // Runtime sheet semantics: always open at max(bootstrap seed, persisted payload shape).
-  // Persisted payload itself stays compact via extract/save path.
-  const payloadRows = normalized.rows.length || 1;
-  const payloadColumns = Math.max(normalized.columns.length || 0, widestRow || 0, 1);
-
-  return {
-    rowCount: Math.max(bootstrapRows, payloadRows),
-    columnCount: Math.max(bootstrapColumns, payloadColumns),
-    normalized
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/modules/metagen/metagenInstancesContract.js
-==================================================
-
-import { METAGEN_CONFIG } from './metagenConfig.js';
-
-function normalizeRowLike(value) {
-  if (Array.isArray(value)) {
-    return value.map((cell) => cell ?? '');
-  }
-
-  if (value == null) {
-    return [];
-  }
-
-  return [value];
-}
-
-function normalizeInstancesRow(row, fixedColumnCount) {
-  const normalizedRow = normalizeRowLike(row).slice(0, fixedColumnCount);
-
-  while (normalizedRow.length < fixedColumnCount) {
-    normalizedRow.push('');
-  }
-
-  return normalizedRow;
-}
-
-export function normalizeMetaGenInstancesDocument(instancesDocument, tableConfig = {}) {
-  const fixedColumnCount = Math.max(1, Number(tableConfig?.fixedColumnCount) || 1);
-  const rows = Array.isArray(instancesDocument?.rows)
-    ? instancesDocument.rows.map((row) => normalizeInstancesRow(row, fixedColumnCount))
-    : [];
-
-  return {
-    format: METAGEN_CONFIG.documentFormats.list,
-    rows
-  };
-}
-
-export function hasPersistedMetaGenInstancesShape(instancesDocument) {
-  if (!instancesDocument || typeof instancesDocument !== 'object') {
-    return false;
-  }
-
-  return Array.isArray(instancesDocument.rows) && instancesDocument.rows.length > 0;
-}
-
-export function getMetaGenInstancesRequiredDimensions(instancesDocument, tableConfig = {}) {
-  const normalized = normalizeMetaGenInstancesDocument(instancesDocument, tableConfig);
-  const bootstrapRows = Math.max(1, Number(tableConfig?.rows) || 1);
-  const fixedColumnCount = Math.max(1, Number(tableConfig?.fixedColumnCount) || 1);
-  const payloadRows = normalized.rows.length || 1;
-
-  return {
-    rowCount: Math.max(bootstrapRows, payloadRows),
-    columnCount: fixedColumnCount,
-    normalized
   };
 }
 
@@ -8120,181 +9811,170 @@ export function createMetaViewModule() {
 
 
 ==================================================
-FILE: ui/renderer/runtime/documentLoader.js
+FILE: ui/renderer/runtime/adapters/createHttpRuntimeAdapter.js
 ==================================================
 
-import YAML from 'yaml';
+﻿import { normalizeRuntimeRequest } from '../runtimeClientContract.js';
 
-export function createDocumentLoader({ fileSystem }) {
+function normalizeBaseUrl(value) {
+  return String(value || '').replace(/\/+$/, '');
+}
+
+function normalizePath(value) {
+  const path = String(value || '').trim();
+  if (!path) {
+    throw new Error('Backend commands endpoint path is required');
+  }
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+const DEFAULT_ERROR_CODES = {
+  internal: 'INTERNAL_ERROR'
+};
+
+function createTimeoutController(timeoutMs) {
+  const abortController = typeof AbortController === 'function' ? new AbortController() : null;
+  const timeoutId = abortController
+    ? setTimeout(() => abortController.abort(), timeoutMs)
+    : null;
+
   return {
-    async loadYaml(targetPath) {
-      const text = await fileSystem.readText(targetPath);
-      return {
-        rawText: text,
-        data: YAML.parse(text)
-      };
-    },
-
-    async saveYaml(targetPath, value) {
-      const text = YAML.stringify(value);
-      await fileSystem.writeText(targetPath, text);
-      return text;
+    signal: abortController?.signal,
+    clear: () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     }
   };
 }
 
-==================================================
-FILE: ui/renderer/runtime/documentRecordIdentity.js
-==================================================
-
-import { APP_CONFIG } from '../../config/app-config.js';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function fallbackUuidV4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (token) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = token === 'x' ? random : ((random & 0x3) | 0x8);
-    return value.toString(16);
-  });
-}
-
-export function createDocumentGuid() {
-  if (globalThis.crypto?.randomUUID) {
-    return globalThis.crypto.randomUUID();
+export function createHttpRuntimeAdapter({
+  baseUrl,
+  endpointPath,
+  importEndpointPath = '/api/project-imports',
+  timeoutMs = 10000,
+  fetchImpl = fetch,
+  errorCodes = DEFAULT_ERROR_CODES,
+  importArchiveFieldName = 'archive',
+  defaultHeaders = {}
+}) {
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('fetch implementation is required');
   }
 
-  return fallbackUuidV4();
-}
+  const commandUrl = `${normalizeBaseUrl(baseUrl)}${normalizePath(endpointPath)}`;
+  const importUrl = `${normalizeBaseUrl(baseUrl)}${normalizePath(importEndpointPath)}`;
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
 
-export function normalizeDocumentName(name) {
-  return String(name ?? '').trim();
-}
+  async function execute(request) {
+    const normalizedRequest = normalizeRuntimeRequest(request);
+    const timeoutController = createTimeoutController(timeoutMs);
 
-export function getDocumentName(documentRecord) {
-  return normalizeDocumentName(
-    documentRecord?.document?.component?.name
-    || documentRecord?.document?.scenario?.name
-    || documentRecord?.document?.screen?.name
-    || documentRecord?.document?.name
-    || ''
-  );
-}
+    try {
+      const response = await fetchImpl(commandUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...defaultHeaders
+        },
+        body: JSON.stringify(normalizedRequest),
+        signal: timeoutController.signal
+      });
 
-function getDocumentIdentityContainer(documentRecord) {
-  if (documentRecord?.document?.component) {
-    return documentRecord.document.component;
+      const payload = await response.json();
+
+      if (typeof payload?.requestId !== 'string' || !payload.requestId.trim()) {
+        payload.requestId = normalizedRequest.requestId;
+      }
+
+      return payload;
+    } catch (error) {
+      return {
+        requestId: normalizedRequest.requestId,
+        ok: false,
+        error: {
+          code: errorCodes.internal,
+          message: error?.message || String(error)
+        }
+      };
+    } finally {
+      timeoutController.clear();
+    }
   }
 
-  if (documentRecord?.document?.scenario) {
-    return documentRecord.document.scenario;
+  async function downloadBinary(relativePath) {
+    const downloadUrl = `${normalizedBaseUrl}${normalizePath(relativePath)}`;
+    const timeoutController = createTimeoutController(timeoutMs);
+    try {
+      const response = await fetchImpl(downloadUrl, {
+        method: 'GET',
+        signal: timeoutController.signal
+      });
+      if (!response.ok) {
+        throw new Error(`Export download failed: HTTP ${response.status}`);
+      }
+      return new Uint8Array(await response.arrayBuffer());
+    } finally {
+      timeoutController.clear();
+    }
   }
 
-  if (documentRecord?.document?.screen) {
-    return documentRecord.document.screen;
+  async function importProjectArchive(payload) {
+    const fileName = String(payload?.fileName || '').trim();
+    if (!fileName) {
+      throw new Error('Import archive fileName is required');
+    }
+
+    const bytesInput = payload?.bytes;
+    const bytes = Array.isArray(bytesInput)
+      ? new Uint8Array(bytesInput)
+      : bytesInput instanceof Uint8Array
+        ? bytesInput
+        : null;
+    if (!bytes || !bytes.length) {
+      throw new Error('Import archive bytes are required');
+    }
+
+    const timeoutController = createTimeoutController(timeoutMs);
+    const formData = new FormData();
+    formData.append(importArchiveFieldName, new Blob([bytes], { type: 'application/zip' }), fileName);
+
+    try {
+      const response = await fetchImpl(importUrl, {
+        method: 'POST',
+        body: formData,
+        signal: timeoutController.signal
+      });
+      const responsePayload = await response.json();
+      if (typeof responsePayload?.ok === 'boolean') {
+        return responsePayload;
+      }
+
+      return {
+        ok: false,
+        error: {
+          code: errorCodes.internal,
+          message: 'Invalid import response payload'
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: errorCodes.internal,
+          message: error?.message || String(error)
+        }
+      };
+    } finally {
+      timeoutController.clear();
+    }
   }
 
-  return documentRecord?.document || null;
-}
-
-export function getDocumentId(documentRecord) {
-  const value = getDocumentIdentityContainer(documentRecord)?.id;
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-export function isValidDocumentGuid(value) {
-  return UUID_REGEX.test(String(value || '').trim());
-}
-
-export function ensureDocumentId(documentRecord, { force = false } = {}) {
-  const container = getDocumentIdentityContainer(documentRecord);
-
-  if (!container) {
-    return '';
-  }
-
-  const currentId = getDocumentId(documentRecord);
-
-  if (!force && isValidDocumentGuid(currentId)) {
-    return currentId;
-  }
-
-  const nextId = createDocumentGuid();
-  container.id = nextId;
-  return nextId;
-}
-
-export function getDocumentIdentityKey(documentRecord) {
-  const documentId = ensureDocumentId(documentRecord);
-  return documentId ? `${APP_CONFIG.project.identity.documentPrefix}${documentId}` : '';
-}
-
-export function setDocumentName(documentRecord, nextName) {
-  const value = normalizeDocumentName(nextName);
-
-  if (documentRecord?.document?.component) {
-    documentRecord.document.component.name = value;
-    return value;
-  }
-
-  if (documentRecord?.document?.scenario) {
-    documentRecord.document.scenario.name = value;
-    return value;
-  }
-
-  if (documentRecord?.document?.screen) {
-    documentRecord.document.screen.name = value;
-    return value;
-  }
-
-  if (documentRecord?.document) {
-    documentRecord.document.name = value;
-  }
-
-  return value;
-}
-
-export function getDocumentLabel(documentRecord) {
-  return getDocumentName(documentRecord) || APP_CONFIG.ui.text.untitled;
-}
-
-export function isUnsavedDocumentPath(targetPath) {
-  return String(targetPath || '').startsWith(APP_CONFIG.project.unsavedDocumentPathPrefix);
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/documentSnapshot.js
-==================================================
-
-function stableSortObject(value) {
-  if (Array.isArray(value)) {
-    return value.map((entry) => stableSortObject(entry));
-  }
-
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value)
-      .filter(([, nested]) => nested !== undefined)
-      .sort(([left], [right]) => left.localeCompare(right));
-
-    return entries.reduce((accumulator, [key, nested]) => {
-      accumulator[key] = stableSortObject(nested);
-      return accumulator;
-    }, {});
-  }
-
-  return value;
-}
-
-export function normalizeDocumentSnapshot(documentRecord) {
-  return stableSortObject({
-    moduleId: documentRecord?.moduleId || '',
-    document: documentRecord?.document || null
-  });
-}
-
-export function areDocumentSnapshotsSemanticallyEqual(leftRecord, rightRecord) {
-  return JSON.stringify(normalizeDocumentSnapshot(leftRecord)) === JSON.stringify(normalizeDocumentSnapshot(rightRecord));
+  return {
+    execute,
+    downloadBinary,
+    importProjectArchive
+  };
 }
 
 
@@ -8831,6 +10511,693 @@ export function createShellAdapter({
 
 
 ==================================================
+FILE: ui/renderer/runtime/documentLoader.js
+==================================================
+
+import YAML from 'yaml';
+
+export function createDocumentLoader({ fileSystem }) {
+  return {
+    async loadYaml(targetPath) {
+      const text = await fileSystem.readText(targetPath);
+      return {
+        rawText: text,
+        data: YAML.parse(text)
+      };
+    },
+
+    async saveYaml(targetPath, value) {
+      const text = YAML.stringify(value);
+      await fileSystem.writeText(targetPath, text);
+      return text;
+    }
+  };
+}
+
+==================================================
+FILE: ui/renderer/runtime/documentRecordIdentity.js
+==================================================
+
+import { APP_CONFIG } from '../../config/app-config.js';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function fallbackUuidV4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (token) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = token === 'x' ? random : ((random & 0x3) | 0x8);
+    return value.toString(16);
+  });
+}
+
+export function createDocumentGuid() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return fallbackUuidV4();
+}
+
+export function normalizeDocumentName(name) {
+  return String(name ?? '').trim();
+}
+
+export function getDocumentName(documentRecord) {
+  return normalizeDocumentName(
+    documentRecord?.document?.component?.name
+    || documentRecord?.document?.scenario?.name
+    || documentRecord?.document?.screen?.name
+    || documentRecord?.document?.name
+    || ''
+  );
+}
+
+function getDocumentIdentityContainer(documentRecord) {
+  if (documentRecord?.document?.component) {
+    return documentRecord.document.component;
+  }
+
+  if (documentRecord?.document?.scenario) {
+    return documentRecord.document.scenario;
+  }
+
+  if (documentRecord?.document?.screen) {
+    return documentRecord.document.screen;
+  }
+
+  return documentRecord?.document || null;
+}
+
+export function getDocumentId(documentRecord) {
+  const value = getDocumentIdentityContainer(documentRecord)?.id;
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+export function isValidDocumentGuid(value) {
+  return UUID_REGEX.test(String(value || '').trim());
+}
+
+export function ensureDocumentId(documentRecord, { force = false } = {}) {
+  const container = getDocumentIdentityContainer(documentRecord);
+
+  if (!container) {
+    return '';
+  }
+
+  const currentId = getDocumentId(documentRecord);
+
+  if (!force && isValidDocumentGuid(currentId)) {
+    return currentId;
+  }
+
+  const nextId = createDocumentGuid();
+  container.id = nextId;
+  return nextId;
+}
+
+export function getDocumentIdentityKey(documentRecord) {
+  const documentId = ensureDocumentId(documentRecord);
+  return documentId ? `${APP_CONFIG.project.identity.documentPrefix}${documentId}` : '';
+}
+
+export function setDocumentName(documentRecord, nextName) {
+  const value = normalizeDocumentName(nextName);
+
+  if (documentRecord?.document?.component) {
+    documentRecord.document.component.name = value;
+    return value;
+  }
+
+  if (documentRecord?.document?.scenario) {
+    documentRecord.document.scenario.name = value;
+    return value;
+  }
+
+  if (documentRecord?.document?.screen) {
+    documentRecord.document.screen.name = value;
+    return value;
+  }
+
+  if (documentRecord?.document) {
+    documentRecord.document.name = value;
+  }
+
+  return value;
+}
+
+export function getDocumentLabel(documentRecord) {
+  return getDocumentName(documentRecord) || APP_CONFIG.ui.text.untitled;
+}
+
+export function isUnsavedDocumentPath(targetPath) {
+  return String(targetPath || '').startsWith(APP_CONFIG.project.unsavedDocumentPathPrefix);
+}
+
+
+==================================================
+FILE: ui/renderer/runtime/documentSnapshot.js
+==================================================
+
+function stableSortObject(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stableSortObject(entry));
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value)
+      .filter(([, nested]) => nested !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right));
+
+    return entries.reduce((accumulator, [key, nested]) => {
+      accumulator[key] = stableSortObject(nested);
+      return accumulator;
+    }, {});
+  }
+
+  return value;
+}
+
+export function normalizeDocumentSnapshot(documentRecord) {
+  return stableSortObject({
+    moduleId: documentRecord?.moduleId || '',
+    document: documentRecord?.document || null
+  });
+}
+
+export function areDocumentSnapshotsSemanticallyEqual(leftRecord, rightRecord) {
+  return JSON.stringify(normalizeDocumentSnapshot(leftRecord)) === JSON.stringify(normalizeDocumentSnapshot(rightRecord));
+}
+
+
+==================================================
+FILE: ui/renderer/runtime/idFactory.js
+==================================================
+
+import { slugifyDocumentName } from './naming.js';
+
+let transientIdCounter = 0;
+
+// Platform-level helper for transient unique entity ids.
+// This is infrastructure only: it does not know module schemas or document semantics.
+export function createTransientEntityId(baseSlug, fallback = 'entity') {
+  const normalizedBase = slugifyDocumentName(baseSlug) || slugifyDocumentName(fallback) || 'entity';
+  const timestamp = Date.now().toString(36);
+  transientIdCounter = (transientIdCounter + 1) % Number.MAX_SAFE_INTEGER;
+  const counter = transientIdCounter.toString(36);
+
+  return `${normalizedBase}_${timestamp}${counter}`;
+}
+
+
+==================================================
+FILE: ui/renderer/runtime/naming.js
+==================================================
+
+export function slugifyDocumentName(name) {
+  return String(name ?? '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^\w\-А-Яа-яЁё]/g, '')
+    .toLowerCase();
+}
+
+==================================================
+FILE: ui/renderer/runtime/processExecutionOrchestrator.js
+==================================================
+
+import { createProcessPollingLifecycle } from './processPollingLifecycle.js';
+
+function cloneProcessSnapshot(snapshot) {
+  return {
+    process: snapshot.process ? { ...snapshot.process } : null,
+    outputChunks: snapshot.outputChunks.map((chunk) => ({ ...chunk })),
+    afterChunkId: snapshot.afterChunkId
+  };
+}
+
+export function createProcessExecutionOrchestrator({
+  executeBackendCommand,
+  commandIds,
+  terminalStatuses,
+  pollingIntervalMs,
+  onUpdate
+}) {
+  if (typeof executeBackendCommand !== 'function') {
+    throw new Error('Process execution orchestrator requires executeBackendCommand()');
+  }
+
+  const terminalStatusSet = new Set(Array.isArray(terminalStatuses) ? terminalStatuses : []);
+  const notify = typeof onUpdate === 'function' ? onUpdate : () => {};
+
+  const state = {
+    process: null,
+    outputChunks: [],
+    afterChunkId: 0,
+    hasSeenTerminal: false
+  };
+
+  function updateState(nextProcess = state.process) {
+    if (nextProcess) {
+      state.process = { ...nextProcess };
+      if (terminalStatusSet.has(String(nextProcess.status || '').trim())) {
+        state.hasSeenTerminal = true;
+      }
+    } else if (!state.hasSeenTerminal) {
+      state.process = null;
+    }
+    notify(cloneProcessSnapshot(state));
+  }
+
+  function appendChunks(chunks) {
+    if (!Array.isArray(chunks) || chunks.length === 0) {
+      return 0;
+    }
+
+    for (const chunk of chunks) {
+      state.outputChunks.push(chunk);
+      const chunkId = Number(chunk?.chunkId || 0);
+      if (chunkId > state.afterChunkId) {
+        state.afterChunkId = chunkId;
+      }
+    }
+    return chunks.length;
+  }
+
+  async function pollTick() {
+    const stateResult = await executeBackendCommand(commandIds.processGetState, {}, { presentResult: false });
+    const activeProcess = stateResult?.process || null;
+
+    const outputResult = await executeBackendCommand(
+      commandIds.processReadOutput,
+      { afterChunkId: state.afterChunkId },
+      { presentResult: false }
+    );
+    const latestProcess = outputResult?.process || null;
+    const readChunks = Array.isArray(outputResult?.chunks) ? outputResult.chunks : [];
+    const chunkCount = appendChunks(readChunks);
+
+    const effectiveProcess = latestProcess || activeProcess || state.process;
+    updateState(effectiveProcess);
+
+    if (!activeProcess && !latestProcess && !state.hasSeenTerminal) {
+      return false;
+    }
+
+    if (state.hasSeenTerminal && !activeProcess && chunkCount === 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  const pollingLifecycle = createProcessPollingLifecycle({
+    intervalMs: pollingIntervalMs,
+    tick: pollTick
+  });
+
+  function clearSnapshot() {
+    pollingLifecycle.stop();
+    state.process = null;
+    state.outputChunks = [];
+    state.afterChunkId = 0;
+    state.hasSeenTerminal = false;
+    notify(cloneProcessSnapshot(state));
+  }
+
+  async function syncActiveProcess() {
+    const result = await executeBackendCommand(commandIds.processGetState, {}, { presentResult: false });
+    const process = result?.process || null;
+    updateState(process);
+    if (process) {
+      pollingLifecycle.start();
+      await pollingLifecycle.runTickOnce();
+    }
+    return process;
+  }
+
+  async function launchGenerate(payload = {}) {
+    clearSnapshot();
+
+    const result = await executeBackendCommand(commandIds.metagenGenerate, payload, { presentResult: false });
+    const process = result?.process || null;
+    updateState(process);
+    if (process) {
+      pollingLifecycle.start();
+      await pollingLifecycle.runTickOnce();
+    }
+    return process;
+  }
+
+  async function stopProcess() {
+    const result = await executeBackendCommand(commandIds.processStop, {}, { presentResult: false });
+    const process = result?.process || null;
+    updateState(process);
+    if (process) {
+      pollingLifecycle.start();
+      await pollingLifecycle.runTickOnce();
+    }
+    return process;
+  }
+
+  function dispose() {
+    pollingLifecycle.dispose();
+  }
+
+  return {
+    syncActiveProcess,
+    launchGenerate,
+    stopProcess,
+    clearSnapshot,
+    dispose,
+    isPollingActive: () => pollingLifecycle.isActive(),
+    getSnapshot: () => cloneProcessSnapshot(state)
+  };
+}
+
+
+==================================================
+FILE: ui/renderer/runtime/processPollingLifecycle.js
+==================================================
+
+export function createProcessPollingLifecycle({
+  intervalMs,
+  tick,
+  setIntervalFn = setInterval,
+  clearIntervalFn = clearInterval
+}) {
+  if (typeof tick !== 'function') {
+    throw new Error('Process polling lifecycle requires tick()');
+  }
+
+  let timerId = null;
+  let tickInFlight = false;
+
+  async function runTickOnce() {
+    if (tickInFlight) {
+      return true;
+    }
+
+    tickInFlight = true;
+    try {
+      const shouldContinue = await tick();
+      if (shouldContinue === false) {
+        stop();
+        return false;
+      }
+      return true;
+    } finally {
+      tickInFlight = false;
+    }
+  }
+
+  function start() {
+    if (timerId !== null) {
+      return false;
+    }
+
+    timerId = setIntervalFn(() => {
+      void runTickOnce();
+    }, intervalMs);
+    return true;
+  }
+
+  function stop() {
+    if (timerId === null) {
+      return false;
+    }
+
+    clearIntervalFn(timerId);
+    timerId = null;
+    return true;
+  }
+
+  function dispose() {
+    stop();
+  }
+
+  return {
+    start,
+    stop,
+    dispose,
+    runTickOnce,
+    isActive: () => timerId !== null,
+    isTickInFlight: () => tickInFlight
+  };
+}
+
+
+==================================================
+FILE: ui/renderer/runtime/projectPaths.js
+==================================================
+
+import { APP_CONFIG } from '../../config/app-config.js';
+
+const PROJECT_MODULE_IDS = APP_CONFIG.project.moduleIds;
+const PROJECT_FOLDERS = APP_CONFIG.project.folders;
+const PRIMARY_PROJECT_MODULE_IDS = APP_CONFIG.project.primaryModuleIds || [];
+
+export function getPrimaryProjectModuleIds() {
+  return PRIMARY_PROJECT_MODULE_IDS.filter((moduleId) => Boolean(PROJECT_MODULE_IDS[moduleId]));
+}
+
+export function createPrimaryModuleDocumentBuckets() {
+  return getPrimaryProjectModuleIds().reduce((acc, moduleId) => {
+    acc[moduleId] = [];
+    return acc;
+  }, {});
+}
+
+export function flattenPrimaryModuleDocumentBuckets(documentsByModule = {}) {
+  return getPrimaryProjectModuleIds().flatMap((moduleId) => documentsByModule[moduleId] || []);
+}
+
+export function getProjectModuleFolders() {
+  return getPrimaryProjectModuleIds().reduce((acc, moduleId) => {
+    acc[moduleId] = PROJECT_FOLDERS[moduleId];
+    return acc;
+  }, {});
+}
+
+export function joinProjectPath(...parts) {
+  return parts
+    .filter(Boolean)
+    .join('/')
+    .replace(/\\/g, '/')
+    .replace(/\/{2,}/g, '/');
+}
+
+export function getFileExtension(fileName) {
+  const normalized = String(fileName || '');
+  const lastDotIndex = normalized.lastIndexOf('.');
+  return lastDotIndex > 0 ? normalized.slice(lastDotIndex) : '';
+}
+
+export function stripFileExtension(fileName) {
+  const normalized = String(fileName || '');
+  const lastDotIndex = normalized.lastIndexOf('.');
+  return lastDotIndex > 0 ? normalized.slice(0, lastDotIndex) : normalized;
+}
+
+export function dirnameOf(targetPath) {
+  const normalized = String(targetPath || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  const index = normalized.lastIndexOf('/');
+
+  if (index < 0) {
+    return '';
+  }
+
+  if (index === 0) {
+    return '/';
+  }
+
+  return normalized.slice(0, index);
+}
+
+export function normalizeProjectFilePath(projectFilePath) {
+  const normalized = String(projectFilePath || '').trim().replace(/\\/g, '/').replace(/\/+$/, '');
+
+  if (!normalized) {
+    throw new Error('Project file path is required');
+  }
+
+  const baseName = normalized.split('/').pop() || '';
+  if (!baseName || !baseName.includes('.')) {
+    throw new Error(`Project file path must point to a YAML file: ${projectFilePath}`);
+  }
+
+  const ext = getFileExtension(baseName).toLowerCase();
+  const allowed = APP_CONFIG.project.allowedProjectFileExtensions || ['.yaml', '.yml'];
+
+  if (!allowed.includes(ext)) {
+    throw new Error(`Project file path must point to a YAML file: ${projectFilePath}`);
+  }
+
+  return normalized;
+}
+
+export function getProjectRootFromProjectFile(projectFilePath) {
+  const root = dirnameOf(projectFilePath);
+  return root || '.';
+}
+
+export function buildProjectFilePath(projectRoot, projectFileName = APP_CONFIG.project.defaultProjectFileName) {
+  return joinProjectPath(projectRoot, projectFileName);
+}
+
+export function getDefaultProjectModuleDirectories(projectRoot) {
+  const moduleFolders = getProjectModuleFolders();
+
+  return Object.entries(moduleFolders).reduce((acc, [moduleId, folder]) => {
+    acc[moduleId] = joinProjectPath(projectRoot, folder);
+    return acc;
+  }, {});
+}
+
+export function getProjectOwnedPaths(targetProjectFilePath) {
+  const normalizedProjectFilePath = normalizeProjectFilePath(targetProjectFilePath);
+  const targetRoot = getProjectRootFromProjectFile(normalizedProjectFilePath);
+  const targetProjectFileName = normalizedProjectFilePath.split('/').pop();
+  const moduleDirectories = getDefaultProjectModuleDirectories(targetRoot);
+
+  return {
+    rootPath: targetRoot,
+    projectFileName: targetProjectFileName,
+    projectFilePath: buildProjectFilePath(targetRoot, targetProjectFileName),
+    moduleDirectories,
+    moduleFolders: getProjectModuleFolders()
+  };
+}
+
+
+==================================================
+FILE: ui/renderer/runtime/runtimeClient.js
+==================================================
+
+import { normalizeImportResponse, normalizeRuntimeRequest, normalizeRuntimeResponse } from './runtimeClientContract.js';
+
+export function createRuntimeClient({ adapter }) {
+  if (!adapter || typeof adapter.execute !== 'function') {
+    throw new Error('Runtime client adapter with execute(request) is required');
+  }
+
+  async function execute(request) {
+    const normalizedRequest = normalizeRuntimeRequest(request);
+    const response = await adapter.execute(normalizedRequest);
+    return normalizeRuntimeResponse(response, normalizedRequest.requestId);
+  }
+
+  async function downloadBinary(relativePath) {
+    if (typeof adapter.downloadBinary !== 'function') {
+      throw new Error('Runtime client adapter with downloadBinary(relativePath) is required');
+    }
+    return adapter.downloadBinary(relativePath);
+  }
+
+  async function importProjectArchive(payload) {
+    if (typeof adapter.importProjectArchive !== 'function') {
+      throw new Error('Runtime client adapter with importProjectArchive(payload) is required');
+    }
+
+    const response = await adapter.importProjectArchive(payload);
+    return normalizeImportResponse(response);
+  }
+
+  return {
+    execute,
+    downloadBinary,
+    importProjectArchive
+  };
+}
+
+
+==================================================
+FILE: ui/renderer/runtime/runtimeClientContract.js
+==================================================
+
+﻿const REQUIRED_STRING_FIELDS = ['requestId', 'module', 'command'];
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function normalizeRuntimeRequest(input) {
+  if (!isPlainObject(input)) {
+    throw new Error('Runtime command request must be an object');
+  }
+
+  for (const field of REQUIRED_STRING_FIELDS) {
+    const value = String(input[field] || '').trim();
+    if (!value) {
+      throw new Error(`Runtime command request field is required: ${field}`);
+    }
+  }
+
+  const payload = input.payload;
+
+  return {
+    requestId: String(input.requestId).trim(),
+    module: String(input.module).trim(),
+    command: String(input.command).trim(),
+    payload: isPlainObject(payload) ? payload : {}
+  };
+}
+
+export function normalizeRuntimeResponse(input, fallbackRequestId = '') {
+  if (!isPlainObject(input)) {
+    throw new Error('Runtime command response must be an object');
+  }
+
+  const requestId = String(input.requestId || fallbackRequestId || '').trim();
+  if (!requestId) {
+    throw new Error('Runtime command response field is required: requestId');
+  }
+
+  const ok = Boolean(input.ok);
+  const result = isPlainObject(input.result) ? input.result : null;
+  const error = isPlainObject(input.error) ? input.error : null;
+
+  if (ok && error) {
+    throw new Error('Runtime command response cannot include error when ok=true');
+  }
+
+  if (!ok && !error) {
+    throw new Error('Runtime command response must include error when ok=false');
+  }
+
+  return {
+    requestId,
+    ok,
+    result,
+    error
+  };
+}
+
+export function normalizeImportResponse(input) {
+  if (!isPlainObject(input)) {
+    throw new Error('Import response must be an object');
+  }
+
+  const ok = Boolean(input.ok);
+  const result = isPlainObject(input.result) ? input.result : null;
+  const error = isPlainObject(input.error) ? input.error : null;
+
+  if (ok && error) {
+    throw new Error('Import response cannot include error when ok=true');
+  }
+
+  if (!ok && !error) {
+    throw new Error('Import response must include error when ok=false');
+  }
+
+  return {
+    ok,
+    result,
+    error
+  };
+}
+
+
+==================================================
 FILE: ui/renderer/runtime/shellContract.js
 ==================================================
 
@@ -8869,1072 +11236,6 @@ export function createRendererShellContract({
     cancelCloseIntent,
     subscribeToCloseIntent: (listener) => toUnsubscribe(subscribeToCloseIntent(listener))
   });
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/idFactory.js
-==================================================
-
-import { slugifyDocumentName } from './naming.js';
-
-let transientIdCounter = 0;
-
-// Platform-level helper for transient unique entity ids.
-// This is infrastructure only: it does not know module schemas or document semantics.
-export function createTransientEntityId(baseSlug, fallback = 'entity') {
-  const normalizedBase = slugifyDocumentName(baseSlug) || slugifyDocumentName(fallback) || 'entity';
-  const timestamp = Date.now().toString(36);
-  transientIdCounter = (transientIdCounter + 1) % Number.MAX_SAFE_INTEGER;
-  const counter = transientIdCounter.toString(36);
-
-  return `${normalizedBase}_${timestamp}${counter}`;
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/naming.js
-==================================================
-
-export function slugifyDocumentName(name) {
-  return String(name ?? '')
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/[^\w\-А-Яа-яЁё]/g, '')
-    .toLowerCase();
-}
-
-==================================================
-FILE: ui/styles/styles.css
-==================================================
-
-:root {
-  --gray-900: #111827;
-  --gray-700: #374151;
-  --gray-500: #6b7280;
-  --gray-300: #d1d5db;
-  --gray-200: #e5e7eb;
-  --gray-100: #f3f4f6;
-  --gray-050: #f9fafb;
-
-  --color-bg-app: #ffffff;
-  --color-bg-layout: var(--gray-050);
-  --color-bg-muted: var(--gray-100);
-  --color-bg-subtle: var(--gray-050);
-  --color-border: var(--gray-200);
-  --color-border-soft: var(--gray-200);
-  --color-text: var(--gray-900);
-  --color-text-muted: var(--gray-700);
-  --color-text-soft: var(--gray-500);
-  --color-tab-bg: var(--gray-100);
-  --color-tab-bg-active: #ffffff;
-  --color-tab-hover: var(--gray-200);
-  --color-gutter-hover: var(--gray-500);
-
-  --tabs-bar-height: 42px;
-  --tabs-padding-x: 10px;
-  --tab-fixed-width: 180px;
-  --tab-font-size: 13px;
-  --tab-close-size: 18px;
-  --panel-padding-x: 12px;
-  --gutter-size: 4px;
-
-  --tree-row-border-radius: 6px;
-  --tree-row-padding-x: 10px;
-  --tree-row-padding-y: 8px;
-  --tree-module-row-font-size: 12px;
-  --tree-module-row-letter-spacing: 0.04em;
-  --tree-component-indent: 16px;
-  --tree-hover-bg: var(--gray-100);
-  --tree-selected-bg: var(--gray-300);
-}
-
-
-
-html,
-body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-  background: var(--color-bg-layout);
-  color: var(--color-text);
-}
-
-#app {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.top-panel {
-  height: 48px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  background: var(--color-bg-app);
-  border-bottom: 1px solid var(--color-border);
-  flex: 0 0 auto;
-}
-
-.top-panel-left {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.top-panel-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.top-panel-right button {
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  color: var(--color-text);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.top-panel-right button:disabled {
-  color: var(--color-text-soft);
-  background: var(--color-bg-subtle);
-  cursor: not-allowed;
-}
-
-.platform-action-surface {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-.platform-action-button {
-  height: 26px;
-  padding: 0 7px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  color: var(--color-text);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.top-panel-title-text {
-  font-weight: 600;
-}
-
-.project-title {
-  color: var(--color-text-muted);
-}
-
-.tabs-bar {
-  height: var(--tabs-bar-height);
-  background-color: var(--color-bg-muted);
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: stretch;
-  min-height: 0;
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.tabs-list {
-  flex: 1;
-  display: flex;
-  align-items: stretch;
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-width: 0;
-  scrollbar-width: thin;
-  scrollbar-color: #c4ccd7 transparent;
-}
-
-.tabs-list::-webkit-scrollbar {
-  height: 7px;
-}
-
-.tabs-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tabs-list::-webkit-scrollbar-thumb {
-  background: #c4ccd7;
-  border-radius: 999px;
-}
-
-.tabs-list::-webkit-scrollbar-thumb:hover {
-  background: #aab4c2;
-}
-
-.workbench-tab {
-  width: var(--tab-fixed-width);
-  min-width: var(--tab-fixed-width);
-  max-width: var(--tab-fixed-width);
-  height: 100%;
-  border: none;
-  border-right: 1px solid var(--color-border-soft);
-  background: var(--color-tab-bg);
-  color: var(--color-text-muted);
-  padding: 0 var(--tabs-padding-x);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  cursor: pointer;
-  font-size: var(--tab-font-size);
-  text-align: left;
-  flex: 0 0 var(--tab-fixed-width);
-  box-sizing: border-box;
-}
-
-.workbench-tab:hover {
-  background: var(--color-tab-hover);
-}
-
-.workbench-tab.is-active {
-  background: var(--color-tab-bg-active);
-  color: var(--color-text);
-  box-shadow: inset 0 -2px 0 0 var(--gray-700);
-}
-
-.workbench-tab-title {
-  display: block;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workbench-tab-close-button {
-  width: var(--tab-close-size);
-  height: var(--tab-close-size);
-  min-width: var(--tab-close-size);
-  border: none;
-  background: transparent;
-  color: inherit;
-  border-radius: 4px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font: inherit;
-  line-height: 1;
-  padding: 0;
-  flex: 0 0 auto;
-}
-
-.workbench-tab-close-button:hover,
-.workbench-tab-close-button:focus-visible {
-  background: var(--gray-200);
-  color: var(--color-text);
-  outline: none;
-}
-
-.workbench-main-layout {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-  min-width: 0;
-}
-
-.project-tree-column {
-  min-width: 0;
-  min-height: 0;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  display: flex;
-  flex-direction: column;
-}
-
-.side-header {
-  height: var(--tabs-bar-height);
-  box-sizing: border-box;
-  padding: 0 var(--panel-padding-x);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: var(--color-bg-muted);
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  line-height: 1;
-}
-
-.panel-header-text {
-  line-height: 1;
-}
-
-.project-tree {
-  overflow: auto;
-  padding: 12px;
-  flex: 1;
-  min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: #c4ccd7 transparent;
-}
-
-.backend-project-catalog {
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.backend-project-catalog.is-backend-workspace-browser-hidden {
-  display: none;
-}
-
-.backend-workspace-browser-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.backend-workspace-browser-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.backend-workspace-browser-subtitle {
-  font-size: 11px;
-  color: var(--color-text-soft);
-}
-
-.backend-workspace-browser-primary-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.backend-workspace-browser-create-group {
-  display: flex;
-  flex: 1 1 100%;
-  gap: 6px;
-}
-
-.backend-workspace-browser-primary-actions button,
-.backend-workspace-browser-create-group input,
-.backend-workspace-browser-create-group button {
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-bg-app);
-  color: var(--color-text);
-  font-size: 12px;
-  line-height: 1.2;
-  padding: 6px 8px;
-}
-
-.backend-workspace-browser-create-group input {
-  flex: 1;
-  min-width: 0;
-}
-
-.backend-workspace-browser-primary-actions button,
-.backend-workspace-browser-create-group button {
-  cursor: pointer;
-}
-
-.backend-workspace-browser-status-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.backend-workspace-browser-status-label,
-.backend-workspace-browser-list-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-
-.backend-workspace-browser-status {
-  margin: 0;
-  min-height: 42px;
-  max-height: 92px;
-  overflow: auto;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  padding: 6px;
-  font-size: 11px;
-  font-family: Consolas, Monaco, monospace;
-  white-space: pre-wrap;
-}
-
-.backend-process-panel {
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg-subtle);
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.backend-process-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.backend-process-context {
-  font-size: 11px;
-  color: var(--color-text-soft);
-}
-
-.backend-process-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.backend-process-actions button {
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 5px 8px;
-  cursor: pointer;
-}
-
-.backend-process-action-primary {
-  background: var(--gray-700);
-  border-color: var(--gray-700);
-  color: #fff;
-}
-
-.backend-process-action-secondary {
-  background: var(--color-bg-app);
-  color: var(--color-text);
-}
-
-.backend-process-actions button.is-disabled,
-.backend-process-actions button:disabled {
-  background: var(--gray-100);
-  border-color: var(--color-border);
-  color: var(--color-text-soft);
-  cursor: not-allowed;
-}
-
-.backend-process-meta {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
-}
-
-.backend-process-meta-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-}
-
-.backend-process-meta-label {
-  color: var(--color-text-muted);
-}
-
-.backend-process-meta-value {
-  color: var(--color-text);
-  text-align: right;
-}
-
-.backend-process-output {
-  margin: 0;
-  min-height: 52px;
-  max-height: 140px;
-  overflow: auto;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  padding: 6px;
-  font-size: 11px;
-  font-family: Consolas, Monaco, monospace;
-  white-space: pre-wrap;
-}
-
-.backend-process-output-line {
-  display: block;
-}
-
-.backend-process-output-line.is-stdout {
-  color: var(--color-text);
-}
-
-.backend-process-output-line.is-stderr {
-  color: #991b1b;
-}
-
-.backend-process-output-line.is-system {
-  color: var(--color-text-soft);
-}
-
-.backend-workspace-browser-list-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.backend-workspace-browser-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.backend-workspace-browser-empty-state {
-  border: 1px dashed var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg-subtle);
-  color: var(--color-text-soft);
-  font-size: 12px;
-  padding: 10px;
-}
-
-.backend-workspace-browser-item {
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg-subtle);
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.backend-workspace-browser-item-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.backend-workspace-browser-identity {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.backend-workspace-browser-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.backend-workspace-browser-slug,
-.backend-workspace-browser-lock {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.backend-workspace-browser-item-primary-actions,
-.backend-workspace-browser-item-secondary-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
-.backend-workspace-browser-primary-button,
-.backend-workspace-browser-secondary-button {
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 5px 8px;
-  cursor: pointer;
-}
-
-.backend-workspace-browser-primary-button {
-  background: var(--gray-700);
-  border-color: var(--gray-700);
-  color: #fff;
-}
-
-.backend-workspace-browser-secondary-button {
-  background: var(--color-bg-app);
-  color: var(--color-text);
-}
-
-.backend-workspace-browser-primary-button.is-disabled,
-.backend-workspace-browser-primary-button:disabled,
-.backend-workspace-browser-secondary-button:disabled {
-  background: var(--gray-100);
-  border-color: var(--color-border);
-  color: var(--color-text-soft);
-  cursor: not-allowed;
-}
-
-.project-tree::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-
-.project-tree::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.project-tree::-webkit-scrollbar-thumb {
-  background: #c4ccd7;
-  border-radius: 999px;
-}
-
-.project-tree::-webkit-scrollbar-thumb:hover {
-  background: #aab4c2;
-}
-
-
-.project-node {
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-
-.tree-node-project-row {
-  border-color: var(--gray-200);
-  background: var(--gray-200);
-}
-
-.tree-module-block {
-  margin-top: 12px;
-}
-
-.tree-module-children {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tree-section-header {
-  margin: 0 0 8px;
-  font-size: var(--tree-module-row-font-size);
-  font-weight: 700;
-  letter-spacing: var(--tree-module-row-letter-spacing);
-  text-transform: uppercase;
-  color: var(--gray-700);
-}
-
-.tree-item {
-  margin-bottom: 0;
-}
-
-.tree-node-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid transparent;
-  border-radius: var(--tree-row-border-radius);
-  background: transparent;
-  transition: background-color 120ms ease-in-out, border-color 120ms ease-in-out;
-}
-
-.tree-node-document-row {
-  padding-left: 0;
-}
-
-.tree-node-row:hover {
-  background: var(--tree-hover-bg);
-  border-color: var(--gray-200);
-}
-
-.tree-node-row.is-selected {
-  background: var(--tree-selected-bg);
-  border-color: var(--gray-300);
-}
-
-.tree-node-label {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-text);
-  text-align: left;
-  padding: var(--tree-row-padding-y) var(--tree-row-padding-x);
-  cursor: pointer;
-  font: inherit;
-  overflow: hidden;
-}
-
-.tree-node-label-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tree-node-disclosure {
-  width: 14px;
-  min-width: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gray-700);
-}
-
-.tree-node-disclosure-spacer {
-  opacity: 0;
-}
-
-.tree-node-icon {
-  color: var(--gray-700);
-}
-
-.tree-node-action-icon {
-  color: var(--gray-700);
-}
-
-.tree-node-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding-right: 6px;
-  opacity: 0;
-  transition: opacity 120ms ease-in-out;
-}
-
-.tree-node-row:hover .tree-node-actions,
-.tree-node-row.is-selected .tree-node-actions {
-  opacity: 1;
-}
-
-.tree-node-action-button {
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  color: var(--color-text-muted);
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  border-radius: 4px;
-  font: inherit;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tree-node-action-button:hover {
-  background: var(--gray-100);
-  color: var(--color-text);
-}
-
-
-.workbench-inline-rename-input,
-.tree-inline-rename-input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  color: var(--color-text);
-  padding: 4px 8px;
-  font: inherit;
-}
-
-
-.workbench-right-column {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.document-vertical-layout {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-}
-
-.editor-host-container {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  position: relative;
-  background: var(--color-bg-app);
-}
-
-.editor-host {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
-  min-height: 0;
-  min-width: 0;
-}
-
-.workbench-page {
-  position: absolute;
-  inset: 0;
-  display: none;
-  min-height: 0;
-  min-width: 0;
-}
-
-.workbench-page.is-active {
-  display: block;
-}
-
-.metagen-editor {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  min-width: 0;
-  padding: 0;
-}
-
-.metagen-editor-grid {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  min-height: 0;
-  min-width: 0;
-  background-color: var(--color-bg-layout);
-}
-
-/* APP_CONFIG.ui.classNames.editorRightStack */
-.metagen-editor-right-stack {
-  height: 100%;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  box-shadow: -1px 0 0 0 var(--color-border);
-}
-
-.metagen-editor-center-stack {
-  height: 100%;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-}
-
-.metagen-editor-center-stack > .metagen-editor-panel {
-  box-shadow: none;
-}
-
-.metagen-editor-panel {
-  height: 100%;
-  background-color: var(--color-bg-app);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  border-radius: 0;
-  box-shadow: -1px 0 0 0 var(--color-border);
-  border: none;
-}
-
-.metagen-editor-panel:first-child {
-  box-shadow: none;
-}
-
-.metagen-editor-panel-header {
-  padding: 10px var(--panel-padding-x);
-  background-color: var(--color-bg-muted);
-  border-bottom: 1px solid var(--color-border);
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  user-select: none;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.metagen-editor-panel-content {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  position: relative;
-  background: var(--color-bg-app);
-}
-
-.metagen-editor-table-container {
-  position: absolute;
-  inset: 0;
-  background: #fff !important;
-  background-image: none !important;
-}
-
-.metagen-editor-table-container *,
-.metagen-editor-table-container *::before,
-.metagen-editor-table-container *::after {
-  background-image: none !important;
-}
-
-.metagen-editor-textarea {
-  width: 100%;
-  height: 100%;
-  border: none;
-  padding: 10px 12px;
-  font-family: Consolas, Monaco, monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  resize: none;
-  outline: none;
-  background-color: var(--color-bg-subtle);
-  color: var(--color-text);
-  box-sizing: border-box;
-}
-
-.bottom-panel {
-  background-color: var(--color-bg-app);
-  color: var(--color-text);
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.bottom-panel-header {
-  padding: 8px var(--panel-padding-x);
-  background-color: var(--color-bg-muted);
-  border-bottom: 1px solid var(--color-border);
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ui-icon-host {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: currentColor;
-  flex: 0 0 auto;
-  line-height: 0;
-}
-
-.ui-icon-host svg {
-  display: block;
-}
-
-.ui-icon-host img {
-  display: block;
-}
-
-.bottom-panel-content {
-  flex: 1;
-  overflow: auto;
-  padding: 8px 12px;
-  font-family: Consolas, Monaco, monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  background-color: var(--color-bg-app);
-  color: var(--color-text);
-}
-
-.log-entry { margin: 2px 0; }
-.log-line { white-space: pre-wrap; }
-.log-details {
-  margin-left: 16px;
-  color: var(--color-text-soft);
-  white-space: pre-wrap;
-}
-
-.gutter {
-  background-color: var(--color-border);
-  background-repeat: no-repeat;
-  background-position: 50%;
-  transition: background-color 0.2s;
-}
-
-.gutter:hover {
-  background-color: var(--color-gutter-hover);
-}
-
-.gutter.gutter-horizontal {
-  cursor: col-resize;
-  width: var(--gutter-size) !important;
-}
-
-.gutter.gutter-vertical {
-  cursor: row-resize;
-  height: var(--gutter-size) !important;
-}
-
-
-.tree-item-delete {
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  cursor: pointer;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-}
-
-.meta-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.meta-dialog {
-  width: 360px;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  padding: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-}
-
-.meta-dialog-title {
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.meta-dialog-input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid var(--color-border);
-  padding: 8px;
-}
-
-.meta-dialog-actions {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.meta-dialog-button {
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-app);
-  padding: 6px 10px;
-  cursor: pointer;
-}
-
-.meta-dialog-button-primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
 }
 
 
@@ -10297,219 +11598,6 @@ export function createProjectTree({
   });
 
   return { render, getProjectPanelTitle };
-}
-
-
-==================================================
-FILE: ui/renderer/ui/pngIconRenderer.js
-==================================================
-
-import { APP_CONFIG } from '../../config/app-config.js';
-
-const DEFAULT_ICON_SIZE = APP_CONFIG.ui.icons.sizes.defaultIcon;
-
-function normalizeClassNames(classNames = []) {
-  const values = Array.isArray(classNames) ? classNames : [classNames];
-  return values.filter(Boolean).map((className) => {
-    const token = String(className);
-    if (/\s/.test(token)) {
-      throw new TypeError(`Invalid class token "${token}". Pass class names as separate tokens.`);
-    }
-    return token;
-  });
-}
-
-export function resolveRendererIconSource(iconAssetPath) {
-  if (typeof iconAssetPath !== 'string' || iconAssetPath.length === 0) {
-    return '';
-  }
-
-  return iconAssetPath;
-}
-
-export function createPngIconNode(iconAssetPath, { size = DEFAULT_ICON_SIZE, classNames = [] } = {}) {
-  const host = document.createElement('span');
-  host.classList.add(APP_CONFIG.ui.classNames.iconHost);
-  normalizeClassNames(classNames).forEach((className) => host.classList.add(className));
-  host.dataset.iconAssetPath = iconAssetPath;
-  host.dataset.iconSize = String(size);
-
-  const image = document.createElement('img');
-  image.src = resolveRendererIconSource(iconAssetPath);
-  image.alt = '';
-  image.width = size;
-  image.height = size;
-  image.setAttribute('width', String(size));
-  image.setAttribute('height', String(size));
-  image.decoding = 'async';
-  image.loading = 'eager';
-  image.setAttribute('aria-hidden', 'true');
-
-  host.appendChild(image);
-  return host;
-}
-
-export function setNodeIconAndText(targetNode, {
-  iconAssetPath,
-  labelText,
-  iconSize,
-  iconClassName,
-  textClassName
-} = {}) {
-  if (!targetNode) {
-    return;
-  }
-
-  targetNode.innerHTML = '';
-
-  if (iconAssetPath) {
-    targetNode.appendChild(
-      createPngIconNode(iconAssetPath, {
-        size: iconSize || DEFAULT_ICON_SIZE,
-        classNames: iconClassName ? [iconClassName] : []
-      })
-    );
-  }
-
-  const textNode = document.createElement('span');
-  if (textClassName) {
-    textNode.classList.add(textClassName);
-  }
-  textNode.textContent = labelText || '';
-  targetNode.appendChild(textNode);
-}
-
-
-==================================================
-FILE: ui/renderer/ui/projectTree/treeAdapter.js
-==================================================
-
-import { APP_CONFIG } from '../../../config/app-config.js';
-import { getDocumentLabel, getDocumentIdentityKey } from '../../runtime/documentRecordIdentity.js';
-
-export const TREE_NODE_TYPES = APP_CONFIG.project.tree.nodeTypes;
-export const TREE_ACTION_IDS = APP_CONFIG.project.tree.actionIds;
-
-const TREE_CLASS_NAMES = APP_CONFIG.ui.classNames;
-
-const MODULE_ROW_CLASS_BY_MODULE = {
-  [APP_CONFIG.project.moduleIds.metagen]: TREE_CLASS_NAMES.treeNodeModuleMetagen,
-  [APP_CONFIG.project.moduleIds.metalab]: TREE_CLASS_NAMES.treeNodeModuleMetalab,
-  [APP_CONFIG.project.moduleIds.metaview]: TREE_CLASS_NAMES.treeNodeModuleMetaview
-};
-
-const DOCUMENT_ROW_CLASS_BY_MODULE = {
-  [APP_CONFIG.project.moduleIds.metagen]: TREE_CLASS_NAMES.treeNodeDocumentMetagen,
-  [APP_CONFIG.project.moduleIds.metalab]: TREE_CLASS_NAMES.treeNodeDocumentMetalab,
-  [APP_CONFIG.project.moduleIds.metaview]: TREE_CLASS_NAMES.treeNodeDocumentMetaview
-};
-
-export function createTreeBehaviorConfig() {
-  return {
-    inlineRenameEnabled: false,
-    slowDoubleClickRenameEnabled: false
-  };
-}
-
-export function buildProjectTreeNodes({ project, moduleSections, getDocumentsByModule }) {
-  if (!project) {
-    return [];
-  }
-
-  return [
-    {
-      nodeType: TREE_NODE_TYPES.project,
-      id: `${APP_CONFIG.project.identity.treeProjectPrefix}${project.project?.id || APP_CONFIG.project.defaults.unnamedProject}`,
-      label: APP_CONFIG.project.tree.labels.root,
-      project
-    },
-    ...moduleSections.map((sectionConfig) => ({
-      nodeType: TREE_NODE_TYPES.module,
-      id: `${APP_CONFIG.project.identity.treeModulePrefix}${sectionConfig.moduleId}`,
-      moduleId: sectionConfig.moduleId,
-      moduleName: sectionConfig.moduleName,
-      label: sectionConfig.moduleName,
-      sectionConfig,
-      children: getDocumentsByModule(sectionConfig.moduleId).map((documentRecord) => ({
-        nodeType: TREE_NODE_TYPES.document,
-        id: getDocumentIdentityKey(documentRecord),
-        label: getDocumentLabel(documentRecord),
-        moduleId: sectionConfig.moduleId,
-        path: documentRecord.path,
-        documentRecord
-      }))
-    }))
-  ];
-}
-
-export function getNodeActions(nodeData) {
-  if (nodeData?.nodeType === TREE_NODE_TYPES.module) {
-    return [{
-      id: TREE_ACTION_IDS.createComponent,
-      title: APP_CONFIG.ui.tree.actions.createComponent.title,
-      iconAssetPath: APP_CONFIG.ui.tree.actions.createComponent.iconAssetPath,
-      visible: true
-    }];
-  }
-
-  if (nodeData?.nodeType === TREE_NODE_TYPES.document) {
-    return [{
-      id: TREE_ACTION_IDS.deleteComponent,
-      title: APP_CONFIG.ui.tree.actions.deleteComponent.title,
-      iconAssetPath: APP_CONFIG.ui.tree.actions.deleteComponent.iconAssetPath,
-      visible: true
-    }];
-  }
-
-  return [];
-}
-
-export function getNodeRowClassNames(nodeData) {
-  if (nodeData?.nodeType === TREE_NODE_TYPES.project) {
-    return [TREE_CLASS_NAMES.treeNodeProjectRow];
-  }
-
-  if (nodeData?.nodeType === TREE_NODE_TYPES.module) {
-    return [MODULE_ROW_CLASS_BY_MODULE[nodeData.moduleId]].filter(Boolean);
-  }
-
-  if (nodeData?.nodeType === TREE_NODE_TYPES.document) {
-    return [DOCUMENT_ROW_CLASS_BY_MODULE[nodeData.moduleId]].filter(Boolean);
-  }
-
-  return [];
-}
-
-export function createTreeInteractionController({ tabs, onCreateComponentRequest, onDeleteComponentRequest }) {
-  async function onNodePrimaryClick(nodeData) {
-    if (nodeData?.nodeType !== TREE_NODE_TYPES.document) {
-      return { handled: false, reason: APP_CONFIG.ui.runtime.treeInteractionReasons.nonDocumentNode };
-    }
-
-    await tabs.openOrActivateDocument(nodeData.documentRecord);
-    return { handled: true, reason: APP_CONFIG.ui.runtime.treeInteractionReasons.documentOpenOrActivate };
-  }
-
-  async function onNodeActionClick({ actionId, nodeData, event }) {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    if (actionId === TREE_ACTION_IDS.createComponent && nodeData?.nodeType === TREE_NODE_TYPES.module) {
-      await onCreateComponentRequest?.(nodeData.moduleId, nodeData);
-      return { handled: true, reason: TREE_ACTION_IDS.createComponent };
-    }
-
-    if (actionId === TREE_ACTION_IDS.deleteComponent && nodeData?.nodeType === TREE_NODE_TYPES.document) {
-      await onDeleteComponentRequest?.(nodeData.documentRecord, nodeData);
-      return { handled: true, reason: TREE_ACTION_IDS.deleteComponent };
-    }
-
-    return { handled: false, reason: APP_CONFIG.ui.runtime.treeInteractionReasons.unsupportedAction };
-  }
-
-  return { onNodePrimaryClick, onNodeActionClick };
 }
 
 
@@ -11268,6 +12356,139 @@ export async function finalizeEditingBeforeContextTransition({
 
 
 ==================================================
+FILE: ui/renderer/ui/projectTree/treeAdapter.js
+==================================================
+
+import { APP_CONFIG } from '../../../config/app-config.js';
+import { getDocumentLabel, getDocumentIdentityKey } from '../../runtime/documentRecordIdentity.js';
+
+export const TREE_NODE_TYPES = APP_CONFIG.project.tree.nodeTypes;
+export const TREE_ACTION_IDS = APP_CONFIG.project.tree.actionIds;
+
+const TREE_CLASS_NAMES = APP_CONFIG.ui.classNames;
+
+const MODULE_ROW_CLASS_BY_MODULE = {
+  [APP_CONFIG.project.moduleIds.metagen]: TREE_CLASS_NAMES.treeNodeModuleMetagen,
+  [APP_CONFIG.project.moduleIds.metalab]: TREE_CLASS_NAMES.treeNodeModuleMetalab,
+  [APP_CONFIG.project.moduleIds.metaview]: TREE_CLASS_NAMES.treeNodeModuleMetaview
+};
+
+const DOCUMENT_ROW_CLASS_BY_MODULE = {
+  [APP_CONFIG.project.moduleIds.metagen]: TREE_CLASS_NAMES.treeNodeDocumentMetagen,
+  [APP_CONFIG.project.moduleIds.metalab]: TREE_CLASS_NAMES.treeNodeDocumentMetalab,
+  [APP_CONFIG.project.moduleIds.metaview]: TREE_CLASS_NAMES.treeNodeDocumentMetaview
+};
+
+export function createTreeBehaviorConfig() {
+  return {
+    inlineRenameEnabled: false,
+    slowDoubleClickRenameEnabled: false
+  };
+}
+
+export function buildProjectTreeNodes({ project, moduleSections, getDocumentsByModule }) {
+  if (!project) {
+    return [];
+  }
+
+  return [
+    {
+      nodeType: TREE_NODE_TYPES.project,
+      id: `${APP_CONFIG.project.identity.treeProjectPrefix}${project.project?.id || APP_CONFIG.project.defaults.unnamedProject}`,
+      label: APP_CONFIG.project.tree.labels.root,
+      project
+    },
+    ...moduleSections.map((sectionConfig) => ({
+      nodeType: TREE_NODE_TYPES.module,
+      id: `${APP_CONFIG.project.identity.treeModulePrefix}${sectionConfig.moduleId}`,
+      moduleId: sectionConfig.moduleId,
+      moduleName: sectionConfig.moduleName,
+      label: sectionConfig.moduleName,
+      sectionConfig,
+      children: getDocumentsByModule(sectionConfig.moduleId).map((documentRecord) => ({
+        nodeType: TREE_NODE_TYPES.document,
+        id: getDocumentIdentityKey(documentRecord),
+        label: getDocumentLabel(documentRecord),
+        moduleId: sectionConfig.moduleId,
+        path: documentRecord.path,
+        documentRecord
+      }))
+    }))
+  ];
+}
+
+export function getNodeActions(nodeData) {
+  if (nodeData?.nodeType === TREE_NODE_TYPES.module) {
+    return [{
+      id: TREE_ACTION_IDS.createComponent,
+      title: APP_CONFIG.ui.tree.actions.createComponent.title,
+      iconAssetPath: APP_CONFIG.ui.tree.actions.createComponent.iconAssetPath,
+      visible: true
+    }];
+  }
+
+  if (nodeData?.nodeType === TREE_NODE_TYPES.document) {
+    return [{
+      id: TREE_ACTION_IDS.deleteComponent,
+      title: APP_CONFIG.ui.tree.actions.deleteComponent.title,
+      iconAssetPath: APP_CONFIG.ui.tree.actions.deleteComponent.iconAssetPath,
+      visible: true
+    }];
+  }
+
+  return [];
+}
+
+export function getNodeRowClassNames(nodeData) {
+  if (nodeData?.nodeType === TREE_NODE_TYPES.project) {
+    return [TREE_CLASS_NAMES.treeNodeProjectRow];
+  }
+
+  if (nodeData?.nodeType === TREE_NODE_TYPES.module) {
+    return [MODULE_ROW_CLASS_BY_MODULE[nodeData.moduleId]].filter(Boolean);
+  }
+
+  if (nodeData?.nodeType === TREE_NODE_TYPES.document) {
+    return [DOCUMENT_ROW_CLASS_BY_MODULE[nodeData.moduleId]].filter(Boolean);
+  }
+
+  return [];
+}
+
+export function createTreeInteractionController({ tabs, onCreateComponentRequest, onDeleteComponentRequest }) {
+  async function onNodePrimaryClick(nodeData) {
+    if (nodeData?.nodeType !== TREE_NODE_TYPES.document) {
+      return { handled: false, reason: APP_CONFIG.ui.runtime.treeInteractionReasons.nonDocumentNode };
+    }
+
+    await tabs.openOrActivateDocument(nodeData.documentRecord);
+    return { handled: true, reason: APP_CONFIG.ui.runtime.treeInteractionReasons.documentOpenOrActivate };
+  }
+
+  async function onNodeActionClick({ actionId, nodeData, event }) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (actionId === TREE_ACTION_IDS.createComponent && nodeData?.nodeType === TREE_NODE_TYPES.module) {
+      await onCreateComponentRequest?.(nodeData.moduleId, nodeData);
+      return { handled: true, reason: TREE_ACTION_IDS.createComponent };
+    }
+
+    if (actionId === TREE_ACTION_IDS.deleteComponent && nodeData?.nodeType === TREE_NODE_TYPES.document) {
+      await onDeleteComponentRequest?.(nodeData.documentRecord, nodeData);
+      return { handled: true, reason: TREE_ACTION_IDS.deleteComponent };
+    }
+
+    return { handled: false, reason: APP_CONFIG.ui.runtime.treeInteractionReasons.unsupportedAction };
+  }
+
+  return { onNodePrimaryClick, onNodeActionClick };
+}
+
+
+==================================================
 FILE: ui/renderer/ui/tabEditLifecycle.js
 ==================================================
 
@@ -11308,748 +12529,6 @@ export function createWorkbenchShell() {
     editorHostId: APP_CONFIG.ui.dom.editorHostId
   };
 }
-
-==================================================
-FILE: ui/renderer/core/loggerSinks.js
-==================================================
-
-import { APP_CONFIG } from '../../config/app-config.js';
-
-const LOG_ENTRY_CLASS = APP_CONFIG.ui.classNames.logEntry;
-const LOG_LINE_CLASS = APP_CONFIG.ui.classNames.logLine;
-const LOG_DETAILS_CLASS = APP_CONFIG.ui.classNames.logDetails;
-const CONSOLE_METHODS_BY_LEVEL = APP_CONFIG.logger.console.methodsByLevel;
-const DEFAULT_CONSOLE_METHOD = APP_CONFIG.logger.console.defaultMethod;
-
-export function createDomLogSink({ output }) {
-  return {
-    write(entry) {
-      if (!output) {
-        return;
-      }
-
-      const node = document.createElement('div');
-      node.className = LOG_ENTRY_CLASS;
-
-      const lineNode = document.createElement('div');
-      lineNode.className = LOG_LINE_CLASS;
-      lineNode.textContent = entry.line;
-      node.appendChild(lineNode);
-
-      if (entry.detailsText) {
-        const detailsNode = document.createElement('pre');
-        detailsNode.className = LOG_DETAILS_CLASS;
-        detailsNode.textContent = entry.detailsText;
-        node.appendChild(detailsNode);
-      }
-
-      output.appendChild(node);
-      output.scrollTo({ top: output.scrollHeight });
-    },
-    clear() {
-      if (output) {
-        output.innerHTML = '';
-      }
-    }
-  };
-}
-
-export function createConsoleLogSink({ mirrorToConsole = APP_CONFIG.platform?.logging?.mirrorToConsole } = {}) {
-  return {
-    write(entry) {
-      if (!mirrorToConsole) {
-        return;
-      }
-
-      const methodName = CONSOLE_METHODS_BY_LEVEL[entry.level] || DEFAULT_CONSOLE_METHOD;
-      const method = console[methodName]?.bind(console) ?? console[DEFAULT_CONSOLE_METHOD].bind(console);
-      method(entry.line);
-
-      if (entry.detailsText) {
-        method(entry.detailsText);
-      }
-    },
-    clear() {}
-  };
-}
-
-export function createMemoryLogSink() {
-  const entries = [];
-
-  return {
-    write(entry) {
-      entries.push(entry);
-    },
-    clear() {
-      entries.length = 0;
-    },
-    getEntries() {
-      return [...entries];
-    }
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/projectPaths.js
-==================================================
-
-import { APP_CONFIG } from '../../config/app-config.js';
-
-const PROJECT_MODULE_IDS = APP_CONFIG.project.moduleIds;
-const PROJECT_FOLDERS = APP_CONFIG.project.folders;
-const PRIMARY_PROJECT_MODULE_IDS = APP_CONFIG.project.primaryModuleIds || [];
-
-export function getPrimaryProjectModuleIds() {
-  return PRIMARY_PROJECT_MODULE_IDS.filter((moduleId) => Boolean(PROJECT_MODULE_IDS[moduleId]));
-}
-
-export function createPrimaryModuleDocumentBuckets() {
-  return getPrimaryProjectModuleIds().reduce((acc, moduleId) => {
-    acc[moduleId] = [];
-    return acc;
-  }, {});
-}
-
-export function flattenPrimaryModuleDocumentBuckets(documentsByModule = {}) {
-  return getPrimaryProjectModuleIds().flatMap((moduleId) => documentsByModule[moduleId] || []);
-}
-
-export function getProjectModuleFolders() {
-  return getPrimaryProjectModuleIds().reduce((acc, moduleId) => {
-    acc[moduleId] = PROJECT_FOLDERS[moduleId];
-    return acc;
-  }, {});
-}
-
-export function joinProjectPath(...parts) {
-  return parts
-    .filter(Boolean)
-    .join('/')
-    .replace(/\\/g, '/')
-    .replace(/\/{2,}/g, '/');
-}
-
-export function getFileExtension(fileName) {
-  const normalized = String(fileName || '');
-  const lastDotIndex = normalized.lastIndexOf('.');
-  return lastDotIndex > 0 ? normalized.slice(lastDotIndex) : '';
-}
-
-export function stripFileExtension(fileName) {
-  const normalized = String(fileName || '');
-  const lastDotIndex = normalized.lastIndexOf('.');
-  return lastDotIndex > 0 ? normalized.slice(0, lastDotIndex) : normalized;
-}
-
-export function dirnameOf(targetPath) {
-  const normalized = String(targetPath || '').replace(/\\/g, '/').replace(/\/+$/, '');
-  const index = normalized.lastIndexOf('/');
-
-  if (index < 0) {
-    return '';
-  }
-
-  if (index === 0) {
-    return '/';
-  }
-
-  return normalized.slice(0, index);
-}
-
-export function normalizeProjectFilePath(projectFilePath) {
-  const normalized = String(projectFilePath || '').trim().replace(/\\/g, '/').replace(/\/+$/, '');
-
-  if (!normalized) {
-    throw new Error('Project file path is required');
-  }
-
-  const baseName = normalized.split('/').pop() || '';
-  if (!baseName || !baseName.includes('.')) {
-    throw new Error(`Project file path must point to a YAML file: ${projectFilePath}`);
-  }
-
-  const ext = getFileExtension(baseName).toLowerCase();
-  const allowed = APP_CONFIG.project.allowedProjectFileExtensions || ['.yaml', '.yml'];
-
-  if (!allowed.includes(ext)) {
-    throw new Error(`Project file path must point to a YAML file: ${projectFilePath}`);
-  }
-
-  return normalized;
-}
-
-export function getProjectRootFromProjectFile(projectFilePath) {
-  const root = dirnameOf(projectFilePath);
-  return root || '.';
-}
-
-export function buildProjectFilePath(projectRoot, projectFileName = APP_CONFIG.project.defaultProjectFileName) {
-  return joinProjectPath(projectRoot, projectFileName);
-}
-
-export function getDefaultProjectModuleDirectories(projectRoot) {
-  const moduleFolders = getProjectModuleFolders();
-
-  return Object.entries(moduleFolders).reduce((acc, [moduleId, folder]) => {
-    acc[moduleId] = joinProjectPath(projectRoot, folder);
-    return acc;
-  }, {});
-}
-
-export function getProjectOwnedPaths(targetProjectFilePath) {
-  const normalizedProjectFilePath = normalizeProjectFilePath(targetProjectFilePath);
-  const targetRoot = getProjectRootFromProjectFile(normalizedProjectFilePath);
-  const targetProjectFileName = normalizedProjectFilePath.split('/').pop();
-  const moduleDirectories = getDefaultProjectModuleDirectories(targetRoot);
-
-  return {
-    rootPath: targetRoot,
-    projectFileName: targetProjectFileName,
-    projectFilePath: buildProjectFilePath(targetRoot, targetProjectFileName),
-    moduleDirectories,
-    moduleFolders: getProjectModuleFolders()
-  };
-}
-
-
-==================================================
-FILE: ui/vite.config.js
-==================================================
-
-import { defineConfig } from 'vite';
-
-export default defineConfig({
-  root: '.',
-  publicDir: './public',
-  server: {
-    host: '127.0.0.1',
-    port: 5173,
-    strictPort: true
-  }
-});
-
-
-==================================================
-FILE: ui/renderer/runtime/runtimeClientContract.js
-==================================================
-
-﻿const REQUIRED_STRING_FIELDS = ['requestId', 'module', 'command'];
-
-function isPlainObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-export function normalizeRuntimeRequest(input) {
-  if (!isPlainObject(input)) {
-    throw new Error('Runtime command request must be an object');
-  }
-
-  for (const field of REQUIRED_STRING_FIELDS) {
-    const value = String(input[field] || '').trim();
-    if (!value) {
-      throw new Error(`Runtime command request field is required: ${field}`);
-    }
-  }
-
-  const payload = input.payload;
-
-  return {
-    requestId: String(input.requestId).trim(),
-    module: String(input.module).trim(),
-    command: String(input.command).trim(),
-    payload: isPlainObject(payload) ? payload : {}
-  };
-}
-
-export function normalizeRuntimeResponse(input, fallbackRequestId = '') {
-  if (!isPlainObject(input)) {
-    throw new Error('Runtime command response must be an object');
-  }
-
-  const requestId = String(input.requestId || fallbackRequestId || '').trim();
-  if (!requestId) {
-    throw new Error('Runtime command response field is required: requestId');
-  }
-
-  const ok = Boolean(input.ok);
-  const result = isPlainObject(input.result) ? input.result : null;
-  const error = isPlainObject(input.error) ? input.error : null;
-
-  if (ok && error) {
-    throw new Error('Runtime command response cannot include error when ok=true');
-  }
-
-  if (!ok && !error) {
-    throw new Error('Runtime command response must include error when ok=false');
-  }
-
-  return {
-    requestId,
-    ok,
-    result,
-    error
-  };
-}
-
-export function normalizeImportResponse(input) {
-  if (!isPlainObject(input)) {
-    throw new Error('Import response must be an object');
-  }
-
-  const ok = Boolean(input.ok);
-  const result = isPlainObject(input.result) ? input.result : null;
-  const error = isPlainObject(input.error) ? input.error : null;
-
-  if (ok && error) {
-    throw new Error('Import response cannot include error when ok=true');
-  }
-
-  if (!ok && !error) {
-    throw new Error('Import response must include error when ok=false');
-  }
-
-  return {
-    ok,
-    result,
-    error
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/runtimeClient.js
-==================================================
-
-import { normalizeImportResponse, normalizeRuntimeRequest, normalizeRuntimeResponse } from './runtimeClientContract.js';
-
-export function createRuntimeClient({ adapter }) {
-  if (!adapter || typeof adapter.execute !== 'function') {
-    throw new Error('Runtime client adapter with execute(request) is required');
-  }
-
-  async function execute(request) {
-    const normalizedRequest = normalizeRuntimeRequest(request);
-    const response = await adapter.execute(normalizedRequest);
-    return normalizeRuntimeResponse(response, normalizedRequest.requestId);
-  }
-
-  async function downloadBinary(relativePath) {
-    if (typeof adapter.downloadBinary !== 'function') {
-      throw new Error('Runtime client adapter with downloadBinary(relativePath) is required');
-    }
-    return adapter.downloadBinary(relativePath);
-  }
-
-  async function importProjectArchive(payload) {
-    if (typeof adapter.importProjectArchive !== 'function') {
-      throw new Error('Runtime client adapter with importProjectArchive(payload) is required');
-    }
-
-    const response = await adapter.importProjectArchive(payload);
-    return normalizeImportResponse(response);
-  }
-
-  return {
-    execute,
-    downloadBinary,
-    importProjectArchive
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/processPollingLifecycle.js
-==================================================
-
-export function createProcessPollingLifecycle({
-  intervalMs,
-  tick,
-  setIntervalFn = setInterval,
-  clearIntervalFn = clearInterval
-}) {
-  if (typeof tick !== 'function') {
-    throw new Error('Process polling lifecycle requires tick()');
-  }
-
-  let timerId = null;
-  let tickInFlight = false;
-
-  async function runTickOnce() {
-    if (tickInFlight) {
-      return true;
-    }
-
-    tickInFlight = true;
-    try {
-      const shouldContinue = await tick();
-      if (shouldContinue === false) {
-        stop();
-        return false;
-      }
-      return true;
-    } finally {
-      tickInFlight = false;
-    }
-  }
-
-  function start() {
-    if (timerId !== null) {
-      return false;
-    }
-
-    timerId = setIntervalFn(() => {
-      void runTickOnce();
-    }, intervalMs);
-    return true;
-  }
-
-  function stop() {
-    if (timerId === null) {
-      return false;
-    }
-
-    clearIntervalFn(timerId);
-    timerId = null;
-    return true;
-  }
-
-  function dispose() {
-    stop();
-  }
-
-  return {
-    start,
-    stop,
-    dispose,
-    runTickOnce,
-    isActive: () => timerId !== null,
-    isTickInFlight: () => tickInFlight
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/processExecutionOrchestrator.js
-==================================================
-
-import { createProcessPollingLifecycle } from './processPollingLifecycle.js';
-
-function cloneProcessSnapshot(snapshot) {
-  return {
-    process: snapshot.process ? { ...snapshot.process } : null,
-    outputChunks: snapshot.outputChunks.map((chunk) => ({ ...chunk })),
-    afterChunkId: snapshot.afterChunkId
-  };
-}
-
-export function createProcessExecutionOrchestrator({
-  executeBackendCommand,
-  commandIds,
-  terminalStatuses,
-  pollingIntervalMs,
-  onUpdate
-}) {
-  if (typeof executeBackendCommand !== 'function') {
-    throw new Error('Process execution orchestrator requires executeBackendCommand()');
-  }
-
-  const terminalStatusSet = new Set(Array.isArray(terminalStatuses) ? terminalStatuses : []);
-  const notify = typeof onUpdate === 'function' ? onUpdate : () => {};
-
-  const state = {
-    process: null,
-    outputChunks: [],
-    afterChunkId: 0,
-    hasSeenTerminal: false
-  };
-
-  function updateState(nextProcess = state.process) {
-    if (nextProcess) {
-      state.process = { ...nextProcess };
-      if (terminalStatusSet.has(String(nextProcess.status || '').trim())) {
-        state.hasSeenTerminal = true;
-      }
-    } else if (!state.hasSeenTerminal) {
-      state.process = null;
-    }
-    notify(cloneProcessSnapshot(state));
-  }
-
-  function appendChunks(chunks) {
-    if (!Array.isArray(chunks) || chunks.length === 0) {
-      return 0;
-    }
-
-    for (const chunk of chunks) {
-      state.outputChunks.push(chunk);
-      const chunkId = Number(chunk?.chunkId || 0);
-      if (chunkId > state.afterChunkId) {
-        state.afterChunkId = chunkId;
-      }
-    }
-    return chunks.length;
-  }
-
-  async function pollTick() {
-    const stateResult = await executeBackendCommand(commandIds.processGetState, {}, { presentResult: false });
-    const activeProcess = stateResult?.process || null;
-
-    const outputResult = await executeBackendCommand(
-      commandIds.processReadOutput,
-      { afterChunkId: state.afterChunkId },
-      { presentResult: false }
-    );
-    const latestProcess = outputResult?.process || null;
-    const readChunks = Array.isArray(outputResult?.chunks) ? outputResult.chunks : [];
-    const chunkCount = appendChunks(readChunks);
-
-    const effectiveProcess = latestProcess || activeProcess || state.process;
-    updateState(effectiveProcess);
-
-    if (!activeProcess && !latestProcess && !state.hasSeenTerminal) {
-      return false;
-    }
-
-    if (state.hasSeenTerminal && !activeProcess && chunkCount === 0) {
-      return false;
-    }
-
-    return true;
-  }
-
-  const pollingLifecycle = createProcessPollingLifecycle({
-    intervalMs: pollingIntervalMs,
-    tick: pollTick
-  });
-
-  function clearSnapshot() {
-    pollingLifecycle.stop();
-    state.process = null;
-    state.outputChunks = [];
-    state.afterChunkId = 0;
-    state.hasSeenTerminal = false;
-    notify(cloneProcessSnapshot(state));
-  }
-
-  async function syncActiveProcess() {
-    const result = await executeBackendCommand(commandIds.processGetState, {}, { presentResult: false });
-    const process = result?.process || null;
-    updateState(process);
-    if (process) {
-      pollingLifecycle.start();
-      await pollingLifecycle.runTickOnce();
-    }
-    return process;
-  }
-
-  async function launchGenerate(payload = {}) {
-    clearSnapshot();
-
-    const result = await executeBackendCommand(commandIds.metagenGenerate, payload, { presentResult: false });
-    const process = result?.process || null;
-    updateState(process);
-    if (process) {
-      pollingLifecycle.start();
-      await pollingLifecycle.runTickOnce();
-    }
-    return process;
-  }
-
-  async function stopProcess() {
-    const result = await executeBackendCommand(commandIds.processStop, {}, { presentResult: false });
-    const process = result?.process || null;
-    updateState(process);
-    if (process) {
-      pollingLifecycle.start();
-      await pollingLifecycle.runTickOnce();
-    }
-    return process;
-  }
-
-  function dispose() {
-    pollingLifecycle.dispose();
-  }
-
-  return {
-    syncActiveProcess,
-    launchGenerate,
-    stopProcess,
-    clearSnapshot,
-    dispose,
-    isPollingActive: () => pollingLifecycle.isActive(),
-    getSnapshot: () => cloneProcessSnapshot(state)
-  };
-}
-
-
-==================================================
-FILE: ui/renderer/runtime/adapters/createHttpRuntimeAdapter.js
-==================================================
-
-﻿import { normalizeRuntimeRequest } from '../runtimeClientContract.js';
-
-function normalizeBaseUrl(value) {
-  return String(value || '').replace(/\/+$/, '');
-}
-
-function normalizePath(value) {
-  const path = String(value || '').trim();
-  if (!path) {
-    throw new Error('Backend commands endpoint path is required');
-  }
-  return path.startsWith('/') ? path : `/${path}`;
-}
-
-const DEFAULT_ERROR_CODES = {
-  internal: 'INTERNAL_ERROR'
-};
-
-function createTimeoutController(timeoutMs) {
-  const abortController = typeof AbortController === 'function' ? new AbortController() : null;
-  const timeoutId = abortController
-    ? setTimeout(() => abortController.abort(), timeoutMs)
-    : null;
-
-  return {
-    signal: abortController?.signal,
-    clear: () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    }
-  };
-}
-
-export function createHttpRuntimeAdapter({
-  baseUrl,
-  endpointPath,
-  importEndpointPath = '/api/project-imports',
-  timeoutMs = 10000,
-  fetchImpl = fetch,
-  errorCodes = DEFAULT_ERROR_CODES,
-  importArchiveFieldName = 'archive',
-  defaultHeaders = {}
-}) {
-  if (typeof fetchImpl !== 'function') {
-    throw new Error('fetch implementation is required');
-  }
-
-  const commandUrl = `${normalizeBaseUrl(baseUrl)}${normalizePath(endpointPath)}`;
-  const importUrl = `${normalizeBaseUrl(baseUrl)}${normalizePath(importEndpointPath)}`;
-  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-
-  async function execute(request) {
-    const normalizedRequest = normalizeRuntimeRequest(request);
-    const timeoutController = createTimeoutController(timeoutMs);
-
-    try {
-      const response = await fetchImpl(commandUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...defaultHeaders
-        },
-        body: JSON.stringify(normalizedRequest),
-        signal: timeoutController.signal
-      });
-
-      const payload = await response.json();
-
-      if (typeof payload?.requestId !== 'string' || !payload.requestId.trim()) {
-        payload.requestId = normalizedRequest.requestId;
-      }
-
-      return payload;
-    } catch (error) {
-      return {
-        requestId: normalizedRequest.requestId,
-        ok: false,
-        error: {
-          code: errorCodes.internal,
-          message: error?.message || String(error)
-        }
-      };
-    } finally {
-      timeoutController.clear();
-    }
-  }
-
-  async function downloadBinary(relativePath) {
-    const downloadUrl = `${normalizedBaseUrl}${normalizePath(relativePath)}`;
-    const timeoutController = createTimeoutController(timeoutMs);
-    try {
-      const response = await fetchImpl(downloadUrl, {
-        method: 'GET',
-        signal: timeoutController.signal
-      });
-      if (!response.ok) {
-        throw new Error(`Export download failed: HTTP ${response.status}`);
-      }
-      return new Uint8Array(await response.arrayBuffer());
-    } finally {
-      timeoutController.clear();
-    }
-  }
-
-  async function importProjectArchive(payload) {
-    const fileName = String(payload?.fileName || '').trim();
-    if (!fileName) {
-      throw new Error('Import archive fileName is required');
-    }
-
-    const bytesInput = payload?.bytes;
-    const bytes = Array.isArray(bytesInput)
-      ? new Uint8Array(bytesInput)
-      : bytesInput instanceof Uint8Array
-        ? bytesInput
-        : null;
-    if (!bytes || !bytes.length) {
-      throw new Error('Import archive bytes are required');
-    }
-
-    const timeoutController = createTimeoutController(timeoutMs);
-    const formData = new FormData();
-    formData.append(importArchiveFieldName, new Blob([bytes], { type: 'application/zip' }), fileName);
-
-    try {
-      const response = await fetchImpl(importUrl, {
-        method: 'POST',
-        body: formData,
-        signal: timeoutController.signal
-      });
-      const responsePayload = await response.json();
-      if (typeof responsePayload?.ok === 'boolean') {
-        return responsePayload;
-      }
-
-      return {
-        ok: false,
-        error: {
-          code: errorCodes.internal,
-          message: 'Invalid import response payload'
-        }
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          code: errorCodes.internal,
-          message: error?.message || String(error)
-        }
-      };
-    } finally {
-      timeoutController.clear();
-    }
-  }
-
-  return {
-    execute,
-    downloadBinary,
-    importProjectArchive
-  };
-}
-
 
 ==================================================
 FILE: rtb/README.md
@@ -12937,82 +13416,6 @@ FILE: rtb/app/services/__init__.py
 
 
 ==================================================
-FILE: rtb/app/services/errors.py
-==================================================
-
-﻿class ValidationIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class ProjectCreateIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class ProjectOpenIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class ProjectNotFoundIssue(ProjectOpenIssue):
-    pass
-
-
-class ProjectLockedIssue(ProjectOpenIssue):
-    pass
-
-
-class ProjectSaveIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class LostProjectLockIssue(ProjectSaveIssue):
-    pass
-
-
-class ProjectDeleteIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class ProjectExportIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class ProjectImportIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class ProcessExecutionIssue(Exception):
-    def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message)
-        self.details = details or {}
-
-
-class ActiveProcessBusyIssue(ProcessExecutionIssue):
-    pass
-
-
-class NoActiveProcessIssue(ProcessExecutionIssue):
-    pass
-
-
-class ProcessStopFailedIssue(ProcessExecutionIssue):
-    pass
-
-
-==================================================
 FILE: rtb/app/services/active_process_policy.py
 ==================================================
 
@@ -13277,6 +13680,82 @@ def dispatch_command(request: CommandRequest, *, user_id: str | None = None) -> 
             {'reason': str(error)},
         )
 
+
+
+==================================================
+FILE: rtb/app/services/errors.py
+==================================================
+
+﻿class ValidationIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectCreateIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectOpenIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectNotFoundIssue(ProjectOpenIssue):
+    pass
+
+
+class ProjectLockedIssue(ProjectOpenIssue):
+    pass
+
+
+class ProjectSaveIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class LostProjectLockIssue(ProjectSaveIssue):
+    pass
+
+
+class ProjectDeleteIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectExportIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProjectImportIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ProcessExecutionIssue(Exception):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class ActiveProcessBusyIssue(ProcessExecutionIssue):
+    pass
+
+
+class NoActiveProcessIssue(ProcessExecutionIssue):
+    pass
+
+
+class ProcessStopFailedIssue(ProcessExecutionIssue):
+    pass
 
 
 ==================================================
