@@ -7,7 +7,7 @@
 # 2) Install Git and Codex CLI separately.
 #
 # 2.1) Create minimal Codex config at:
-#      $env:USERPROFILE
+#      %USERPROFILE%\.codex\config.toml
 #      with content:
 #      personality = "pragmatic"
 #      sandbox_mode = "workspace-write"
@@ -62,7 +62,6 @@ import base64
 import json
 import mimetypes
 import os
-import locale
 import re
 import shlex
 import shutil
@@ -400,72 +399,22 @@ def should_stop_retrying(attempt: int, policy: RetryPolicy) -> bool:
     return policy.max_retries is not None and attempt >= policy.max_retries
 
 
-
-
-def decode_subprocess_output(data: Optional[bytes]) -> str:
-    if data is None:
-        return ""
-
-    encodings: List[str] = []
-
-    if os.name == "nt":
-        for candidate in (
-            os.device_encoding(1),
-            os.device_encoding(2),
-            locale.getpreferredencoding(False),
-            "cp866",
-            "cp1251",
-            "utf-8",
-        ):
-            if candidate and candidate not in encodings:
-                encodings.append(candidate)
-    else:
-        preferred = locale.getpreferredencoding(False)
-        if preferred:
-            encodings.append(preferred)
-        encodings.append("utf-8")
-
-    for encoding in encodings:
-        try:
-            return data.decode(encoding)
-        except UnicodeDecodeError:
-            continue
-
-    return data.decode(encodings[0] if encodings else "utf-8", errors="replace")
-
-
-def run_subprocess_capture(
-    args: Any,
-    cwd: Optional[Path] = None,
-    shell: bool = False,
-    env: Optional[Dict[str, str]] = None,
-) -> subprocess.CompletedProcess:
-    proc = subprocess.run(
-        args,
-        cwd=str(cwd) if cwd else None,
-        shell=shell,
-        check=False,
-        text=False,
-        capture_output=True,
-        env=env,
-    )
-
-    stdout_text = decode_subprocess_output(proc.stdout)
-    stderr_text = decode_subprocess_output(proc.stderr)
-
-    return subprocess.CompletedProcess(
-        args=proc.args,
-        returncode=proc.returncode,
-        stdout=stdout_text,
-        stderr=stderr_text,
-    )
 def run_command(
     cmd: List[str],
     cwd: Optional[Path] = None,
     check: bool = True,
     env: Optional[Dict[str, str]] = None,
 ) -> subprocess.CompletedProcess:
-    proc = run_subprocess_capture(cmd, cwd=cwd, shell=False, env=env)
+    proc = subprocess.run(
+        cmd,
+        cwd=str(cwd) if cwd else None,
+        check=False,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        env=env,
+    )
 
     if proc.stdout and proc.stdout.strip():
         print(proc.stdout)
@@ -488,7 +437,17 @@ def run_shell_command(
     check: bool = True,
     env: Optional[Dict[str, str]] = None,
 ) -> subprocess.CompletedProcess:
-    proc = run_subprocess_capture(command, cwd=cwd, shell=True, env=env)
+    proc = subprocess.run(
+        command,
+        cwd=str(cwd) if cwd else None,
+        shell=True,
+        check=False,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        env=env,
+    )
 
     if proc.stdout and proc.stdout.strip():
         print(proc.stdout)
@@ -601,86 +560,8 @@ def ensure_repo(
 
 def normalize_windows_workspace_acl(
     repo_dir: Path,
-    retry_policy: RetryPolicy,
 ) -> None:
-    if os.name != "nt":
-        return
-
-    computer_name = os.environ.get("COMPUTERNAME", "").strip()
-    user_name = os.environ.get("USERNAME", "").strip()
-
-    if not computer_name or not user_name:
-        fail("Cannot resolve Windows COMPUTERNAME/USERNAME for workspace ACL normalization.")
-
-    current_user = f"{computer_name}\\{user_name}"
-    codex_group = f"{computer_name}\\CodexSandboxUsers"
-
-    banner("WINDOWS WORKSPACE ACL")
-    info(f"Normalizing ACL for workspace: {repo_dir}")
-    info(f"Granting FullControl to current user: {current_user}")
-    info("Granting FullControl to local Administrators SID: *S-1-5-32-544")
-    info("Granting FullControl to local SYSTEM SID: *S-1-5-18")
-    info("Granting FullControl to Authenticated Users SID: *S-1-5-11")
-    info(f"Granting FullControl to Codex sandbox group: {codex_group}")
-
-    def run_acl_command(cmd: List[str]) -> None:
-        info(f"Running ACL command: {' '.join(cmd)}")
-        proc = subprocess.run(
-            cmd,
-            cwd=str(repo_dir),
-            check=False,
-            text=True,
-            encoding="oem",
-            errors="replace",
-            capture_output=True,
-        )
-
-        if proc.stdout and proc.stdout.strip():
-            print(proc.stdout)
-        if proc.stderr and proc.stderr.strip():
-            warn(proc.stderr)
-
-        if proc.returncode != 0:
-            fail(
-                "Windows workspace ACL normalization failed.\n"
-                f"Command: {' '.join(cmd)}\n"
-                f"Exit code: {proc.returncode}\n"
-                f"STDOUT:\n{proc.stdout}\n"
-                f"STDERR:\n{proc.stderr}"
-            )
-
-    commands = [
-        ["icacls", str(repo_dir), "/inheritance:e"],
-        ["icacls", str(repo_dir), "/reset", "/t", "/c"],
-        ["icacls", str(repo_dir), "/grant", f"{current_user}:(OI)(CI)F", "/t", "/c"],
-        ["icacls", str(repo_dir), "/grant", "*S-1-5-32-544:(OI)(CI)F", "/t", "/c"],
-        ["icacls", str(repo_dir), "/grant", "*S-1-5-18:(OI)(CI)F", "/t", "/c"],
-        ["icacls", str(repo_dir), "/grant", "*S-1-5-11:(OI)(CI)F", "/t", "/c"],
-        ["icacls", str(repo_dir), "/grant", f"{codex_group}:(OI)(CI)F", "/t", "/c"],
-    ]
-
-    for cmd in commands:
-        run_acl_command(cmd)
-
-    probe_root = repo_dir / ".metaflow-acl-probe"
-    probe_child = probe_root / uuid.uuid4().hex
-
-    try:
-        if probe_root.exists():
-            shutil.rmtree(probe_root, ignore_errors=False)
-
-        probe_child.mkdir(parents=True, exist_ok=False)
-        write_text(probe_child / "probe.txt", "acl-ok\n")
-        shutil.rmtree(probe_root, ignore_errors=False)
-        info("Workspace ACL probe succeeded.")
-    except Exception as exc:
-        fail(
-            "Windows workspace ACL probe failed after ACL normalization.\n"
-            f"Repo dir: {repo_dir}\n"
-            f"Probe path: {probe_child}\n"
-            f"Reason: {exc}"
-        )
-
+    return
 
 
 def run_setup_commands(repo_dir: Path, setup_commands: List[str], retry_policy: RetryPolicy) -> None:
@@ -1847,7 +1728,7 @@ def main() -> int:
     )
 
     ensure_repo(git_path, repo_url, branch, repo_dir, retry_policy=repo_retry_policy)
-    #normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
+    normalize_windows_workspace_acl(repo_dir)
     run_setup_commands(repo_dir, setup_commands, retry_policy=setup_retry_policy)
 
     previous_response_id: Optional[str] = None
@@ -2009,7 +1890,40 @@ def main() -> int:
         if status == "escalate":
             banner("ESCALATION")
             print(reviewer_response["summary"])
-            return 2
+
+            should_finish, checkpoint_note = ask_finish_or_continue(
+                reason=(
+                    "Reviewer returned ESCALATION. "
+                    "Do you want to finish the process or continue from the current state?"
+                ),
+                reviewer_inbox_dir=reviewer_inbox_dir,
+            )
+            if should_finish:
+                banner("STOP")
+                info("Stopped by user after reviewer escalation.")
+                return 2
+
+            window_iteration = 0
+            pending_user_answer = checkpoint_note or "User chose to continue after reviewer returned escalation."
+            inbox_payload = collect_directory_attachments(
+                source_dir=reviewer_inbox_dir,
+                manifest_path=art.inbox_manifest_path,
+                payload_path=art.inbox_attachments_payload_path,
+                label_prefix="USER_INBOX_ATTACHMENT",
+            )
+            pending_user_followup_attachments_text = inbox_payload
+
+            inbox_files = list_files_recursive(reviewer_inbox_dir)
+            if inbox_files:
+                banner("INBOX ATTACHMENTS")
+                info(f"Attaching {len(inbox_files)} file(s) from reviewer_inbox to the next reviewer request:")
+                for file_path in inbox_files:
+                    info(f"- {file_path}")
+            else:
+                info("reviewer_inbox is empty. No follow-up attachments will be sent.")
+
+            info("User chose to continue after ESCALATION. Continuing from current state.")
+            continue
 
         if status == "question":
             question = reviewer_response.get("question_for_user", "").strip()
@@ -2050,7 +1964,7 @@ def main() -> int:
         print("\n[CODEX TASK]")
         print(codex_task_md)
 
-        #normalize_windows_workspace_acl(repo_dir, retry_policy=repo_retry_policy)
+        normalize_windows_workspace_acl(repo_dir)
 
         codex_exit, codex_model_summary = run_codex(
             codex_executable=codex_path,
