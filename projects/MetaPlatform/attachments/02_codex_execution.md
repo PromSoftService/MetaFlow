@@ -159,13 +159,6 @@ Codex должен сначала проверить repo, а не сразу д
 - README/runbook/docs;
 - package/build files.
 
-Briefing docs:
-- `01_project_doctrine.md`;
-- `02_codex_execution.md`;
-- `03_architecture_exceptions.md`.
-
-Они не являются product/runtime files, не входят в `export_project_to_txt.py`, не покрываются product tests и меняются только если task явно меняет doctrine/execution rules/exceptions.
-
 ---
 
 ## 9. Do not do
