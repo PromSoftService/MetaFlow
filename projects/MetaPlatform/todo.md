@@ -1,255 +1,594 @@
-# TODO: ввести единый operation coordinator для app-level UI действий и сделать его единым execution contract между dialog, shell и runtime/backend
+# MetaPlatform — жёсткий план после отката на `ebff531 db-only-project-storage`
 
-После web-only migration все пользовательские app-level операции должны выполняться по одному общему пути, а не частично из dialog/local flow. Нужен общий слой `operation coordinator` / `transition coordinator`, через который проходят app-level intents:
+## Главная цель
 
-- `openProject`
-- `createProject`
-- `importProject`
-- `deleteProject`
-- `closeProject`
-- `saveProject`
-- `saveProjectAs`
-- `exportProject`
-- `exit`
+Не “почистить архитектуру”, не “красиво разложить файлы”, не “вынести код”.
 
-## Целевая семантика
+Цель только одна:
 
-- dialog/surface не оркестрирует бизнес-операцию;
-- dialog только:
-  - собирает input;
-  - возвращает intent/result;
-  - может безопасно закрыться в любой момент;
-- coordinator:
-  - принимает app-level intent;
-  - выполняет общие preflight/guards;
-  - запускает shell/runtime/backend steps;
-  - возвращает единый нормализованный typed outcome;
-- shell остается только для browser/system actions;
-- backend client остается только для transport/command execution;
-- coordinator становится единым execution contract на стыке:
-  - `dialog -> coordinator`
-  - `coordinator -> shell`
-  - `coordinator -> runtime/backend`
-  - `coordinator -> UI result/outcome`
-
-## Отдельно про Workspace dialog
-
-Workspace dialog — первый и самый явный кандидат на перевод на coordinator.
-
-Его flow не должен сам оркестрировать app-level операции `openProject`, `createProject`, `importProject`, `deleteProject` и связанные переходы.
-
-Workspace dialog должен быть приведен к роли UI-слоя:
-
-- показать список и локальное состояние интерфейса;
-- собрать выбор пользователя;
-- вернуть intent/result;
-- безопасно закрываться;
-
-а выполнение `openProject`, `createProject`, `importProject`, `deleteProject` должно идти через coordinator.
-
-## Что важно
-
-- не тащить в coordinator низкоуровневые DOM/UI события;
-- coordinator работает на уровне action/intention, а не кнопок, `Escape` и локальных UI-хендлеров;
-- не делать giant refactor за один проход;
-- внедрять поэтапно;
-- не плодить новые competing contracts между слоями;
-- не оставлять Workspace dialog местом, где частично живет orchestration-логика catalog/project flow.
-
-## Предпочтительный порядок
-
-Первая волна:
-
-- `openProject`
-- `createProject`
-- `importProject`
-- `deleteProject`
-- `closeProject`
-
-В рамках этой первой волны — в первую очередь перевести Workspace dialog flow.
-
-Вторая волна:
-
-- `saveProject`
-- `saveProjectAs`
-- `exportProject`
-- `exit`
-
-## Зачем
-
-Чтобы:
-
-- все app-level операции были однотипны;
-- guards/transition semantics жили в одном месте;
-- dialogs были безопасны к закрытию и не держали business state;
-- Workspace dialog перестал быть частичным orchestration-узлом;
-- shell, runtime и backend взаимодействовали по одному понятному контракту;
-- исчезла размазанная orchestration-логика между dialog/app/runtime flow.
+- уменьшить центральность `ui/renderer/app.js`
+- уменьшить центральность `ui/renderer/core/projectManager.js`
+- сократить число runtime-слоёв
+- сделать ownership состояния явным
+- убрать дублирующие точки правды
 
 ---
 
-# TODO: развести границы ответственности между config, runtime, manager, storage и transport слоями
+## Жёсткие правила на весь план
 
-Сейчас несколько слоев знают слишком много друг о друге и частично пересекаются по обязанностям. Это уже не просто архитектурный долг, а задача на поэтапное упрощение и нормализацию responsibility boundaries.
+### Что разрешено
+Разрешены только шаги, которые одновременно дают хотя бы **два** эффекта из списка:
 
-## Что считается проблемой
+1. `app.js` знает меньше
+2. `projectManager.js` знает меньше
+3. у конкретного состояния появляется один явный владелец
+4. уменьшается число ручных orchestration-переходов
+5. boolean/null-семантика заменяется на явный outcome
+6. UI начинает читать уже нормализованное состояние, а не собирать его сам
 
-- config местами хранит не только semantic constants, но и runtime/policy/orchestration semantics;
-- runtime частично тащит на себе orchestration и contract interpretation;
-- `projectManager` совмещает слишком много ролей:
-  - state holder;
-  - document mutation layer;
-  - snapshot/export/save payload assembler;
-  - backend-aware orchestration node;
-- `ProjectStorageService` перегружен и смешивает:
-  - storage semantics;
-  - import/export transport;
-  - lock lifecycle;
-  - generation-related knowledge;
-- command ids, payload semantics, response envelope и error interpretation частично распределены по нескольким слоям вместо одного четкого контрактного центра;
-- transport/contracts размазаны между несколькими слоями;
-- `ui/config/ui-config.js` стал смешанным hub-файлом и одновременно содержит:
-  - визуальный слой;
-  - runtime-политику;
-  - event vocabulary;
-  - DOM wiring;
-  - тексты.
+### Что запрещено
+Запрещены шаги, которые:
 
-## Целевая семантика
+- просто переименовывают
+- просто переносят код между файлами
+- создают новый `flow/coordinator/orchestrator`
+- создают новый слой без owned state
+- дробят код “для красоты”
+- трогают несколько несвязанных проблем за один bounded task
+- уменьшают размер файла, но не уменьшают его знания
+- двигают сложность вбок, а не убирают её
 
-- каждый слой отвечает только за свой уровень;
-- config/constants слой хранит semantic values и единые shared contracts, но не orchestration-логику;
-- dialog/UI слой отвечает только за UI/input/result;
-- runtime orchestration живет отдельно от UI config;
-- `projectManager` отвечает за project/document state и связанные state operations, но не за лишнюю transport/backend orchestration semantics;
-- `ProjectStorageService` отвечает за storage/persistence semantics, но не за import/export orchestration, lock lifecycle coordination и лишнюю generation-related knowledge;
-- command/transport/response contract выделен явно и не размазан по нескольким слоям;
-- transport/backend contract интерпретируется через один понятный контрактный центр;
-- `ui/config/ui-config.js` перестает быть универсальной свалкой и разделяется по смысловым зонам без появления competing source of truth.
+### Критерий плохого шага
+Шаг считается плохим, если после него:
 
-## Что важно
-
-- не делать giant refactor за один проход;
-- не создавать второй constants layer;
-- не ломать существующий config/constants подход как таковой;
-- разделять по смысловым границам, а не механически “разрезать большой файл”;
-- внедрять маленькими bounded tasks;
-- каждый шаг должен уменьшать пересечение обязанностей, а не просто переносить код между файлами;
-- не плодить competing source of truth для command ids, payload semantics, response interpretation и shared policy values.
-
-## Предпочтительный порядок
-
-1. Выделить из `ui/config/ui-config.js` отдельно:
-   - visual/ui config;
-   - text/tokens;
-   - runtime/action/transition vocabulary;
-   - DOM ids/selectors.
-2. Зафиксировать отдельный контрактный центр для:
-   - command ids;
-   - payload semantics;
-   - response envelope;
-   - error interpretation.
-3. Зафиксировать отдельный contract boundary между dialog/shell/runtime/backend.
-4. Упростить `projectManager` до state/document-level responsibilities.
-5. Упростить `ProjectStorageService` до storage/persistence responsibilities.
-6. После этого дочистить оставшиеся пересечения config/runtime/transport.
-
-## Зачем
-
-Чтобы:
-
-- изменения стали локальнее и дешевле;
-- исчезли лишние знания слоев друг о друге;
-- config перестал быть смешанным policy/runtime hub;
-- `projectManager` и `ProjectStorageService` вернулись к более узким и понятным обязанностям;
-- command/transport/response semantics перестали жить в нескольких местах сразу;
-- orchestration, contracts и state responsibilities были разделены по понятным границам;
-- дальнейшие bounded tasks не требовали лезть во все слои сразу.
+- файлов стало больше
+- зависимостей столько же
+- старые центры знают почти всё то же самое
+- появился новый thin-wrapper/service без своей истины
+- стало труднее ответить, кто владеет `projectId`, `lockToken`, process state, close decision
 
 ---
 
-# TODO: оформить default user как минимальную системную identity-модель с заделом под будущую многопользовательность
+# ЭТАП 1. Зафиксировать реальный ownership текущего состояния
 
-Сейчас приложение однопользовательское, но в дальнейшем планируется многопользовательский режим с авторизацией. Нужно не вводить пользователей “по-настоящему” уже сейчас, а правильно оформить текущий single-user режим как минимальную архитектурную сущность, чтобы потом на нее можно было нарастить полноценную user/session/auth model.
+## Цель
+Не гадать, где проблема, а один раз зафиксировать реальную карту владения состоянием и решений.
 
-## Целевая семантика
+## Обязательная область просмотра
+Просмотреть и разметить роль как минимум этих файлов:
 
-- в системе есть текущий application user как отдельная архитектурная сущность;
-- сейчас это один системный пользователь по умолчанию;
-- авторизация, login flow, user management и UI для пользователей не вводятся;
-- default user не должен висеть случайным литералом в UI/dialog/runtime flow;
-- identity должна задаваться централизованно и использоваться как source of truth для lock semantics;
-- lock model уже сейчас должна работать через эту identity-модель;
-- проекты должны блокироваться на уровне этой модели так, чтобы потом можно было естественно перейти к реальным пользователям.
+- `ui/renderer/app.js`
+- `ui/renderer/core/projectManager.js`
+- `ui/renderer/runtime/backendCommandSessionOrchestrator.js`
+- `ui/renderer/runtime/processExecutionOrchestrator.js`
+- `ui/renderer/runtime/processPollingLifecycle.js`
+- `ui/renderer/runtime/backendProjectExportFlow.js`
+- `ui/renderer/runtime/appCloseCoordinator.js`
 
-## Что важно
+## Для каждого файла выписать
+1. Каким состоянием он владеет
+2. Что он мутирует
+3. Кто его вызывает
+4. Какие решения он принимает
+5. Какие знания он держит о:
+   - UI
+   - backend contract
+   - session
+   - tabs/documents
+   - process
+   - dialogs
+   - close/save/open transitions
 
-- не вводить полноценную auth/session subsystem;
-- не тащить user-specific UI без необходимости;
-- не размазывать `default-user` строкой по разным слоям;
-- не делать видимость многопользовательности без архитектурной основы;
-- заложить расширяемую точку для будущих:
-  - user id;
-  - session/user context;
-  - same-user / foreign-user lock semantics;
-  - авторизации.
+## Отдельно построить карту single-owner / multi-owner
+Нужно явно выписать, кто владеет:
 
-## Минимальный правильный результат
+- `projectId`
+- `lockToken`
+- heartbeat lifecycle
+- current backend project fact
+- project snapshot
+- open documents
+- active tab
+- dirty truth
+- active process truth
+- process polling
+- process blocking signal
+- close decision
+- export input/output
 
-- есть явная системная identity сущность/контракт для текущего пользователя приложения;
-- backend, runtime и lock lifecycle используют именно ее;
-- UI не хранит и не придумывает пользователя сам;
-- current single-user mode остается дешевым и простым;
-- дальнейший переход к многопользовательности не потребует ломать lock model с нуля.
+## Отдельно отметить дубли
+Обязательно зафиксировать:
 
-## Зачем
+- где одно и то же знание живёт в 2+ местах
+- где один и тот же transition запускается из нескольких мест
+- где `app.js` вручную сшивает сценарии
+- где `projectManager.js` смешивает несвязанные зоны
+- где UI вынужден трактовать неоднозначный runtime result
 
-Чтобы:
+## Артефакт этапа
+Сделать `current-runtime-ownership.md` со следующими разделами:
 
-- убрать случайный и размазанный `default-user`;
-- не держать user identity как скрытый костыль;
-- сохранить минимальную текущую реализацию;
-- сразу построить правильный фундамент под будущую многопользовательность и авторизацию.
+1. Владельцы состояния  
+2. Места дублирования  
+3. Перегруженные файлы  
+4. Ручные orchestration-цепочки  
+5. Неясные результаты операций  
+
+## Критерий завершения
+После этого документа должно быть возможно за 1–2 минуты объяснить:
+
+- как открывается backend project
+- кто удерживает lock
+- как идёт heartbeat
+- как работает save
+- как работает close
+- как запускается process
+- кто решает blocked/allow
+
+Если это невозможно — этап не завершён.
 
 ---
 
-# TODO: заменить backend dispatcher `if-chain` на явный command handler registry
+# ЭТАП 2. Зафиксировать не “идеальную архитектуру”, а жёсткие инварианты
 
-Текущий backend dispatcher не должен расти как длинная цепочка `if request.command == ...`. Нужно перевести его на явный registry handlers, сохранив текущий внешний command/response contract.
+## Цель
+Не проектировать красивую систему заранее, а ввести правила, которые должен удовлетворять любой следующий рефакторинг.
 
-## Целевая семантика
+## Сделать файл `runtime-invariants.md`
 
-- `dispatch_command()` остается единым entrypoint для backend command dispatch;
-- `dispatch_command()` больше не содержит длинный `if-chain` по platform commands;
-- routing выполняется через явный `command -> handler` registry;
-- общие preflight/guard checks остаются централизованно в dispatcher;
-- конкретная бизнес-логика команд выносится в отдельные handler-функции;
-- response envelope и error mapping сохраняют текущий внешний контракт.
+В нём зафиксировать как минимум такие инварианты:
 
-## Что важно
+### Инвариант 1
+`projectId` имеет одного runtime-owner.
 
-- не вводить тяжелый framework / plugin system / autodiscovery;
-- не ломать текущие command ids и response shape;
-- не смешивать routing, guards и бизнес-логику в одном длинном условном блоке;
-- делать bounded refactor без расширения scope.
+### Инвариант 2
+`lockToken` имеет одного runtime-owner.
 
-## Предпочтительный результат
+### Инвариант 3
+Heartbeat lifecycle имеет одного owner и не управляется параллельно из нескольких мест.
 
-- есть явный registry platform command handlers;
-- dispatcher:
-  - валидирует request/module;
-  - применяет общие guards;
-  - находит handler;
-  - вызывает handler;
-  - нормализует result/error;
-- handler-функции живут отдельно от dispatcher;
-- добавление новой команды больше не требует роста `if-chain`.
+### Инвариант 4
+Правда о текущем backend project не размазана между `app.js`, `projectManager.js` и runtime helpers.
 
-## Зачем
+### Инвариант 5
+`cancelled`, `blocked`, `failed`, `success` не смешиваются.
 
-Чтобы:
+### Инвариант 6
+Blocked close не должен маскироваться под обычный failure и не должен частично ломать session/workbench state.
 
-- backend dispatcher перестал быть ручным роутером на длинной цепочке условий;
-- routing стал прозрачнее и локальнее;
-- handlers было проще тестировать и сопровождать;
-- backend command layer рос без дальнейшего разрастания `dispatch_command()`.
+### Инвариант 7
+Truth о текущем процессе находится в одном owner.
+
+### Инвариант 8
+Blocking signal от активного процесса имеет один нормализованный источник.
+
+### Инвариант 9
+`app.js` не принимает доменные решения жизненного цикла проекта; он только собирает зависимости и связывает крупные узлы.
+
+### Инвариант 10
+Новый сервис/слой допустим только если он получает явное owned state и уменьшает знания старого центра.
+
+## Что не делать на этапе
+- не рисовать новую framework-архитектуру
+- не делить заранее систему на много файлов
+- не подгонять код под теоретическую схему
+
+## Критерий завершения
+Любую следующую задачу можно проверить вопросом:
+- какой инвариант она улучшает?
+- какой центр знания она уменьшает?
+
+Если ответа нет — задачу не брать.
+
+---
+
+# ЭТАП 3. Определить минимальную target shape через зоны, но без фетиша к файлам
+
+## Цель
+Согласовать смысловые зоны ответственности, не превращая их сразу в обязательную файловую структуру.
+
+## Целевые зоны
+Ниже — не обязательные файлы, а смысловые владельцы ответственности.
+
+### 1. ProjectSession
+Отвечает только за:
+
+- current backend project identity
+- lock token
+- heartbeat lifecycle
+- open/close backend project session facts
+- факт наличия открытого backend project
+
+Не отвечает за:
+
+- tabs
+- documents
+- save/save as semantics
+- process output
+- dialog interpretation
+
+### 2. ProjectPersistence
+Отвечает только за:
+
+- save
+- save as
+- snapshot preparation
+- export request preparation
+- применение результата persistence-операций
+
+Не отвечает за:
+
+- heartbeat
+- active process truth
+- open project dialog flow
+- tabs/documents ownership
+
+### 3. WorkbenchState
+Отвечает только за:
+
+- open documents
+- active tab
+- document records
+- dirty presentation dependencies
+
+Не отвечает за:
+
+- backend session
+- lock lifecycle
+- process lifecycle
+- persistence contract
+
+### 4. ProcessSession
+Отвечает только за:
+
+- active process truth
+- polling lifecycle
+- stop lifecycle
+- process UI-ready state
+- normalized blocking signal for runtime/UI
+
+Не отвечает за:
+
+- save/open/close semantics целиком
+- document ownership
+- backend project session ownership
+
+### 5. DialogService
+Отвечает только за:
+
+- нормализацию результатов dialog-окон
+- единый outcome `confirm/cancel/close/...`
+- единый способ трактовать закрытие окна
+
+Не отвечает за:
+
+- project session
+- save/open/close business logic
+- process state
+
+## Критерий завершения
+Для любого runtime-вопроса можно сказать:
+- это session
+- это persistence
+- это workbench
+- это process
+- это dialog normalization
+
+Если задача не помещается ни в одну зону — границы определены плохо.
+
+---
+
+# ЭТАП 4. Первый реальный bounded task — один extraction, который одновременно бьёт по `app.js` и `projectManager.js`
+
+## Цель
+Не делать косметическую разгрузку одного файла. Сделать один разрез, который реально уменьшает оба центра знаний.
+
+## Правило выбора первого extraction
+Первым брать **не тот кусок, который выглядит красиво**, а тот, который:
+
+1. имеет явный owned state
+2. имеет меньше обратных зависимостей
+3. уменьшает знания и `app.js`, и `projectManager.js`
+4. убирает хотя бы одну ручную orchestration-цепочку
+5. не требует создавать лес новых runtime-слоёв
+
+## Возможные кандидаты
+Смотреть в таком порядке:
+
+### Кандидат A
+Backend project session facts:
+- current project id
+- lock token
+- session/open-close facts
+- heartbeat ownership
+
+### Кандидат B
+Workbench/document state:
+- open document records
+- active document/tab
+- часть dirty-related состояния
+- document collection truth
+
+### Кандидат C
+Lifecycle outcome normalization around open/close/save, если именно это сейчас сильнее всего связывает `app.js` и `projectManager.js`
+
+## Что обязательно сделать в рамках extraction
+- вынести **owned state**, а не только helper-функции
+- убрать соответствующее знание из `app.js`
+- убрать соответствующее знание из `projectManager.js`
+- сократить прямые cross-calls
+- не оставлять старый файл формальным владельцем старой истины
+
+## Что запрещено
+- не делать thin-wrapper над старым кодом
+- не выносить только “кусок логики без состояния”
+- не плодить цепочку `app -> flow -> coordinator -> service -> manager`
+- не резать по эстетике
+
+## Критерий завершения
+После шага должно быть одновременно верно:
+
+- `app.js` знает меньше
+- `projectManager.js` знает меньше
+- есть новый реальный owner конкретного state slice
+- хотя бы одна orchestration-цепочка стала короче
+
+Если переехали только строки — этап провален.
+
+---
+
+# ЭТАП 5. Сразу после первого extraction — унифицировать lifecycle outcomes
+
+## Цель
+Перестать жить на boolean/null-семантике там, где есть реальные разные исходы операции.
+
+## Сначала покрыть только главный путь
+Не весь проект. Только:
+
+- open project
+- close project
+- save project
+
+Потом при необходимости:
+- save as
+- export
+- import
+
+## Для каждой операции выписать явные исходы
+Минимум:
+
+- `success`
+- `cancelled`
+- `blocked`
+- `failed`
+- `malformed`
+
+Где нужно — уточнять `code`:
+- `lock-lost`
+- `active-process-busy`
+- `missing-data`
+- `invalid-project-id`
+- и т.д.
+
+## Ввести единый outcome shape
+Например:
+
+- `status`
+- `code`
+- `message`
+- `details`
+
+Форма может быть другой, но смысл должен быть один:
+UI и runtime всегда понимают разницу между:
+- отменено
+- заблокировано
+- сломалось
+- успешно
+- пришёл некорректный результат
+
+## Что запрещено
+- не строить общий framework outcome engine
+- не растягивать это на весь repo
+- не менять backend API без реальной необходимости
+- не маскировать `blocked` и `cancelled` под `false`
+
+## Критерий завершения
+Для open/save/close по коду можно явно ответить, что произошло, без догадок по `true/false/null`.
+
+---
+
+# ЭТАП 6. Собрать process truth и blocking contract в одном владельце
+
+## Цель
+Сделать одно место истины не только для process state, но и для сигнала “этот процесс сейчас блокирует lifecycle-операции или нет”.
+
+## Разобрать
+- `processExecutionOrchestrator.js`
+- `processPollingLifecycle.js`
+- process-related код в `app.js`
+- process panel integration
+- места, где active process влияет на open/close/save/export/import
+
+## Нужно явно определить
+1. кто инициирует запуск
+2. кто владеет active process truth
+3. кто владеет polling lifecycle
+4. кто владеет stop lifecycle
+5. кто формирует UI-ready process view state
+6. кто формирует normalized blocking signal
+
+## Результат
+Должен появиться один owner, который даёт:
+
+- truth о текущем процессе
+- truth о доступности stop
+- truth о blocking/non-blocking
+- нормализованное состояние для UI
+
+UI не должен сам вручную склеивать эти данные из трёх мест.
+
+## Что запрещено
+- не добавлять ещё один process wrapper
+- не дублировать truth между panel surface и runtime helper
+- не держать отдельные local app-level flags о процессе
+- не разносить process truth и process blocking в разные центры
+
+## Критерий завершения
+На вопрос “где правда о текущем процессе и его blocking effect?” можно указать один runtime-owner.
+
+---
+
+# ЭТАП 7. Только после стабилизации центра — второй responsibility slice из `projectManager.js`
+
+## Цель
+После первого extraction и outcomes/process cleanup сделать второй осмысленный разрез `projectManager.js`, если он всё ещё остаётся перегруженным.
+
+## Возможные направления
+В зависимости от результатов предыдущих шагов:
+
+- backend session slice, если он не был вынесен первым
+- workbench/document state slice
+- persistence-related slice
+- dirty/snapshot-related slice, если это реально единая зона ответственности
+
+## Правило
+Не дробить `projectManager.js` “до победы”.  
+Каждый следующий разрез допустим только если:
+
+- у него есть явный owned state
+- он уменьшает знания текущего центра
+- он не создаёт новую glue-layer архитектуру
+
+## Критерий завершения
+`projectManager.js` перестаёт быть системным центром и становится владельцем только ограниченной понятной зоны.
+
+---
+
+# ЭТАП 8. Только потом проверить config-слой
+
+## Цель
+Понять, мешает ли `ui/config/ui-config.js` после упрощения runtime-центра, а не до него.
+
+## Что делать
+Разделить содержимое на:
+
+- стабильные константы
+- тексты/labels
+- иконки
+- DOM ids
+- runtime semantics disguised as config
+
+Оставить в config только то, что реально является данными, а не поведением.
+
+## Важно
+Этот этап **не обязателен**.  
+Если после упрощения runtime-центра config уже не мешает — его не трогать.
+
+## Что запрещено
+- не превращать это в отдельный refactor ради чистоты
+- не дробить config на россыпь маленьких файлов
+- не трогать runtime behavior под видом “чистки config”
+
+---
+
+# ЭТАП 9. Только после стабилизации ядра — вторичный техдолг
+
+## Цель
+Не подменить архитектурную работу локальными красивостями.
+
+## Смотреть только после этапов 1–8
+Потом уже можно отдельно оценивать:
+
+- generator-related debt
+- snapshot/document identity debt
+- naming cleanup
+- вспомогательные helper cleanup
+- локальные места, где код объективно кривой, но не влияет на ownership
+
+## Правило
+Вторичный техдолг разрешён только если ядро уже стало проще и ownership стабилизирован.
+
+---
+
+# ЭТАП 10. Шаблон проверки после каждого bounded task
+
+## Архитектурные вопросы
+После каждого шага проверять:
+
+1. `app.js` знает меньше?
+2. `projectManager.js` знает меньше?
+3. число точек правды уменьшилось?
+4. ownership стал яснее?
+5. новый узел реально владеет состоянием?
+6. хотя бы одна orchestration-цепочка стала короче?
+7. `blocked/cancelled/failed/success` различаются лучше?
+
+## Практические вопросы
+После каждого шага проверять:
+
+- open работает?
+- save работает?
+- close работает?
+- process start работает?
+- process stop работает?
+- active-process blocking не сломан?
+- lock/heartbeat не сломан?
+- blocked close/release не ломает state?
+
+## Сигнал немедленного отката шага
+Если получилось:
+
+- больше файлов при той же сложности
+- тот же объём знаний в старых центрах
+- новый слой без owned state
+- больше cross-calls
+- сложнее объяснить жизненный цикл
+
+значит шаг неудачный.
+
+---
+
+# Рекомендуемая последовательность реальных задач
+
+## Задача 1
+Сделать `current-runtime-ownership.md`.
+
+## Задача 2
+Сделать `runtime-invariants.md`.
+
+## Задача 3
+Зафиксировать target shape как смысловые зоны, не как обязательные файлы.
+
+## Задача 4
+Сделать один bounded extraction, который одновременно уменьшает знания `app.js` и `projectManager.js`.
+
+## Задача 5
+Унифицировать outcomes для open/close/save.
+
+## Задача 6
+Собрать process truth + blocking contract в одном owner.
+
+## Задача 7
+Сделать второй осмысленный responsibility slice из `projectManager.js`, только если он всё ещё перегружен.
+
+## Задача 8
+Проверить config-слой только если он всё ещё мешает после упрощения ядра.
+
+## Задача 9
+Только потом идти во вторичный техдолг.
+
+---
+
+# Короткая главная мысль
+
+Мы не делаем новый виток “сначала придумали сложную архитектуру, потом её чистим”.
+
+Мы берём `ebff531` как рабочую базу и дальше двигаемся только так:
+
+1. сначала фиксируем ownership и инварианты
+2. потом делаем один bounded extraction по реальной границе
+3. сразу делаем outcomes явными
+4. потом собираем process truth в один центр
+5. не двигаем сложность вбок
+6. не создаём новых уровней без owned state
+7. не трогаем вторичное, пока не упростили ядро
