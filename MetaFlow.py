@@ -117,37 +117,8 @@ CODEX_SUMMARY_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
     "properties": {
         "summary": {"type": "string"},
-        "what_changed": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
-        "risks": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
-        "notes": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
-        "high_risk_areas_touched": {"type": "boolean"},
-        "high_risk_areas": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
-        "verification_notes": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
     },
-    "required": [
-        "summary",
-        "what_changed",
-        "risks",
-        "notes",
-        "high_risk_areas_touched",
-        "high_risk_areas",
-        "verification_notes",
-    ],
+    "required": ["summary"],
 }
 
 RETRIABLE_HTTP_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
@@ -811,6 +782,63 @@ def collect_directory_attachments(
     return payload
 
 
+def format_model_channel(codex_model_summary: Optional[Any]) -> Optional[str]:
+    if codex_model_summary is None:
+        return None
+
+    if isinstance(codex_model_summary, dict):
+        summary = codex_model_summary.get("summary")
+        if isinstance(summary, str) and summary.strip():
+            return summary.strip()
+        return json.dumps(codex_model_summary, ensure_ascii=False, indent=2)
+
+    if isinstance(codex_model_summary, str) and codex_model_summary.strip():
+        return codex_model_summary.strip()
+
+    return None
+
+
+def read_bool_config(config: Dict[str, Any], key: str, default: bool) -> bool:
+    value = config.get(key, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "yes", "1", "on"}:
+            return True
+        if normalized in {"false", "no", "0", "off"}:
+            return False
+    return bool(value)
+
+
+def build_technical_channel(
+    technical_channel_config: Dict[str, Any],
+    git_diff_text: str,
+    git_diff_stat_text: str,
+    changed_files_text: str,
+    tests_summary: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    channel: Dict[str, Any] = {}
+
+    if read_bool_config(technical_channel_config, "include_git_diff_patch", True):
+        channel["git_diff_patch"] = git_diff_text
+
+    if read_bool_config(technical_channel_config, "include_git_diff_stat", True):
+        channel["git_diff_stat"] = git_diff_stat_text
+
+    if read_bool_config(technical_channel_config, "include_changed_files", True):
+        channel["changed_files"] = [
+            line.strip()
+            for line in changed_files_text.splitlines()
+            if line.strip()
+        ]
+
+    if read_bool_config(technical_channel_config, "include_tests_summary", True) and tests_summary is not None:
+        channel["tests_summary"] = tests_summary
+
+    return channel or None
+
+
 def build_reviewer_input(
     primary_input_text: str,
     attachments_text: str,
@@ -835,12 +863,9 @@ def build_reviewer_input(
             + "\n"
         )
 
-    if codex_model_summary is not None:
-        blocks.append(
-            "[MODEL_CHANNEL]\n"
-            + json.dumps(codex_model_summary, ensure_ascii=False, indent=2)
-            + "\n"
-        )
+    model_channel_text = format_model_channel(codex_model_summary)
+    if model_channel_text:
+        blocks.append(f"[MODEL_CHANNEL]\n{model_channel_text}\n")
 
     if user_answer:
         blocks.append(f"[USER_ANSWER_TO_PREVIOUS_QUESTION]\n{user_answer}\n")
@@ -1124,12 +1149,6 @@ def ensure_codex_summary_file(
 
     fallback_obj = {
         "summary": extracted_report,
-        "what_changed": [],
-        "risks": ["Structured Codex summary was not produced; fallback report used."],
-        "notes": [],
-        "high_risk_areas_touched": False,
-        "high_risk_areas": [],
-        "verification_notes": [],
     }
     save_json(codex_summary_json_path, fallback_obj)
     write_text(fallback_path, extracted_report + "\n")
@@ -1635,6 +1654,12 @@ def main() -> int:
     setup_commands = config.get("setup_commands", [])
     test_commands = config.get("all_test_commands", [])
     codex_command = config.get("codex_command", "codex exec --full-auto --json -")
+    run_tests_after_codex = read_bool_config(config, "run_tests_after_codex", True)
+    technical_channel_config = config.get("technical_channel", {})
+    if technical_channel_config is None:
+        technical_channel_config = {}
+    if not isinstance(technical_channel_config, dict):
+        fail("technical_channel in config.yaml must be a mapping/object.")
 
     repo_retry_policy = parse_retry_policy(
         config.get("repo_retry_count", 4),
@@ -1705,6 +1730,8 @@ def main() -> int:
     info(f"Resolved git path: {git_path}")
     info(f"Resolved codex path: {codex_path}")
     info(f"Configured codex command: {codex_command}")
+    info(f"Run tests after Codex: {run_tests_after_codex}")
+    info(f"Technical channel config: {json.dumps(technical_channel_config, ensure_ascii=False)}")
     info(f"Codex heartbeat interval: {codex_heartbeat_interval_sec}s")
     info(f"Codex max runtime: {codex_max_runtime_sec}s")
     info(f"Codex post-turn grace: {codex_post_turn_grace_sec}s")
@@ -1822,11 +1849,7 @@ def main() -> int:
                 if previous_technical_channel is not None
                 else None
             ),
-            model_channel_text=(
-                json.dumps(previous_codex_model_summary, ensure_ascii=False, indent=2)
-                if previous_codex_model_summary is not None
-                else None
-            ),
+            model_channel_text=format_model_channel(previous_codex_model_summary),
             user_answer=pending_user_answer,
             user_followup_attachments_text=pending_user_followup_attachments_text,
             reviewer_input=reviewer_input,
@@ -1993,33 +2016,46 @@ def main() -> int:
         write_text(art.git_diff_stat_path, git_diff_stat_text)
         write_text(art.changed_files_path, changed_files_text)
 
-        extra_test_commands = reviewer_response.get("extra_test_commands", [])
-        if reviewer_response.get("should_run_all_tests", True):
-            tests_summary = run_test_commands(
-                repo_dir,
-                test_commands,
-                extra_test_commands,
-                art.test_log_path,
-                art.tests_summary_path,
-            )
+        tests_summary: Optional[Dict[str, Any]] = None
+        if run_tests_after_codex:
+            extra_test_commands = reviewer_response.get("extra_test_commands", [])
+            if reviewer_response.get("should_run_all_tests", True):
+                tests_summary = run_test_commands(
+                    repo_dir,
+                    test_commands,
+                    extra_test_commands,
+                    art.test_log_path,
+                    art.tests_summary_path,
+                )
+            else:
+                tests_summary = run_test_commands(
+                    repo_dir,
+                    [],
+                    extra_test_commands,
+                    art.test_log_path,
+                    art.tests_summary_path,
+                )
         else:
-            tests_summary = run_test_commands(
-                repo_dir,
-                [],
-                extra_test_commands,
-                art.test_log_path,
-                art.tests_summary_path,
-            )
+            info("Skipping post-Codex test run because run_tests_after_codex=false.")
 
-        previous_technical_channel = {
-            "git_diff_patch": git_diff_text,
-            "git_diff_stat": git_diff_stat_text,
-            "changed_files": [line.strip() for line in changed_files_text.splitlines() if line.strip()],
-            "tests_summary": tests_summary,
-        }
+        previous_technical_channel = build_technical_channel(
+            technical_channel_config=technical_channel_config,
+            git_diff_text=git_diff_text,
+            git_diff_stat_text=git_diff_stat_text,
+            changed_files_text=changed_files_text,
+            tests_summary=tests_summary,
+        )
         previous_codex_model_summary = codex_model_summary
 
-        if codex_exit == 0 and not changed_files_text.strip():
+        local_diff_tracking_enabled = any(
+            read_bool_config(technical_channel_config, key, True)
+            for key in (
+                "include_git_diff_patch",
+                "include_git_diff_stat",
+                "include_changed_files",
+            )
+        )
+        if codex_exit == 0 and local_diff_tracking_enabled and not changed_files_text.strip():
             warn("Codex completed successfully but produced no repository changes.")
 
         info(f"Iteration {iteration_seq} complete. Codex exit code: {codex_exit}")

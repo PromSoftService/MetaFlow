@@ -24,6 +24,14 @@ codex_heartbeat_interval_sec: 15
 
 codex_command: "codex exec --json -"
 
+run_tests_after_codex: true
+
+technical_channel:
+  include_git_diff_patch: false
+  include_git_diff_stat: false
+  include_changed_files: false
+  include_tests_summary: true
+
 setup_commands:
   - "cd ./ui && npm install"
   - "python -m pip install -r ./rtb/requirements.txt"
