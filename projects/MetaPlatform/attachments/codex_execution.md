@@ -2,9 +2,9 @@
 
 ## Назначение
 
-Этот документ задаёт новый GitHub-based flow для связки:
+Документ задаёт GitHub-based flow для связки:
 
-`reviewer → Codex → reviewer`
+`reviewer → Codex → MetaFlow post-Codex commands → reviewer`
 
 ## Роли
 
@@ -12,34 +12,71 @@
 
 Reviewer — основной архитектор, аналитик и постановщик задачи.
 
-Reviewer обязан:
+Reviewer выполняет:
 
-- сам смотреть GitHub-репозиторий;
-- сам искать проблему;
-- сам читать нужные файлы;
-- сам локализовать причину;
-- сам определять техническое решение;
-- сам формировать точное `codex_task_md`;
-- сам проверять результат после Codex по GitHub, technical channel и Codex summary.
+1. Читает GitHub repo.
+2. Использует `[URL]` как адрес репозитория.
+3. Использует `[BASE]` как исходный commit текущего цикла.
+4. Локализует задачу по GitHub repo и текущему reviewer input.
+5. Формирует конкретный `codex_task_md`.
+6. Формирует `extra_test_commands` для публикации и проверки результата после Codex.
+7. Проверяет результат по:
+   - `[MODEL_CHANNEL]`;
+   - `[TECHNICAL_CHANNEL].extra_commands_output`;
+   - GitHub compare `BASE...head`.
 
-Reviewer не вносит изменения в репозиторий руками. Именно поэтому Codex получает задачу на выполнение изменений.
+Reviewer не меняет repo руками.
 
 ### Codex
 
-Codex — только исполнитель изменений.
+Codex — исполнитель изменений в локальном repo.
 
-Codex:
+Codex выполняет:
 
-- работает в локальной папке репозитория на ПК;
-- читает и меняет реальные файлы в repo;
-- запускает команды и тесты;
-- делает commit;
-- выполняет push;
-- возвращает summary с новым `head`.
+1. Работает в локальной папке repo на Windows.
+2. Меняет реальные файлы repo.
+3. Запускает локальные Windows-проверки, указанные reviewer.
+4. Делает commit.
+5. Возвращает summary с локальным `head`.
 
-Codex не должен быть основным архитектором задачи. Нельзя перекладывать на Codex первичную локализацию проблемы и выбор решения.
+Codex не выполняет публикацию commit. Публикация выполняется после Codex через `extra_test_commands`.
 
-## Входные данные нового flow
+### MetaFlow
+
+MetaFlow после Codex выполняет `extra_test_commands` в той же локальной папке repo на Windows.
+
+MetaFlow передаёт результат reviewer в `[TECHNICAL_CHANNEL]`.
+
+При включённой настройке:
+
+`technical_channel.include_extra_commands_output: true`
+
+в `[TECHNICAL_CHANNEL].extra_commands_output` попадает stdout/stderr команд из `extra_test_commands`.
+
+## Execution context
+
+Codex выполняет `codex_task_md` в локальной папке repo на Windows.
+
+MetaFlow выполняет `extra_test_commands` в той же локальной папке repo на Windows после завершения Codex.
+
+Команды в `codex_task_md` и `extra_test_commands` нужно писать под Windows shell.
+
+Git-команды:
+
+1. `git status -sb`
+2. `git add <files>`
+3. `git commit -m "MetaFlow. <commit-name>"`
+4. `git rev-parse HEAD`
+5. `git push origin main`
+6. `git rev-parse origin/main`
+
+Windows-команды проверки файлов:
+
+1. `dir <file>`
+2. `type <file>`
+3. `powershell -NoProfile -Command "Get-Content .\<file>"`
+
+## Входные данные
 
 В первой итерации reviewer получает repo-контекст в attachments или во входных материалах через специальные секции.
 
@@ -49,7 +86,7 @@ GitHub URL репозитория.
 
 Пример:
 
-`https://github.com/PromSoftService/MetaFlow`
+`https://github.com/PromSoftService/MetaPlatform`
 
 ### `[BASE]`
 
@@ -57,11 +94,11 @@ GitHub URL репозитория.
 
 Пример:
 
-`93fc95d1ef460a49151f66a7e441cdf24760bf73`
+`38a3a4bcb8659fe9c3482ebcd219682ece8848d3`
 
-`URL` и `BASE` передаются reviewer в первой итерации и считаются контекстом всей reviewer-сессии.
+`URL` и `BASE` являются контекстом всей reviewer-сессии.
 
-В последующих итерациях task обычно не повторяется. Reminder отправляется каждую итерацию, поэтому reviewer должен использовать `URL` и `BASE` из предыдущего контекста этой же сессии, если они не повторены в текущем сообщении.
+В следующих итерациях reviewer использует сохранённый контекст этой же сессии.
 
 ## Первая итерация
 
@@ -69,229 +106,164 @@ GitHub URL репозитория.
 
 1. Reviewer берёт `URL` из секции `[URL]`.
 2. Reviewer берёт `BASE` из секции `[BASE]`.
-3. Reviewer сам изучает GitHub repo.
-4. Reviewer сам находит релевантные файлы.
-5. Reviewer сам локализует проблему.
-6. Reviewer сам определяет целевое решение.
-7. Reviewer возвращает `status = "continue"` и формирует конкретный `codex_task_md`.
+3. Reviewer изучает GitHub repo.
+4. Reviewer находит релевантные файлы.
+5. Reviewer определяет целевое решение.
+6. Reviewer возвращает `status = "continue"`.
+7. Reviewer формирует конкретный `codex_task_md`.
+8. Reviewer формирует `extra_test_commands` для публикации и проверки результата после Codex.
 
-В первой итерации reviewer не должен требовать repo dump по умолчанию.
+## Требования к `codex_task_md`
 
-Dump можно запросить только если GitHub repo, текущие attachments и пользовательский task объективно недостаточны для продолжения.
+Каждый `codex_task_md`, который предполагает изменение repo, должен указывать:
 
-## Последующие итерации
-
-После работы Codex reviewer получает:
-
-- `[TECHNICAL_CHANNEL]` — фактические технические результаты, команды, тесты, логи;
-- `[MODEL_CHANNEL]` — Codex summary.
-
-Codex summary должен содержать новый `head`.
-
-Reviewer:
-
-1. Берёт `BASE` из первой итерации.
-2. Берёт `head` из Codex summary.
-3. Сам проверяет GitHub repo.
-4. Сам проверяет изменения через GitHub compare:
-
-   `BASE...head`
-
-5. Сам проверяет изменённые файлы, diff, test results и соответствие исходной задаче.
-6. Если результат неполный — возвращает `status = "continue"` с новой точной задачей для Codex.
-7. Если нужен ответ пользователя — возвращает `status = "question"`.
-8. Если задача действительно завершена и соблюдены правила завершения текущего процесса — возвращает `status = "done"`.
-
-## Обязательные требования к каждому `codex_task_md`
-
-Каждый `codex_task_md`, который предполагает изменение repo, должен быть написан так, чтобы Codex мог выполнить его в локальной папке репозитория.
-
-В task для Codex обязательно указывать:
-
-- текущий scope;
-- какие файлы разрешено менять;
-- какую семантику нужно получить;
-- что именно изменить;
-- что не трогать;
-- какие проверки выполнить;
-- как оформить commit;
-- что вернуть в summary.
-
-## Запрет на перекладывание анализа на Codex
-
-Reviewer не должен писать Codex задачи вида:
-
-- “разберись”;
-- “найди проблему”;
-- “исследуй репозиторий”;
-- “посмотри, как лучше”;
-- “предложи решение”;
-- “проверь, что нужно изменить”.
-
-Вместо этого reviewer обязан сам выполнить анализ по GitHub repo и дать Codex конкретные указания:
-
-- какие файлы открыть;
-- какую текущую реализацию изменить;
-- какое поведение получить;
-- какие ограничения соблюдать;
-- какие проверки запустить.
-
-Допустимо просить Codex перед правками подтвердить фактическое место реализации, если это часть bounded execution, но нельзя превращать Codex в основного исследователя задачи.
-
-## Commit и push
-
-После выполнения изменений Codex обязан:
-
-1. Убедиться, что изменения внесены в локальном repo.
-2. Запустить указанные проверки.
-3. Сделать commit с сообщением:
+1. Текущий scope.
+2. Файлы, которые Codex должен изменить.
+3. Целевую семантику.
+4. Локальные Windows-проверки.
+5. Commit message в формате:
 
    `MetaFlow. <commit-name>`
 
-4. Выполнить push в текущую рабочую ветку.
-5. Убедиться, что push завершился успешно.
-6. Вернуть в summary новый `head`.
+6. Данные, которые Codex должен вернуть в summary:
+   - `head`: локальный commit hash после commit;
+   - commit message;
+   - изменённые файлы;
+   - запущенные проверки;
+   - результат проверок;
+   - краткое описание изменений.
 
-Если Codex сделал несколько commit в рамках одной итерации, `head` должен указывать на последний commit после push.
+## Commit
+
+После выполнения изменений Codex выполняет:
+
+1. Проверяет изменения локально.
+2. Запускает указанные Windows-команды проверки.
+3. Делает commit с сообщением:
+
+   `MetaFlow. <commit-name>`
+
+4. Выполняет:
+
+   `git rev-parse HEAD`
+
+5. Возвращает локальный `head` в summary.
+
+Если Codex сделал несколько commit в одной итерации, `head` должен указывать на последний локальный commit.
+
+## `extra_test_commands`
+
+Reviewer задаёт `extra_test_commands` для публикации и проверки результата после Codex.
+
+Базовый набор для repo-change задач:
+
+1. `git push origin main`
+2. `git rev-parse HEAD`
+3. `git rev-parse origin/main`
+4. `git status -sb`
+
+Для проверки файлов добавляются Windows-команды, например:
+
+1. `dir <file>`
+2. `type <file>`
+3. `powershell -NoProfile -Command "Get-Content .\<file>"`
+
+MetaFlow выполняет эти команды после Codex и передаёт stdout/stderr в `[TECHNICAL_CHANNEL].extra_commands_output`.
 
 ## Требования к Codex summary
 
-Codex summary обязательно должен содержать:
+Codex summary содержит:
 
-- `head`;
-- commit message;
-- краткое описание внесённых изменений;
-- список фактически изменённых файлов или краткий changed-files summary;
-- список запущенных проверок;
-- результат проверок.
-
-Codex не должен возвращать `BASE`. `BASE` уже был передан reviewer в первой итерации.
+1. `head`: локальный commit hash после commit.
+2. Commit message.
+3. Краткое описание внесённых изменений.
+4. Фактически изменённые файлы.
+5. Запущенные проверки.
+6. Результат проверок.
 
 Минимальный обязательный фрагмент summary:
 
-`head: <commit hash after push>`
-
-Если `head` отсутствует, reviewer не должен завершать задачу.
+`head: <local commit hash after commit>`
 
 ## Проверка результата reviewer
 
-Reviewer не должен принимать результат только по Codex summary.
+После Codex reviewer получает:
 
-Reviewer обязан проверить:
+1. `[MODEL_CHANNEL]` — summary Codex с локальным `head`.
+2. `[TECHNICAL_CHANNEL].extra_commands_output` — stdout/stderr post-Codex команд.
+3. `[TECHNICAL_CHANNEL].tests_summary` — краткий статус команд и тестов.
 
-- что `head` указан в Codex summary;
-- что `head` доступен в GitHub repo;
-- что GitHub compare `BASE...head` строится;
-- какие файлы фактически изменены;
-- соответствует ли diff исходной задаче;
-- нет ли лишнего scope creep;
-- не появились ли новые magic strings / magic numbers без необходимости;
-- не сломаны ли связанные контракты;
-- соответствуют ли результаты тестов `[TECHNICAL_CHANNEL]` заявлению Codex.
+Reviewer проверяет:
 
-`[TECHNICAL_CHANNEL]` является основным источником фактов о командах и тестах.
+1. `head` указан в `[MODEL_CHANNEL]`.
+2. `git push origin main` в `extra_commands_output` завершился успешно.
+3. stdout `git rev-parse HEAD` совпадает с `head`.
+4. stdout `git rev-parse origin/main` совпадает с `head`.
+5. GitHub compare `BASE...head` строится.
+6. Diff `BASE...head` соответствует исходному scope.
+7. Проверки файлов подтверждают ожидаемое содержимое.
 
-`[MODEL_CHANNEL]` является summary Codex и используется как вспомогательный источник, а не как единственное доказательство готовности.
+Если всё подтверждено, reviewer возвращает `status = "done"`.
 
-## Если `head` невалиден
+Если нужен следующий проход Codex, reviewer возвращает `status = "continue"` с новым конкретным `codex_task_md` и новым набором `extra_test_commands`.
 
-Если Codex summary не содержит `head`:
+Если нужно решение пользователя, reviewer возвращает `status = "question"`.
 
-- reviewer возвращает `status = "continue"`;
-- reviewer требует от Codex выполнить commit + push и явно указать `head`.
+Если цикл требует внешнего вмешательства, reviewer возвращает `status = "escalate"`.
 
-Если `head` указан, но не находится в GitHub:
-
-- reviewer возвращает `status = "continue"`;
-- reviewer требует от Codex проверить push и вернуть валидный `head`.
-
-Если compare `BASE...head` нельзя построить:
-
-- reviewer не завершает задачу;
-- reviewer возвращает `status = "continue"` или `status = "question"` в зависимости от причины;
-- reviewer явно указывает, какой факт не удалось проверить.
-
-## Что не нужно передавать
-
-В новом flow по умолчанию не нужно передавать:
-
-- полный repo dump;
-- полный git diff в prompt;
-- patch как attachment;
-- повторный task на каждой итерации;
-- `BASE` в Codex summary;
-- отдельную ветку;
-- PR.
-
-GitHub repo + `BASE` + Codex `head` + technical channel + Codex summary достаточно для штатной проверки.
-
-## Когда можно запросить dump
-
-Dump можно запросить только если:
-
-- GitHub repo недоступен reviewer;
-- нужные файлы невозможно прочитать через GitHub;
-- compare `BASE...head` недоступен;
-- задача требует анализа артефактов, которых нет в repo;
-- пользователь явно просит проверить dump;
-- reviewer обоснованно не может продолжить по GitHub repo, technical channel и summary.
-
-Запрашивать dump по привычке запрещено.
-
-## Формат следующей задачи для Codex
-
-Рекомендуемый каркас `codex_task_md`:
+## Рекомендуемый каркас `codex_task_md`
 
 # Context
 
-Кратко опиши текущий контекст и уже локализованную проблему.
+Краткий контекст текущей задачи.
 
 # Current scope
 
-Укажи ограниченный scope текущей итерации.
+Ограниченный scope текущей итерации.
 
 # Target semantics
 
-Опиши целевое поведение или целевую структуру.
+Целевая семантика или целевая структура.
 
 # Files allowed to change
 
-Перечисли конкретные файлы, которые Codex может менять.
+Конкретные файлы, которые Codex должен менять.
 
 # Required changes
 
-Дай точные изменения, которые нужно внести.
-
-# Do not do
-
-Перечисли прямые запреты.
+Точные изменения.
 
 # Verification
 
-Перечисли команды и проверки, которые Codex должен выполнить.
+Windows-команды, которые Codex должен выполнить локально.
 
 # Commit and summary
 
-Требуй:
+Указать:
 
-- commit message: `MetaFlow. <commit-name>`;
-- push в текущую ветку;
-- summary с обязательным `head`;
-- список проверок и их результат.
-
-## Пример блока для Codex task
-
-После изменений:
-
-1. Запусти обязательные проверки из раздела Verification.
-2. Сделай commit с сообщением:
-   `MetaFlow. <commit-name>`
-3. Выполни push в текущую рабочую ветку.
-4. В summary обязательно укажи:
+1. Commit message: `MetaFlow. <commit-name>`.
+2. Команду `git rev-parse HEAD`.
+3. Summary с:
    - `head`;
    - commit message;
    - changed files;
-   - какие проверки запускались;
-   - результат проверок.
+   - проверками и результатами;
+   - кратким описанием изменений.
 
-Не возвращай `BASE` в summary. `BASE` уже передан reviewer отдельно.
+## Рекомендуемый набор `extra_test_commands`
+
+Для repo-change задач:
+
+1. `git push origin main`
+2. `git rev-parse HEAD`
+3. `git rev-parse origin/main`
+4. `git status -sb`
+
+Для smoke-задачи с файлом:
+
+1. `git push origin main`
+2. `git rev-parse HEAD`
+3. `git rev-parse origin/main`
+4. `git status -sb`
+5. `dir <file>`
+6. `type <file>`
