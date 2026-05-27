@@ -1,95 +1,91 @@
-# Context
+[URL]
+https://github.com/PromSoftService/MetaPlatform
 
-Это минимальный end-to-end smoke task для проверки цепочки:
+[CURRENT_COMMIT]
+5c15857121a4c4adc7b8d740e23a17566da06cc1
 
-reviewer → Codex → MetaFlow post-Codex commands → reviewer.
+[TASK]
+Ликвидировать утечку памяти в MetaPlatform в сценарии многократного открытия/закрытия документов через Workspace / project tree / tabs.
 
-Нужно проверить, что:
-1. reviewer запускается;
-2. reviewer формирует task для Codex;
-3. Codex запускается и меняет repo;
-4. после Codex выполняются extra commands;
-5. MemLab-тест запускается через существующий `run-memlab.cmd`;
-6. изменения коммитятся;
-7. commit пушится;
-8. reviewer на следующей итерации видит `METAFLOW_FINAL_HEAD`, `METAFLOW_ORIGIN_MAIN` и MemLab report.
+В repo уже есть рабочий MemLab runner и отчёты MemLab в `tools/memlab/reports`.
 
-# Current scope
+Основная цель:
+- найти фактическую причину удержания памяти после open/close;
+- устранить утечку в продуктовой логике;
+- подтвердить результат повторным MemLab-прогоном.
 
-Минимальная безопасная проверка workflow без изменения продуктовой логики.
+Scope задачи:
+- Workspace;
+- project tree;
+- document tabs;
+- document open/close lifecycle;
+- callbacks/listeners/subscriptions/runtime references, связанные с открытием и закрытием документов.
 
-# Target semantics
+Что reviewer должен сделать на первой итерации:
+1. Открыть GitHub repo.
+2. Проверить текущую реализацию open/close flow, project tree callbacks и tabs lifecycle.
+3. Посмотреть фактический MemLab report в `tools/memlab/reports`, если он уже есть в repo.
+4. Сформировать для Codex конкретный первый task на локализацию и исправление ближайшей причины утечки.
+5. Не описывать старый retained path как обязательную истину, если он не подтверждён текущим report.
 
-После выполнения Codex и post-Codex этапа в GitHub должен появиться новый commit с простым smoke-файлом, а reviewer должен увидеть:
+Что Codex должен делать:
+1. Работать только с текущим repo.
+2. Сначала изучить фактические файлы, отвечающие за:
+   - Workspace/project tree;
+   - открытие документа;
+   - закрытие вкладки;
+   - очистку editor/runtime state;
+   - регистрацию и снятие listeners/callbacks/subscriptions.
+3. Использовать фактический MemLab report как диагностический вход, если он доступен.
+4. Найти конкретную цепочку удержания или ближайший подозрительный lifecycle defect.
+5. Исправить продуктовый код маленьким focused diff.
+6. Запустить релевантные локальные проверки, которые применимы в Windows-среде.
+7. Не делать commit.
+8. Не делать push.
+9. Не запускать MemLab вручную, если MemLab уже запускается post-Codex extra commands.
 
-- Codex summary;
-- technical channel;
-- extra commands output;
-- hash-маркеры;
-- опубликованный commit;
-- MemLab report в `tools/memlab/reports`.
+После Codex:
+- MetaFlow сам запускает MemLab через extra commands;
+- MetaFlow сам делает commit;
+- MetaFlow сам делает push;
+- reviewer проверяет `METAFLOW_FINAL_HEAD`, `METAFLOW_ORIGIN_MAIN`, опубликованный commit и новый MemLab report.
 
-# What to inspect first
+Target result:
+- после многократного open/close не остаётся утечка памяти класса Workspace / project tree / tabs / document open-close;
+- MemLab report после исправления не показывает исходную удерживающую цепочку;
+- если появляется другой независимый retained path, reviewer явно отделяет его от текущей задачи и не смешивает в один scope.
 
-Reviewer должен проверить текущий GitHub repo и убедиться, что можно дать Codex минимальную задачу без затрагивания продуктового кода.
+Files allowed to change:
+- UI/runtime файлы, отвечающие за Workspace, project tree, tabs и document lifecycle;
+- связанные тесты, если нужно закрепить исправление;
+- узкие helper/test files, если они нужны только для подтверждения исправления.
 
-# Required changes
+Do not do:
+- не менять широкий архитектурный слой без необходимости;
+- не делать общий refactor;
+- не переписывать MemLab runner;
+- не менять config flow;
+- не добавлять новый framework/coordinator/orchestrator;
+- не маскировать утечку задержками, таймерами или отключением проверок;
+- не подгонять MemLab scenario вместо исправления product code;
+- не делать commit/push из Codex task;
+- не запускать MemLab из Codex task, если это уже делает MetaFlow extra commands.
 
-На первой итерации reviewer должен вернуть `status = "continue"` и дать Codex простой task:
+Verification:
+Codex должен запустить релевантные локальные проверки по изменённой зоне.
 
-1. Создать или обновить файл `metaflow-smoke-check.txt` в корне repo.
-2. Записать в файл одну строку:
-   `MetaFlow smoke check: Codex touched this file.`
-3. Запустить:
-   `git status -sb`
-4. Не делать commit.
-5. Не делать push.
-6. Не запускать MemLab.
-7. Вернуть summary с указанием изменённого файла и результата команды.
+Reviewer после post-Codex этапа должен проверить:
+1. `METAFLOW_FINAL_HEAD` найден.
+2. `METAFLOW_ORIGIN_MAIN` найден.
+3. `METAFLOW_FINAL_HEAD == METAFLOW_ORIGIN_MAIN`.
+4. Commit опубликован в GitHub.
+5. Diff commit соответствует текущему scope.
+6. MemLab report создан в `tools/memlab/reports`.
+7. Новый report подтверждает устранение утечки Workspace / project tree / tabs / document open-close либо показывает следующий конкретный retained edge для продолжения.
 
-На следующей итерации reviewer должен проверить результат post-Codex этапа:
-
-1. Найти `METAFLOW_FINAL_HEAD` в `[TECHNICAL_CHANNEL].extra_commands_output`.
-2. Найти `METAFLOW_ORIGIN_MAIN` в `[TECHNICAL_CHANNEL].extra_commands_output`.
-3. Проверить, что `METAFLOW_FINAL_HEAD == METAFLOW_ORIGIN_MAIN`.
-4. Проверить, что GitHub repo содержит опубликованный commit `METAFLOW_FINAL_HEAD`.
-5. Проверить, что в commit есть `metaflow-smoke-check.txt`.
-6. Проверить, что MemLab report создан в `tools/memlab/reports`.
-7. Если всё подтверждено — вернуть `status = "done"`.
-
-# Files allowed to change
-
-Codex может менять только:
-
-- `metaflow-smoke-check.txt`
-
-# Do not do
-
-- Не менять продуктовый код.
-- Не менять тесты.
-- Не менять config.
-- Не менять documentation.
-- Не менять runner scripts.
-- Не запускать MemLab из Codex task.
-- Не делать commit из Codex task.
-- Не делать push из Codex task.
-- Не добавлять `extra_test_commands`, если не нужна точечная дополнительная проверка.
-
-# Verification
-
-Codex должен выполнить только:
-
-`git status -sb`
-
-MetaFlow post-Codex этап сам выполнит MemLab, commit и push через extra commands.
-
-# Result report
-
-Codex должен вернуть:
-
-- changed files;
-- command run;
-- command result;
-- explicit note that commit/push/MemLab were not performed by Codex.
-
-Reviewer после post-Codex этапа должен вернуть `done`, только если опубликованный commit и MemLab report реально видны.
+Done criteria:
+- исправлен product code, а не только tooling/docs;
+- post-Codex MemLab выполнен;
+- commit опубликован;
+- reviewer видит MemLab report;
+- reviewer по report и diff может подтвердить, что исходная задача по утечке закрыта или нужен следующий focused pass.
