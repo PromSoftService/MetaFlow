@@ -620,6 +620,8 @@ def run_test_commands(
     all_cmds = list(test_commands) + list(extra_test_commands)
     raw_chunks: List[str] = []
     command_summaries: List[Dict[str, Any]] = []
+    extra_commands_output: List[Dict[str, Any]] = []
+    first_extra_command_index = len(test_commands) + 1
 
     if not all_cmds:
         warn("No test commands configured.")
@@ -628,6 +630,7 @@ def run_test_commands(
             "overall_status": "no_commands",
             "all_passed": True,
             "commands": [],
+            "extra_commands_output": [],
         }
         save_json(tests_summary_path, summary)
         return summary
@@ -635,8 +638,13 @@ def run_test_commands(
     all_passed = True
 
     for index, cmd in enumerate(all_cmds, start=1):
+        command_source = (
+            "extra_test_commands"
+            if index >= first_extra_command_index
+            else "all_test_commands"
+        )
         info(f"Running test command {index}/{len(all_cmds)}: {cmd}")
-        raw_chunks.append(f"{'=' * 80}\nCOMMAND {index}: {cmd}\n{'=' * 80}\n")
+        raw_chunks.append(f"{'=' * 80}\nCOMMAND {index}: {cmd}\nSOURCE: {command_source}\n{'=' * 80}\n")
 
         started = time.time()
         try:
@@ -657,6 +665,7 @@ def run_test_commands(
 
             item: Dict[str, Any] = {
                 "command": cmd,
+                "source": command_source,
                 "status": "passed" if passed else "failed",
                 "exit_code": proc.returncode,
                 "duration_sec": duration_sec,
@@ -672,32 +681,56 @@ def run_test_commands(
 
             command_summaries.append(item)
 
+            if command_source == "extra_test_commands":
+                extra_commands_output.append(
+                    {
+                        "command": cmd,
+                        "status": "passed" if passed else "failed",
+                        "exit_code": proc.returncode,
+                        "duration_sec": duration_sec,
+                        "stdout": stdout_text,
+                        "stderr": stderr_text,
+                    }
+                )
+
         except Exception as exc:
             duration_sec = round(time.time() - started, 2)
             raw_chunks.append(f"\n[EXCEPTION] {exc}\n\n")
             warn(str(exc))
             all_passed = False
-            command_summaries.append(
-                {
-                    "command": cmd,
-                    "status": "failed",
-                    "exit_code": -1,
-                    "duration_sec": duration_sec,
-                    "stderr_tail": summarize_text_tail(str(exc)),
-                }
-            )
+            item = {
+                "command": cmd,
+                "source": command_source,
+                "status": "failed",
+                "exit_code": -1,
+                "duration_sec": duration_sec,
+                "stderr_tail": summarize_text_tail(str(exc)),
+            }
+            command_summaries.append(item)
+
+            if command_source == "extra_test_commands":
+                extra_commands_output.append(
+                    {
+                        "command": cmd,
+                        "status": "failed",
+                        "exit_code": -1,
+                        "duration_sec": duration_sec,
+                        "stdout": "",
+                        "stderr": str(exc),
+                    }
+                )
 
     write_text(test_log_path, "".join(raw_chunks))
     summary = {
         "overall_status": "passed" if all_passed else "failed",
         "all_passed": all_passed,
         "commands": command_summaries,
+        "extra_commands_output": extra_commands_output,
     }
     save_json(tests_summary_path, summary)
     info(f"Raw test log saved to: {test_log_path}")
     info(f"Test summary saved to: {tests_summary_path}")
     return summary
-
 
 def read_attachment_any(path: Path) -> Tuple[str, str, int]:
     data = path.read_bytes()
@@ -833,11 +866,27 @@ def build_technical_channel(
             if line.strip()
         ]
 
-    if read_bool_config(technical_channel_config, "include_tests_summary", True) and tests_summary is not None:
-        channel["tests_summary"] = tests_summary
+    extra_commands_output: Optional[List[Dict[str, Any]]] = None
+    tests_summary_for_channel: Optional[Dict[str, Any]] = None
+    if tests_summary is not None:
+        tests_summary_for_channel = dict(tests_summary)
+        raw_extra_commands_output = tests_summary_for_channel.pop("extra_commands_output", None)
+        if isinstance(raw_extra_commands_output, list):
+            extra_commands_output = raw_extra_commands_output
+
+    if (
+        read_bool_config(technical_channel_config, "include_tests_summary", True)
+        and tests_summary_for_channel is not None
+    ):
+        channel["tests_summary"] = tests_summary_for_channel
+
+    if (
+        read_bool_config(technical_channel_config, "include_extra_commands_output", False)
+        and extra_commands_output is not None
+    ):
+        channel["extra_commands_output"] = extra_commands_output
 
     return channel or None
-
 
 def build_reviewer_input(
     primary_input_text: str,
