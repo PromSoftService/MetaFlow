@@ -42,6 +42,14 @@ all_test_commands:
   - "cd ./ui && npm.cmd run test:integration"
   - "cd ./ui && npm.cmd run test:backend"
 
+extra_commands:
+  - 'call .\run-memlab.cmd workspace-open-project-document-open-close-200-v11 || echo MemLab finished with non-zero exit code'
+  - 'git add .'
+  - 'git commit -m "Metaflow %DATE% %TIME%" || echo No changes to commit'
+  - 'git push'
+  - 'for /f "usebackq delims=" %H in (`git rev-parse HEAD`) do @echo METAFLOW_FINAL_HEAD=%H'
+  - 'for /f "usebackq tokens=1" %H in (`git ls-remote origin refs/heads/main`) do @echo METAFLOW_ORIGIN_MAIN=%H'
+
 codex_max_runtime_sec: 1800
 codex_post_turn_grace_sec: 15
 codex_idle_timeout_sec: 600

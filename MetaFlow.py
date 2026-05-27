@@ -612,18 +612,23 @@ def summarize_text_tail(text: str, max_lines: int = 80, max_chars: int = 12000) 
 def run_test_commands(
     repo_dir: Path,
     test_commands: List[str],
-    extra_test_commands: List[str],
+    configured_extra_commands: List[str],
+    reviewer_extra_commands: List[str],
     test_log_path: Path,
     tests_summary_path: Path,
 ) -> Dict[str, Any]:
     banner("TEST RUN")
-    all_cmds = list(test_commands) + list(extra_test_commands)
+
+    command_entries: List[Tuple[str, str]] = []
+    command_entries.extend(("all_test_commands", cmd) for cmd in test_commands)
+    command_entries.extend(("config_extra_commands", cmd) for cmd in configured_extra_commands)
+    command_entries.extend(("reviewer_extra_test_commands", cmd) for cmd in reviewer_extra_commands)
+
     raw_chunks: List[str] = []
     command_summaries: List[Dict[str, Any]] = []
     extra_commands_output: List[Dict[str, Any]] = []
-    first_extra_command_index = len(test_commands) + 1
 
-    if not all_cmds:
+    if not command_entries:
         warn("No test commands configured.")
         write_text(test_log_path, "[NO TEST COMMANDS]\n")
         summary = {
@@ -637,14 +642,14 @@ def run_test_commands(
 
     all_passed = True
 
-    for index, cmd in enumerate(all_cmds, start=1):
-        command_source = (
-            "extra_test_commands"
-            if index >= first_extra_command_index
-            else "all_test_commands"
+    for index, (command_source, cmd) in enumerate(command_entries, start=1):
+        info(f"Running test command {index}/{len(command_entries)} [{command_source}]: {cmd}")
+        raw_chunks.append(
+            f"{'=' * 80}\n"
+            f"COMMAND {index}: {cmd}\n"
+            f"SOURCE: {command_source}\n"
+            f"{'=' * 80}\n"
         )
-        info(f"Running test command {index}/{len(all_cmds)}: {cmd}")
-        raw_chunks.append(f"{'=' * 80}\nCOMMAND {index}: {cmd}\nSOURCE: {command_source}\n{'=' * 80}\n")
 
         started = time.time()
         try:
@@ -681,10 +686,11 @@ def run_test_commands(
 
             command_summaries.append(item)
 
-            if command_source == "extra_test_commands":
+            if command_source in {"config_extra_commands", "reviewer_extra_test_commands"}:
                 extra_commands_output.append(
                     {
                         "command": cmd,
+                        "source": command_source,
                         "status": "passed" if passed else "failed",
                         "exit_code": proc.returncode,
                         "duration_sec": duration_sec,
@@ -708,10 +714,11 @@ def run_test_commands(
             }
             command_summaries.append(item)
 
-            if command_source == "extra_test_commands":
+            if command_source in {"config_extra_commands", "reviewer_extra_test_commands"}:
                 extra_commands_output.append(
                     {
                         "command": cmd,
+                        "source": command_source,
                         "status": "failed",
                         "exit_code": -1,
                         "duration_sec": duration_sec,
@@ -1702,6 +1709,11 @@ def main() -> int:
     max_iterations = int(config.get("max_iterations", 5))
     setup_commands = config.get("setup_commands", [])
     test_commands = config.get("all_test_commands", [])
+    configured_extra_commands = config.get("extra_commands", [])
+    if configured_extra_commands is None:
+        configured_extra_commands = []
+    if not isinstance(configured_extra_commands, list):
+        fail("extra_commands in config.yaml must be a list of shell command strings.")
     codex_command = config.get("codex_command", "codex exec --full-auto --json -")
     run_tests_after_codex = read_bool_config(config, "run_tests_after_codex", True)
     technical_channel_config = config.get("technical_channel", {})
@@ -1780,6 +1792,7 @@ def main() -> int:
     info(f"Resolved codex path: {codex_path}")
     info(f"Configured codex command: {codex_command}")
     info(f"Run tests after Codex: {run_tests_after_codex}")
+    info(f"Configured extra commands: {len(configured_extra_commands)}")
     info(f"Technical channel config: {json.dumps(technical_channel_config, ensure_ascii=False)}")
     info(f"Codex heartbeat interval: {codex_heartbeat_interval_sec}s")
     info(f"Codex max runtime: {codex_max_runtime_sec}s")
@@ -2067,12 +2080,13 @@ def main() -> int:
 
         tests_summary: Optional[Dict[str, Any]] = None
         if run_tests_after_codex:
-            extra_test_commands = reviewer_response.get("extra_test_commands", [])
+            reviewer_extra_test_commands = reviewer_response.get("extra_test_commands", [])
             if reviewer_response.get("should_run_all_tests", True):
                 tests_summary = run_test_commands(
                     repo_dir,
                     test_commands,
-                    extra_test_commands,
+                    configured_extra_commands,
+                    reviewer_extra_test_commands,
                     art.test_log_path,
                     art.tests_summary_path,
                 )
@@ -2080,7 +2094,8 @@ def main() -> int:
                 tests_summary = run_test_commands(
                     repo_dir,
                     [],
-                    extra_test_commands,
+                    configured_extra_commands,
+                    reviewer_extra_test_commands,
                     art.test_log_path,
                     art.tests_summary_path,
                 )

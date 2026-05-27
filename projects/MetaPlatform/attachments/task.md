@@ -1,67 +1,95 @@
-[URL]
-https://github.com/PromSoftService/MetaPlatform
+# Context
 
-[BASE]
-38a3a4bcb8659fe9c3482ebcd219682ece8848d3
+Это минимальный end-to-end smoke task для проверки цепочки:
 
-[TASK]
-Проверочный минимальный цикл MetaFlow.
+reviewer → Codex → MetaFlow post-Codex commands → reviewer.
 
-Рабочее окружение:
-- Codex выполняет `codex_task_md` в локальной папке repo на Windows.
-- `extra_test_commands` выполняются MetaFlow в этой же локальной папке repo на Windows.
-- Команды для Codex и `extra_test_commands` пиши под Windows shell.
+Нужно проверить, что:
+1. reviewer запускается;
+2. reviewer формирует task для Codex;
+3. Codex запускается и меняет repo;
+4. после Codex выполняются extra commands;
+5. MemLab-тест запускается через существующий `run-memlab.cmd`;
+6. изменения коммитятся;
+7. commit пушится;
+8. reviewer на следующей итерации видит `METAFLOW_FINAL_HEAD`, `METAFLOW_ORIGIN_MAIN` и MemLab report.
 
-Цель:
-- проверить, что reviewer ставит Codex простую задачу на изменение repo;
-- Codex вносит изменение и делает commit;
-- Codex возвращает локальный head в summary;
-- reviewer добавляет команды публикации и проверки через `extra_test_commands`;
-- MetaFlow выполняет `extra_test_commands`;
-- reviewer читает `[TECHNICAL_CHANNEL].extra_commands_output` и проверяет результат через GitHub compare `BASE...head`.
+# Current scope
 
-Что reviewer должен поручить Codex:
-1. В корне репозитория создать файл:
-   metaflow_smoke_test_2.txt
+Минимальная безопасная проверка workflow без изменения продуктовой логики.
 
-2. Записать в файл ровно одну строку:
-   MetaFlow GitHub reviewer smoke test 2
+# Target semantics
 
-3. Выполнить локальные Windows-проверки:
-   - `dir metaflow_smoke_test_2.txt`
-   - `type metaflow_smoke_test_2.txt`
-   - `git status -sb`
+После выполнения Codex и post-Codex этапа в GitHub должен появиться новый commit с простым smoke-файлом, а reviewer должен увидеть:
 
-4. Сделать commit с сообщением:
-   MetaFlow. github-reviewer-smoke-test-2
+- Codex summary;
+- technical channel;
+- extra commands output;
+- hash-маркеры;
+- опубликованный commit;
+- MemLab report в `tools/memlab/reports`.
 
-5. В summary указать:
-   - `head`: локальный commit hash после commit;
-   - commit message;
-   - созданный файл;
-   - содержимое файла;
-   - какие проверки запускались;
-   - результат проверок.
+# What to inspect first
 
-Что reviewer должен добавить в `extra_test_commands` после Codex:
-1. `git push origin main`
-2. `git rev-parse HEAD`
-3. `git rev-parse origin/main`
-4. `git status -sb`
-5. `dir metaflow_smoke_test_2.txt`
-6. `type metaflow_smoke_test_2.txt`
+Reviewer должен проверить текущий GitHub repo и убедиться, что можно дать Codex минимальную задачу без затрагивания продуктового кода.
 
-Критерий проверки reviewer после `extra_test_commands`:
-1. Взять `BASE` из секции `[BASE]`.
-2. Взять `head` из Codex summary в `[MODEL_CHANNEL]`.
-3. Прочитать `[TECHNICAL_CHANNEL].extra_commands_output`.
-4. Убедиться, что `git push origin main` завершился успешно.
-5. Убедиться, что stdout `git rev-parse HEAD` совпадает с `head`.
-6. Убедиться, что stdout `git rev-parse origin/main` совпадает с `head`.
-7. Проверить GitHub compare `BASE...head`.
-8. Убедиться, что compare содержит файл `metaflow_smoke_test_2.txt`.
-9. Убедиться, что файл содержит строку:
-   MetaFlow GitHub reviewer smoke test 2
+# Required changes
 
-Если все пункты подтверждены — вернуть `status = done`.
-Если нужен следующий проход — вернуть `status = continue` с конкретным `codex_task_md` и `extra_test_commands`.
+На первой итерации reviewer должен вернуть `status = "continue"` и дать Codex простой task:
+
+1. Создать или обновить файл `metaflow-smoke-check.txt` в корне repo.
+2. Записать в файл одну строку:
+   `MetaFlow smoke check: Codex touched this file.`
+3. Запустить:
+   `git status -sb`
+4. Не делать commit.
+5. Не делать push.
+6. Не запускать MemLab.
+7. Вернуть summary с указанием изменённого файла и результата команды.
+
+На следующей итерации reviewer должен проверить результат post-Codex этапа:
+
+1. Найти `METAFLOW_FINAL_HEAD` в `[TECHNICAL_CHANNEL].extra_commands_output`.
+2. Найти `METAFLOW_ORIGIN_MAIN` в `[TECHNICAL_CHANNEL].extra_commands_output`.
+3. Проверить, что `METAFLOW_FINAL_HEAD == METAFLOW_ORIGIN_MAIN`.
+4. Проверить, что GitHub repo содержит опубликованный commit `METAFLOW_FINAL_HEAD`.
+5. Проверить, что в commit есть `metaflow-smoke-check.txt`.
+6. Проверить, что MemLab report создан в `tools/memlab/reports`.
+7. Если всё подтверждено — вернуть `status = "done"`.
+
+# Files allowed to change
+
+Codex может менять только:
+
+- `metaflow-smoke-check.txt`
+
+# Do not do
+
+- Не менять продуктовый код.
+- Не менять тесты.
+- Не менять config.
+- Не менять documentation.
+- Не менять runner scripts.
+- Не запускать MemLab из Codex task.
+- Не делать commit из Codex task.
+- Не делать push из Codex task.
+- Не добавлять `extra_test_commands`, если не нужна точечная дополнительная проверка.
+
+# Verification
+
+Codex должен выполнить только:
+
+`git status -sb`
+
+MetaFlow post-Codex этап сам выполнит MemLab, commit и push через extra commands.
+
+# Result report
+
+Codex должен вернуть:
+
+- changed files;
+- command run;
+- command result;
+- explicit note that commit/push/MemLab were not performed by Codex.
+
+Reviewer после post-Codex этапа должен вернуть `done`, только если опубликованный commit и MemLab report реально видны.

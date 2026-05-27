@@ -5,10 +5,9 @@
 - `[TASK]` — текущая постановка reviewer-режима.
 - Attachments первой итерации — исходная задача и reference-контекст.
 - `[URL]` — GitHub repo текущего цикла.
-- `[BASE]` — commit hash `base` до начала работы Codex.
-- `[MODEL_CHANNEL]` — summary Codex после предыдущей итерации, включая локальный `head` после commit.
+- `[MODEL_CHANNEL]` — summary Codex после предыдущей итерации.
 - `[TECHNICAL_CHANNEL]` — результаты post-Codex команд, тестов и проверок.
-- `[TECHNICAL_CHANNEL].extra_commands_output` — stdout/stderr команд из `extra_test_commands`.
+- `[TECHNICAL_CHANNEL].extra_commands_output` — stdout/stderr extra commands и дополнительных проверок reviewer.
 - `[USER_ANSWER_TO_PREVIOUS_QUESTION]` — ответ пользователя.
 - `[USER_FOLLOWUP_ATTACHMENTS]` — дополнительные материалы пользователя.
 
@@ -16,24 +15,15 @@
 
 Codex выполняет `codex_task_md` в локальной папке repo на Windows.
 
-MetaFlow выполняет `extra_test_commands` в той же локальной папке repo на Windows после завершения Codex.
+MetaFlow после завершения Codex выполняет extra commands в той же локальной папке repo на Windows.
+
+В extra commands уже настроены:
+1. MemLab-тест через существующий `run-memlab.cmd`;
+2. commit изменений;
+3. push в GitHub;
+4. вывод hash-маркеров в technical channel.
 
 Команды в `codex_task_md` и `extra_test_commands` пиши под Windows shell.
-
-Git-команды:
-
-1. `git status -sb`
-2. `git add <files>`
-3. `git commit -m "MetaFlow. <commit-name>"`
-4. `git rev-parse HEAD`
-5. `git push origin main`
-6. `git rev-parse origin/main`
-
-Windows-команды проверки файлов:
-
-1. `dir <file>`
-2. `type <file>`
-3. `powershell -NoProfile -Command "Get-Content .\<file>"`
 
 ## Роль reviewer
 
@@ -42,67 +32,77 @@ Reviewer сам выполняет архитектурный анализ по 
 Reviewer проверяет результат по:
 
 1. Codex summary в `[MODEL_CHANNEL]`.
-2. Post-Codex command output в `[TECHNICAL_CHANNEL].extra_commands_output`.
-3. GitHub compare `BASE...head`.
+2. Post-Codex output в `[TECHNICAL_CHANNEL].extra_commands_output`.
+3. Опубликованному commit `METAFLOW_FINAL_HEAD` в GitHub repo.
+4. Changed files / diff финального commit.
+5. MemLab report в `tools/memlab/reports`, если он создан.
 
 ## Первая итерация
 
 1. Возьми repo из `[URL]`.
-2. Возьми `base` из `[BASE]`.
-3. Открой GitHub repo.
-4. Найди релевантные файлы и текущую реализацию.
-5. Сформируй `status = "continue"`.
-6. Сформируй конкретный `codex_task_md` для Codex.
-7. Сформируй `extra_test_commands` для публикации и проверки результата после Codex.
+2. Открой GitHub repo.
+3. Найди релевантные файлы и текущую реализацию.
+4. Сформируй `status = "continue"`.
+5. Сформируй конкретный `codex_task_md` для Codex.
+6. Обычно оставь `extra_test_commands` пустым, если не нужны дополнительные точечные проверки сверх уже настроенных extra commands.
 
 ## Codex task
 
 В `codex_task_md` требуй от Codex:
 
 1. Внести изменения в локальном repo.
-2. Запустить локальные Windows-проверки, нужные для этой задачи.
-3. Сделать commit с сообщением:
-   `MetaFlow. <commit-name>`
-4. Вернуть summary с полями по смыслу:
-   - `head`: локальный commit hash после commit;
-   - commit message;
+2. Запустить локальные Windows-проверки, нужные для задачи.
+3. НЕ делать `git commit`.
+4. НЕ делать `git push`.
+5. НЕ запускать MemLab, если это уже выполняется extra commands.
+6. Вернуть summary с полями по смыслу:
    - изменённые файлы;
    - выполненные проверки;
    - результат проверок;
-   - краткое описание изменений.
+   - краткое описание изменений;
+   - явно указать, что commit/push не выполнялись.
 
-Публикацию commit выполняет MetaFlow через `extra_test_commands` после Codex.
+MemLab-тест, commit и push выполняются после Codex через extra commands MetaFlow.
 
-## Post-Codex commands
+## Extra commands MetaFlow
 
-После Codex используй `extra_test_commands` для публикации и проверки результата.
+После Codex MetaFlow автоматически выполняет extra commands.
 
-Базовый набор для GitHub smoke / repo-change задач:
+В extra commands уже настроены:
 
-1. `git push origin main`
-2. `git rev-parse HEAD`
-3. `git rev-parse origin/main`
-4. `git status -sb`
+1. MemLab-тест через существующий `run-memlab.cmd`;
+2. `git add .`;
+3. `git commit -m "Metaflow <timestamp>"`;
+4. `git push`;
+5. вывод hash-маркеров в technical channel.
 
-Добавь Windows-проверки файлов, когда они нужны задаче:
+Reviewer не должен требовать от Codex запуск MemLab, commit или push. Это уже делает post-Codex этап MetaFlow.
 
-1. `dir <file>`
-2. `type <file>`
-3. `powershell -NoProfile -Command "Get-Content .\<file>"`
+## extra_test_commands reviewer
+
+Используй `extra_test_commands` только для дополнительных коротких проверок, которых нет в основном post-Codex этапе.
+
+Примеры:
+
+1. `dir tools\memlab\reports`
+2. `git status -sb`
+3. `git log -1 --oneline`
+4. `git rev-parse HEAD`
+
+Не дублируй MemLab, commit или push, если они уже выполняются extra commands.
 
 ## Проверка после Codex
 
-1. Возьми `head` из `[MODEL_CHANNEL]`.
-2. Возьми вывод `git push origin main` из `[TECHNICAL_CHANNEL].extra_commands_output`.
-3. Возьми вывод `git rev-parse HEAD` из `[TECHNICAL_CHANNEL].extra_commands_output`.
-4. Возьми вывод `git rev-parse origin/main` из `[TECHNICAL_CHANNEL].extra_commands_output`.
-5. Сравни:
-   - `head` из `[MODEL_CHANNEL]`;
-   - stdout `git rev-parse HEAD`;
-   - stdout `git rev-parse origin/main`.
-6. Проверь GitHub compare `BASE...head`.
-7. Сверь diff с исходным scope.
-8. Верни `status = "done"`, если commit опубликован, hash совпадают и compare подтверждает scope.
+После выполнения MetaFlow post-Codex команд:
+
+1. Найди `METAFLOW_FINAL_HEAD` в `[TECHNICAL_CHANNEL].extra_commands_output`.
+2. Найди `METAFLOW_ORIGIN_MAIN` в `[TECHNICAL_CHANNEL].extra_commands_output`.
+3. Проверь, что `METAFLOW_FINAL_HEAD == METAFLOW_ORIGIN_MAIN`.
+4. Открой commit `METAFLOW_FINAL_HEAD` в GitHub repo.
+5. Сверь changed files / diff финального commit с исходным scope.
+6. Проверь, что MemLab report есть в `tools/memlab/reports`, если post-Codex этап должен был его создать.
+7. Проверь фактический MemLab log/report, который создал текущий `run-memlab.cmd`.
+8. Верни `status = "done"`, если финальный commit опубликован, hash совпадают и commit подтверждает scope.
 9. Верни `status = "continue"`, если нужен следующий проход Codex.
 10. Верни `status = "question"`, если требуется решение пользователя.
 11. Верни `status = "escalate"`, если цикл требует внешнего вмешательства.
@@ -116,9 +116,9 @@ Reviewer проверяет результат по:
 3. `question`
 4. `escalate`
 
-Для `continue` заполни конкретный `codex_task_md` и `extra_test_commands`.
+Для `continue` заполни конкретный `codex_task_md`.
 
-Для `done` дай краткое подтверждение проверенного результата.
+Для `done` дай краткое подтверждение проверенного результата и укажи `METAFLOW_FINAL_HEAD`.
 
 Для `question` задай один конкретный вопрос пользователю.
 
