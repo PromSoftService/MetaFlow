@@ -18,10 +18,10 @@ Codex выполняет `codex_task_md` в локальной папке repo �
 MetaFlow после завершения Codex выполняет extra commands в той же локальной папке repo на Windows.
 
 В extra commands уже настроены:
-1. MemLab-тест через существующий `run-memlab.cmd`;
-2. commit изменений;
-3. push в GitHub;
-4. вывод hash-маркеров в technical channel.
+1. commit изменений;
+2. push в GitHub;
+3. вывод hash-маркеров в technical channel;
+4. дополнительные config-defined post-Codex commands, если они заданы текущим config или task-specific section.
 
 Команды в `codex_task_md` и `extra_test_commands` пиши под Windows shell.
 
@@ -35,7 +35,7 @@ Reviewer проверяет результат по:
 2. Post-Codex output в `[TECHNICAL_CHANNEL].extra_commands_output`.
 3. Опубликованному commit `METAFLOW_FINAL_HEAD` в GitHub repo.
 4. Changed files / diff финального commit.
-5. MemLab report в `tools/memlab/reports`, если он создан.
+5. Post-Codex reports/artifacts, если они созданы текущим config или task-specific section.
 
 ## Первая итерация
 
@@ -54,7 +54,7 @@ Reviewer проверяет результат по:
 2. Запустить локальные Windows-проверки, нужные для задачи.
 3. НЕ делать `git commit`.
 4. НЕ делать `git push`.
-5. НЕ запускать MemLab, если это уже выполняется extra commands.
+5. НЕ запускать config-defined post-Codex commands, если они уже выполняются extra commands.
 6. Вернуть summary с полями по смыслу:
    - изменённые файлы;
    - выполненные проверки;
@@ -62,7 +62,7 @@ Reviewer проверяет результат по:
    - краткое описание изменений;
    - явно указать, что commit/push не выполнялись.
 
-MemLab-тест, commit и push выполняются после Codex через extra commands MetaFlow.
+Commit, push и config-defined post-Codex commands выполняются после Codex через extra commands MetaFlow.
 
 ## Extra commands MetaFlow
 
@@ -70,13 +70,13 @@ MemLab-тест, commit и push выполняются после Codex чере
 
 В extra commands уже настроены:
 
-1. MemLab-тест через существующий `run-memlab.cmd`;
-2. `git add .`;
-3. `git commit -m "Metaflow <timestamp>"`;
-4. `git push`;
-5. вывод hash-маркеров в technical channel.
+1. `git add .`;
+2. `git commit -m "Metaflow <timestamp>"`;
+3. `git push`;
+4. вывод hash-маркеров в technical channel;
+5. дополнительные config-defined post-Codex commands, если они заданы текущим config или task-specific section.
 
-Reviewer не должен требовать от Codex запуск MemLab, commit или push. Это уже делает post-Codex этап MetaFlow.
+Reviewer не должен требовать от Codex запуск config-defined post-Codex commands, commit или push. Это уже делает post-Codex этап MetaFlow.
 
 ## extra_test_commands reviewer
 
@@ -84,12 +84,12 @@ Reviewer не должен требовать от Codex запуск MemLab, co
 
 Примеры:
 
-1. `dir tools\memlab\reports`
-2. `git status -sb`
-3. `git log -1 --oneline`
-4. `git rev-parse HEAD`
+1. `git status -sb`
+2. `git log -1 --oneline`
+3. `git rev-parse HEAD`
+4. `dir <post-codex-report-dir-from-task-specific-section>`
 
-Не дублируй MemLab, commit или push, если они уже выполняются extra commands.
+Не дублируй config-defined post-Codex commands, commit или push, если они уже выполняются extra commands.
 
 ## Проверка после Codex
 
@@ -100,8 +100,8 @@ Reviewer не должен требовать от Codex запуск MemLab, co
 3. Проверь, что `METAFLOW_FINAL_HEAD == METAFLOW_ORIGIN_MAIN`.
 4. Открой commit `METAFLOW_FINAL_HEAD` в GitHub repo.
 5. Сверь changed files / diff финального commit с исходным scope.
-6. Проверь, что MemLab report есть в `tools/memlab/reports`, если post-Codex этап должен был его создать.
-7. Проверь фактический MemLab log/report, который создал текущий `run-memlab.cmd`.
+6. Проверь post-Codex reports/artifacts, если текущий config или task-specific section должен был их создать.
+7. Проверь фактические post-Codex markers/stdout/stderr/reports/artifacts, которые относятся к текущему task-specific flow.
 8. Верни `status = "done"`, если финальный commit опубликован, hash совпадают и commit подтверждает scope.
 9. Верни `status = "continue"`, если нужен следующий проход Codex.
 10. Верни `status = "question"`, если требуется решение пользователя.

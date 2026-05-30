@@ -43,7 +43,7 @@ all_test_commands:
   - "cd ./ui && npm.cmd run test:backend"
 
 extra_commands:
-  - 'call .\run-memlab.cmd workspace-open-project-document-open-close-200-v11 || echo MemLab finished with non-zero exit code'
+  - 'powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\memlab\guards\cleanup-memory-guard.ps1 -Scenario workspace-open-project-document-open-close-200-v11 -ProjectName test -DocumentName "OPC UA Tags" -Iterations 20'
   - 'git add .'
   - 'git commit -m "Metaflow %DATE% %TIME%" || echo No changes to commit'
   - 'git push'

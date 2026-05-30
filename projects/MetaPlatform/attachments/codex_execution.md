@@ -10,7 +10,7 @@ reviewer → Codex → MetaFlow post-Codex commands → reviewer.
 
 Reviewer должен формировать компактные repo-задачи, которые Codex может выполнить в локальном репозитории: изменить файлы, запустить нужные локальные команды и вернуть фактический результат.
 
-Commit, MemLab report и push в текущем flow выполняются post-Codex командами MetaFlow после завершения Codex.
+Commit и push в текущем flow выполняются post-Codex командами MetaFlow после завершения Codex.
 
 ---
 
@@ -20,7 +20,7 @@ Commit, MemLab report и push в текущем flow выполняются post
 - анализирует task, GitHub repo, technical/model channels и доступные артефакты;
 - выбирает один управляемый scope;
 - пишет прямое ТЗ для Codex;
-- проверяет diff, changed files, stdout/stderr, результаты тестов, extra commands output и MemLab report в repo.
+- проверяет diff, changed files, stdout/stderr, результаты команд/проверок, extra commands output и опубликованный commit.
 
 **Codex**:
 - работает с реальным repo;
@@ -29,16 +29,14 @@ Commit, MemLab report и push в текущем flow выполняются post
 - возвращает фактический результат.
 
 **MetaFlow post-Codex commands**:
-- после Codex выполняют обычные project-level проверки;
-- запускают MemLab;
-- сохраняют MemLab report в `tools/memlab/reports`;
-- делают commit с изменениями Codex и MemLab report;
+- после Codex выполняют config-defined post-Codex commands;
+- делают commit с изменениями Codex и post-Codex артефактами, если текущий config должен их создать;
 - выполняют push;
 - печатают hash-маркеры в `[TECHNICAL_CHANNEL].extra_commands_output`.
 
 Нельзя писать ТЗ так, будто Codex редактирует attachment или reference-файл.
 
-Нельзя требовать от Codex commit/push/MemLab, если это выполняется post-Codex командами MetaFlow.
+Нельзя требовать от Codex commit/push или другие post-Codex действия, если это выполняется post-Codex командами MetaFlow.
 
 ---
 
@@ -218,7 +216,7 @@ Codex должен сначала проверить repo, а не сразу д
 - не оставлять временные заглушки;
 - не добавлять magic strings / magic numbers вне существующего config/constants слоя;
 - не требовать от Codex commit/push;
-- не требовать от Codex запуск MemLab, если MemLab выполняется post-Codex командами MetaFlow.
+- не требовать от Codex запуск config-defined post-Codex commands, если они выполняются post-Codex командами MetaFlow.
 
 Дополнительные запреты для текущей фазы:
 - не вводить новый coordinator/orchestrator/facade/framework, если задача решается сужением существующего слоя;
@@ -292,9 +290,7 @@ Helper:
 
 Codex запускает только те локальные проверки, которые reviewer прямо указал в `codex_task_md`.
 
-Основные post-Codex проверки выполняет MetaFlow автоматически после завершения Codex. Reviewer видит их результат в `[TECHNICAL_CHANNEL].tests_summary`.
-
-MemLab выполняет MetaFlow автоматически post-Codex. Reviewer видит stdout/stderr в `[TECHNICAL_CHANNEL].extra_commands_output`, а report — в GitHub repo.
+Config-defined post-Codex commands выполняет MetaFlow автоматически после завершения Codex. Reviewer видит их результат в `[TECHNICAL_CHANNEL].tests_summary` и/или `[TECHNICAL_CHANNEL].extra_commands_output`, в зависимости от текущего config.
 
 Если reviewer добавляет дополнительные короткие проверки через `extra_test_commands`, их stdout/stderr также попадают в `[TECHNICAL_CHANNEL].extra_commands_output`.
 
@@ -359,9 +355,11 @@ Codex не должен оставлять висящие процессы по�
 
 ---
 
-## 13. Post-Codex result, hash и MemLab report
+## 13. Post-Codex result and hash markers
 
 После Codex reviewer должен смотреть результат post-Codex этапа в `[TECHNICAL_CHANNEL].extra_commands_output`.
+
+Post-Codex этап задаётся текущим project config. Reviewer не должен предполагать точный список extra commands заранее, если task-specific section или текущий config не задают его явно.
 
 Ожидаемые hash-маркеры:
 
@@ -380,38 +378,13 @@ Reviewer должен проверить:
 3. `METAFLOW_FINAL_HEAD == METAFLOW_ORIGIN_MAIN`.
 4. GitHub repo содержит commit `METAFLOW_FINAL_HEAD`.
 5. В commit есть изменения Codex.
-6. В commit есть MemLab report, если post-Codex этап должен был его создать.
+6. В commit есть post-Codex артефакты, если текущий project config должен был их создать.
 
-MemLab запускается существующим repo-runner:
+Reviewer должен проверять фактические machine-readable markers, stdout/stderr и артефакты, которые заданы текущим project config.
 
-`run-memlab.cmd`
+Reviewer не должен ожидать фиксированную структуру post-Codex артефактов, если такой контракт не задан самим task-specific section или текущим config.
 
-Reviewer не должен описывать, переписывать или заменять этот runner в `codex_task_md`.
-
-Ожидаемая область MemLab report:
-
-`tools/memlab/reports`
-
-Текущий runner пишет report как log-файл в `tools/memlab/reports`. Имя log-файла формируется runner’ом и обычно содержит timestamp и имя scenario.
-
-Reviewer не должен ожидать фиксированную структуру отчёта и не должен требовать конкретные файлы внутри `reports`, если такой контракт не задан самим runner’ом.
-
-Reviewer должен проверить фактический состав:
-
-- `tools/memlab/reports`;
-- свежий log-файл MemLab;
-- stdout/stderr команды MemLab в `[TECHNICAL_CHANNEL].extra_commands_output`.
-
-MemLab leak сам по себе не означает, что post-Codex этап сломан. Нужно отличать:
-
-- MemLab успешно запустился и нашёл leak;
-- MemLab не смог запуститься;
-- MetaPlatform была недоступна;
-- browser/Chromium не стартовал;
-- report не был создан;
-- report создан, но commit/push не прошёл.
-
-Если MemLab report создан и commit/push прошёл, reviewer проверяет содержимое report в repo и учитывает его при решении `continue/done/question/escalate`.
+Если post-Codex command создал report/artifact и commit/push прошёл, reviewer проверяет содержимое report/artifact в repo и учитывает его при решении `continue/done/question/escalate`.
 
 ---
 
@@ -458,8 +431,8 @@ reviewer не должен автоматически гонять Codex по к
 
 - hash-маркеры в `[TECHNICAL_CHANNEL].extra_commands_output`;
 - что commit опубликован;
-- что MemLab report есть в `tools/memlab/reports`, если post-Codex этап должен был его создать;
-- что reviewer смотрит фактически созданный log-файл, а не ожидает фиксированную структуру `latest/history`;
+- что post-Codex report/artifact есть в repo, если текущий config должен был его создать;
+- что reviewer смотрит фактически созданный report/artifact, а не ожидает фиксированную структуру без явного contract;
 - что GitHub repo показывает фактический diff финального commit.
 
 ---
@@ -487,7 +460,7 @@ Manual QA checklist может быть отдельным documentation/user ar
 - What changed by file;
 - Tests/commands run;
 - Exit codes/results;
-- export_project_to_txt.py status;
+- helper/export status, only if the current scope touches helper/export/layout or the task explicitly requires it;
 - Risks / open items.
 
 Codex summary не обязан содержать финальный commit hash, потому что commit делает MetaFlow после Codex.
@@ -535,10 +508,104 @@ Reviewer формирует прямое, компактное, repo-испол�
 
 Codex меняет реальные файлы и запускает только те команды, которые указаны в его task.
 
-MetaFlow после Codex выполняет обычные проверки, запускает существующий `run-memlab.cmd`, делает commit и push.
+MetaFlow после Codex выполняет config-defined post-Codex commands, делает commit и push.
 
-Reviewer принимает результат только по фактическим артефактам: repo, changed files, stdout/stderr, tests summary, extra commands output, MemLab report в `tools/memlab/reports` и опубликованный commit.
+Reviewer принимает результат только по фактическим артефактам: repo, changed files, stdout/stderr, tests summary, extra commands output, post-Codex reports/artifacts, если текущий config должен был их создать, и опубликованный commit.
 
 Manual UI checks выполняет пользователь по checklist; Codex получает задачу только на реальные изменения repo или на конкретный найденный баг.
 
 Для текущей фазы проекта reviewer дополнительно следит, чтобы каждая задача уменьшала сложность, а не порождала новый общий abstraction layer.
+
+---
+
+## 20. Task-specific section: MetaPlatform product-code cleanup after memory-leak investigation
+
+Этот раздел относится к текущему task: product-code cleanup вокруг мусора, накопившегося во время попыток устранить утечку памяти.
+
+Общие правила выше остаются действующими, но применяются с учётом текущей task-specific границы. Если общий раздел тянет reviewer в MemLab tooling, tests cleanup, docs или export helper без прямой причины текущего small scope, приоритет имеет этот task-specific раздел. Проверка magic literals остаётся обязательной только для изменённой зоны: не открывать отдельный magic cleanup, но не допускать новых raw semantic literals / magic strings / magic numbers в текущем diff.
+
+### Current post-Codex extra commands
+
+В текущем MetaPlatform cleanup flow post-Codex extra commands выполняют:
+
+1. workspace memory guard:
+   `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\memlab\guards\cleanup-memory-guard.ps1 -Scenario workspace-open-project-document-open-close-200-v11 -ProjectName test -DocumentName "OPC UA Tags" -Iterations 20`
+2. `git add .`
+3. `git commit -m "Metaflow %DATE% %TIME%" || echo No changes to commit`
+4. `git push`
+5. печать `METAFLOW_FINAL_HEAD=...`
+6. печать `METAFLOW_ORIGIN_MAIN=...`
+
+Reviewer не должен требовать от Codex запуск memory guard, commit или push.
+
+### Current reports/artifacts
+
+Текущий workspace memory guard может создавать:
+
+- MemLab report в `tools/memlab/reports/*workspace-open-project-document-open-close-200-v11.log`;
+- guard log в `tools/memlab/reports/guards/*cleanup-memory-guard-workspace-open-project-document-open-close-200-v11.log`;
+- guard summary JSON в `tools/memlab/reports/guards/*cleanup-memory-guard-workspace-open-project-document-open-close-200-v11.json`.
+
+Reviewer должен проверять фактически созданные файлы, если они появились в final commit. Reviewer не должен ожидать fixed filename, потому что имена timestamp-based.
+
+### Memory guard verdict for this task
+
+Memory guard PASS для текущего task:
+
+- `METAFLOW_MEMORY_GUARD_STATUS=ok`;
+- `METAFLOW_MEMORY_GUARD_OTHER_LEAK=false`;
+- `METAFLOW_MEMORY_GUARD_CLASS=no_leaks` или `known_univer_leak`.
+
+`known_univer_leak` не блокирует текущий cleanup, если `OTHER_LEAK=false`.
+
+Memory guard BLOCKER для текущего task:
+
+- `METAFLOW_MEMORY_GUARD_CLASS=unknown_non_univer_leak`;
+- `METAFLOW_MEMORY_GUARD_CLASS=memlab_failed`;
+- `METAFLOW_MEMORY_GUARD_CLASS=summary_parse_failed`;
+- `METAFLOW_MEMORY_GUARD_OTHER_LEAK=true`;
+- memory guard markers отсутствуют.
+
+Если появилась новая non-Univer утечка, reviewer должен остановить обычный cleanup и вернуть `status = "question"` или `status = "escalate"` с кратким retained edge и ссылкой на committed report.
+
+### Current cleanup quality target
+
+Целевой критерий текущего cleanup: product-код после серии memory-leak попыток должен выглядеть примерно на 7.75/10 по читаемости, ответственности и отсутствию временного workaround-мусора.
+
+Codex task должен отвечать на один вопрос:
+
+- что именно в product-code выглядит как memory-leak workaround;
+- почему это криво или лишнее;
+- что удалить/упростить;
+- что оставить как нормальную product semantics;
+- какие существующие проверки запустить.
+
+### Forbidden for this task
+
+В текущем task дополнительно запрещено:
+
+- использовать React private markers: `__reactContainer$`, `_reactRootContainer`;
+- угадывать React root через DOM descendants;
+- лечить `HTMLCollection`, `CSSStyleDeclaration`, `children`, `style` как самостоятельную причину;
+- добавлять timer flushing;
+- monkey-patch `setTimeout`;
+- добавлять MessageChannel workaround;
+- добавлять delay “на всякий случай”;
+- вводить RuntimeLifecycleManager / DisposeOrchestrator / Coordinator / Manager / Framework;
+- делать cleanup ради уменьшения строк, если код сейчас понятный и корректный.
+
+### Codex result report for this task
+
+Codex result report для текущего task должен содержать:
+
+- Summary;
+- Changed files;
+- What changed by file;
+- What leak-workaround/dead/defensive code was removed or simplified;
+- What was intentionally left unchanged and why;
+- Commands run;
+- Exit codes/results;
+- Risks / open items.
+
+Не требовать `export_project_to_txt.py status` в result report для текущего task, если helper/export whitelist не затронут.
+
