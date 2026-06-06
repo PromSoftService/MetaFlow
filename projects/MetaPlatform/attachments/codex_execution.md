@@ -51,7 +51,9 @@ Commit и push в текущем flow выполняются post-Codex кома
 - какие файлы/области можно менять;
 - что запрещено;
 - какие команды запустить;
-- как отчитаться.
+- как отчитаться;
+- какие новые/изменяемые пользовательские строки, UI labels, menu labels, table headers, messages, errors, status texts и другие user-facing тексты должны быть сразу заведены через существующий механизм локализации;
+- какие новые/изменяемые semantic values, identifiers, config values, defaults, paths, filenames, driver names, device names, table names, column ids и policy values должны быть сразу вынесены в существующий config/constants слой.
 
 Не писать:
 - reviewer-заметки вместо ТЗ;
@@ -226,34 +228,104 @@ Codex должен сначала проверить repo, а не сразу д
 
 ---
 
-## 10. Config / constants / magic literals
+## 10. Localization / config / constants / magic literals
+
+Если task добавляет новое поведение или меняет существующее поведение, reviewer обязан требовать от Codex сразу делать нормальную product-quality реализацию, без временного hardcode, который потом потребует отдельного cleanup.
+
+### Localization
+
+Все новые или изменяемые user-facing тексты должны сразу идти через существующий механизм локализации проекта.
+
+К user-facing текстам относятся:
+
+- menu labels;
+- tree node titles;
+- table titles;
+- table column headers;
+- button labels;
+- dialog titles;
+- dialog body texts;
+- validation messages;
+- error messages;
+- status labels;
+- tooltips;
+- empty-state texts;
+- download/import/generate action labels;
+- report labels, если они видны пользователю в UI.
+
+Запрещено добавлять новые user-facing строки прямо в компоненты, services или handlers, если в проекте уже есть слой локализации / UI text constants для этой зоны.
+
+Если в конкретной зоне проекта ещё нет подходящего localization/helper слоя, Codex должен:
+1. сначала найти существующий ближайший паттерн;
+2. использовать его;
+3. не создавать второй competing localization layer;
+4. если локализация действительно невозможна без отдельного scope, явно написать это в result report и ограничить hardcode только временной внутренней строкой, не user-facing текстом.
+
+Reviewer обязан проверять diff на новые raw user-facing strings.
+
+### Config / constants
 
 Semantic values должны жить в существующем config/constants слое.
 
 Кандидаты на обязательный вынос:
+
 - module ids;
 - document kinds;
 - node types;
+- table ids;
+- table names;
+- column ids;
 - action ids;
 - command ids;
+- menu item ids;
+- download/import/generate action ids;
 - status/reason/outcome/source ids;
 - endpoint paths;
 - timeout/retry/polling values;
 - folder/file names/path prefixes;
+- default device names;
+- default driver names;
+- default artifact names;
 - shared dialog tokens;
 - shared policy values.
 
+Если task вводит новые project-level entities, tables, menu actions, artifact kinds, import/download kinds или lifecycle states, reviewer обязан требовать от Codex сразу завести их через существующий config/constants слой, а не разбрасывать строками по UI/backend.
+
 Локально допустимы:
+
 - `0`, `1`, `-1`, `index + 1`;
 - одноразовые internal guard strings;
 - platform API literals;
-- маленькие helper-only literals, если они не повторяются и не образуют contract.
+- маленькие helper-only literals, если они не повторяются, не user-facing и не образуют contract.
 
 Reviewer должен требовать:
+
 - не создавать второй constants layer;
 - не выносить микролитералы механически;
 - проверять, что не появился competing source of truth;
-- не выносить новые constants “на будущее”, если они ещё не являются реальным shared contract.
+- не выносить новые constants “на будущее”, если они ещё не являются реальным shared contract;
+- не оставлять hardcode только потому, что это первый implementation pass.
+
+### Code quality bar
+
+Reviewer должен принимать результат только если качество реализации в рамках текущего bounded scope не ниже 7.75/10.
+
+Под 7.75/10 понимается:
+
+- решение закрывает текущую задачу без очевидных хвостов;
+- нет временных workaround, TODO, dead branches, debug remnants;
+- нет raw user-facing strings вне локализации;
+- нет новых semantic magic strings/magic numbers вне config/constants;
+- нет второго source of truth;
+- нет лишнего coordinator/orchestrator/manager/framework слоя;
+- нет дублирования, которое сразу очевидно надо будет чистить отдельным cleanup;
+- tests/commands действительно проверяют изменённую семантику;
+- соседние сценарии не сломаны;
+- result report честно перечисляет ограничения, если они есть.
+
+Если реализация функционально работает, но оставляет очевидный cleanup-хвост, reviewer обязан вернуть `status = "continue"` и дать Codex точечную корректировку в этом же scope, а не закрывать задачу как done.
+
+Цель reviewer — не принимать “работает, потом подчистим”, а доводить каждый bounded increment до состояния, которое можно оставить в repo без немедленного последующего cleanup.
 
 ---
 
@@ -420,12 +492,19 @@ reviewer не должен автоматически гонять Codex по к
 - соседние сценарии;
 - сохранение public contract;
 - отсутствие второго source of truth;
+- отсутствие новых raw user-facing strings вне существующего localization слоя;
+- отсутствие новых semantic magic strings / magic numbers вне существующего config/constants слоя;
+- что новые/изменённые menu labels, table headers, button labels, validation/error/status texts локализованы сразу;
+- что новые/изменённые ids, action kinds, artifact kinds, table/column ids, driver/device defaults и lifecycle states вынесены в существующий config/constants слой;
+- качество реализации текущего bounded scope не ниже 7.75/10 и не требует немедленного cleanup;
 - отсутствие временных веток/заглушек;
 - отсутствие мёртвого кода;
 - отсутствие `__pycache__/`, `*.pyc`, runtime artifacts в diff;
 - helper/export consistency, если scope затрагивает файлы whitelist;
 - что после правки не появился новый лишний orchestration/coordinator/framework слой;
 - что сложность действительно уменьшилась, а не была только переразложена по новым файлам.
+
+Если reviewer видит, что Codex сделал рабочую, но “черновую” реализацию с hardcode, нелокализованными текстами, временными helper-ветками, дублирующими constants или очевидным cleanup-хвостом, reviewer обязан вернуть `status = "continue"` и дать корректировку. Нельзя закрывать scope только потому, что тесты зелёные.
 
 После post-Codex этапа reviewer дополнительно проверяет:
 
@@ -517,95 +596,4 @@ Manual UI checks выполняет пользователь по checklist; Cod
 Для текущей фазы проекта reviewer дополнительно следит, чтобы каждая задача уменьшала сложность, а не порождала новый общий abstraction layer.
 
 ---
-
-## 20. Task-specific section: MetaPlatform product-code cleanup after memory-leak investigation
-
-Этот раздел относится к текущему task: product-code cleanup вокруг мусора, накопившегося во время попыток устранить утечку памяти.
-
-Общие правила выше остаются действующими, но применяются с учётом текущей task-specific границы. Если общий раздел тянет reviewer в MemLab tooling, tests cleanup, docs или export helper без прямой причины текущего small scope, приоритет имеет этот task-specific раздел. Проверка magic literals остаётся обязательной только для изменённой зоны: не открывать отдельный magic cleanup, но не допускать новых raw semantic literals / magic strings / magic numbers в текущем diff.
-
-### Current post-Codex extra commands
-
-В текущем MetaPlatform cleanup flow post-Codex extra commands выполняют:
-
-1. workspace memory guard:
-   `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\memlab\guards\cleanup-memory-guard.ps1 -Scenario workspace-open-project-document-open-close-200-v11 -ProjectName test -DocumentName "OPC UA Tags" -Iterations 20`
-2. `git add .`
-3. `git commit -m "Metaflow %DATE% %TIME%" || echo No changes to commit`
-4. `git push`
-5. печать `METAFLOW_FINAL_HEAD=...`
-6. печать `METAFLOW_ORIGIN_MAIN=...`
-
-Reviewer не должен требовать от Codex запуск memory guard, commit или push.
-
-### Current reports/artifacts
-
-Текущий workspace memory guard может создавать:
-
-- MemLab report в `tools/memlab/reports/*workspace-open-project-document-open-close-200-v11.log`;
-- guard log в `tools/memlab/reports/guards/*cleanup-memory-guard-workspace-open-project-document-open-close-200-v11.log`;
-- guard summary JSON в `tools/memlab/reports/guards/*cleanup-memory-guard-workspace-open-project-document-open-close-200-v11.json`.
-
-Reviewer должен проверять фактически созданные файлы, если они появились в final commit. Reviewer не должен ожидать fixed filename, потому что имена timestamp-based.
-
-### Memory guard verdict for this task
-
-Memory guard PASS для текущего task:
-
-- `METAFLOW_MEMORY_GUARD_STATUS=ok`;
-- `METAFLOW_MEMORY_GUARD_OTHER_LEAK=false`;
-- `METAFLOW_MEMORY_GUARD_CLASS=no_leaks` или `known_univer_leak`.
-
-`known_univer_leak` не блокирует текущий cleanup, если `OTHER_LEAK=false`.
-
-Memory guard BLOCKER для текущего task:
-
-- `METAFLOW_MEMORY_GUARD_CLASS=unknown_non_univer_leak`;
-- `METAFLOW_MEMORY_GUARD_CLASS=memlab_failed`;
-- `METAFLOW_MEMORY_GUARD_CLASS=summary_parse_failed`;
-- `METAFLOW_MEMORY_GUARD_OTHER_LEAK=true`;
-- memory guard markers отсутствуют.
-
-Если появилась новая non-Univer утечка, reviewer должен остановить обычный cleanup и вернуть `status = "question"` или `status = "escalate"` с кратким retained edge и ссылкой на committed report.
-
-### Current cleanup quality target
-
-Целевой критерий текущего cleanup: product-код после серии memory-leak попыток должен выглядеть примерно на 7.75/10 по читаемости, ответственности и отсутствию временного workaround-мусора.
-
-Codex task должен отвечать на один вопрос:
-
-- что именно в product-code выглядит как memory-leak workaround;
-- почему это криво или лишнее;
-- что удалить/упростить;
-- что оставить как нормальную product semantics;
-- какие существующие проверки запустить.
-
-### Forbidden for this task
-
-В текущем task дополнительно запрещено:
-
-- использовать React private markers: `__reactContainer$`, `_reactRootContainer`;
-- угадывать React root через DOM descendants;
-- лечить `HTMLCollection`, `CSSStyleDeclaration`, `children`, `style` как самостоятельную причину;
-- добавлять timer flushing;
-- monkey-patch `setTimeout`;
-- добавлять MessageChannel workaround;
-- добавлять delay “на всякий случай”;
-- вводить RuntimeLifecycleManager / DisposeOrchestrator / Coordinator / Manager / Framework;
-- делать cleanup ради уменьшения строк, если код сейчас понятный и корректный.
-
-### Codex result report for this task
-
-Codex result report для текущего task должен содержать:
-
-- Summary;
-- Changed files;
-- What changed by file;
-- What leak-workaround/dead/defensive code was removed or simplified;
-- What was intentionally left unchanged and why;
-- Commands run;
-- Exit codes/results;
-- Risks / open items.
-
-Не требовать `export_project_to_txt.py status` в result report для текущего task, если helper/export whitelist не затронут.
 
